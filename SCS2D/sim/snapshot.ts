@@ -198,9 +198,10 @@ export interface ShipView {
     engineTriggerReach?: number[];
     engineFiring?: boolean[];
     /**
-     * Each warhead's cone at what it is going for (`warheadCone`), three
-     * numbers a warhead in the design's order: its middle as a bearing in the
-     * world, half its width (infinite all round) and its reach, metres.
+     * Each warhead's trigger (`warheadCone`), four numbers a warhead in the
+     * design's order: its middle as a bearing in the world, half its width
+     * (infinite all round), its reach, metres, and 1 if it is going for
+     * something, else 0, when the cone is its own spread the way it points.
      */
     warheadCones?: number[];
     /**
@@ -785,12 +786,13 @@ export function capture(
             engineFiring[t] = ships.isEngineFiring(i, t);
         }
         const cones = (view.warheadCones ??= []);
-        cones.length = 3 * design.warheads.length;
+        cones.length = 4 * design.warheads.length;
         for (let w = 0; w < design.warheads.length; w++) {
-            warheadCone(ships, bodies, i, b, w, CONE);
-            cones[3 * w] = CONE.centre;
-            cones[3 * w + 1] = CONE.half;
-            cones[3 * w + 2] = CONE.reach;
+            const live = warheadCone(ships, bodies, i, b, w, CONE);
+            cones[4 * w] = CONE.centre;
+            cones[4 * w + 1] = CONE.half;
+            cones[4 * w + 2] = CONE.reach;
+            cones[4 * w + 3] = live ? 1 : 0;
         }
         const plumeLayers = (view.plumeLayers ??= []);
         plumeLayers.length = design.engines.length;

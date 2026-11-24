@@ -238,14 +238,15 @@ export function restingTriggers(view: ShipView, design: ShipDesign, attackLines 
         engineFiring[t] = true;
     }
 
-    // At rest against it, so the cone is the warhead's own.
+    // At rest against it, so the cones are the warhead's own.
     const cones = (view.warheadCones ??= []);
-    cones.length = 3 * design.warheads.length;
+    cones.length = 4 * design.warheads.length;
     for (let w = 0; w < design.warheads.length; w++) {
         const head = design.warheads[w]!;
-        cones[3 * w] = view.angle + design.modules[head.module]!.angle;
-        cones[3 * w + 1] = head.spread >= math.TAU ? Infinity : head.spread / 2;
-        cones[3 * w + 2] = head.reach;
+        cones[4 * w] = view.angle + design.modules[head.module]!.angle;
+        cones[4 * w + 1] = head.spread >= math.TAU ? Infinity : head.spread / 2;
+        cones[4 * w + 2] = head.reach;
+        cones[4 * w + 3] = 0;
     }
 }
 

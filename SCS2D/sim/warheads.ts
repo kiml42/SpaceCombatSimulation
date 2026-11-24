@@ -1,15 +1,28 @@
 import type { Bodies } from "./bodies.js";
 import type { ShipDesign } from "./blueprint.js";
-import { DamageEffect, IMPACT_BURST, resolveCollision, SHATTER, type ImpactLog } from "./damage.js";
-import { BOTH_LAYERS, HullPath, moduleLayers } from "./hull.js";
-import { abs, angleDelta, atan2, cos, log, max, min, PI, pow, sin, sqrt, TAU } from "./math.js";
-import { WARHEAD_FRAGMENT_LIFE, warheadBurst, warheadBurstSpeed, warheadSpread } from "./modules.js";
-import { fragmentLayer, ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
+import { DamageEffect, IMPACT_BURST, SHATTER, type ImpactLog } from "./damage.js";
+import { BOTH_LAYERS } from "./hull.js";
+import { abs, angleDelta, atan2, cos, max, min, PI, pow, sin, sqrt, TAU } from "./math.js";
+import {
+    backblastBearing,
+    WARHEAD_BACKBLAST_FRAGMENTS,
+    WARHEAD_FRAGMENT_LIFE,
+    WARHEAD_SIDE_FRAGMENTS,
+    WARHEAD_GAS_PARCELS,
+    WARHEAD_GAS_LIFE,
+    gasBearing,
+    warheadSideBearing,
+    warheadSideGrade,
+    warheadBurst,
+    warheadBurstSpeed,
+    warheadFragments,
+    warheadSpread,
+} from "./modules.js";
+import { fragmentLayer, type Projectiles } from "./projectiles.js";
 import * as shipAim from "./shipAim.js";
 import * as shipDocking from "./shipDocking.js";
 import * as shipOrders from "./shipOrders.js";
-import { blowKey, discardFrom, heldMass, settleMass } from "./shipBreakup.js";
-import { MOST_FRAGMENTS, WRECKAGE_LIFE, WRECKAGE_SHARE } from "./wreckage.js";
+import { blowKey, discardFrom, settleMass } from "./shipBreakup.js";
 import type { SpatialGrid } from "./spatialGrid.js";
 import { WHOLE_SHIP, type Ships } from "./ships.js";
 import { solveLead, type Lead } from "./turrets.js";
@@ -28,19 +41,12 @@ import type { World } from "./world.js";
  * a gun's does; unless a friend inside it is nearer. A collision does not: a
  * ram is still a ram.
  *
- * Going off, the casing flies out across the spread as fragments, which are
- * rounds like any other and pass through nothing of the ship that threw them
- * but the warhead itself. The fragments take `focus` of the charge's energy
- * (`warheadBurst`); the rest crushes the carrier outward from the warhead, as a
- * collision crushes a hull inward, along `BLAST_LINES` lines spread evenly over
- * the turn outside the spread. So what is behind a module is shielded by it,
- * and what a line meets nothing of goes off into space. The hull keeps the momentum the fragments
- * leave with, the other way, and the warhead itself is shattered.
- *
- * A module the blast shatters flies on as wreckage, as one a collision
- * shatters does: `WRECKAGE_SHARE` of it, away from the warhead, with half the
- * energy it took. The charge's gas takes their momentum the other way. So a
- * warhead is dangerous all round its carrier, not only across its spread.
+ * Going off, it throws its casing both ways along its axis and lighter
+ * fragments all round (`warheadBurst`), so what it throws carries no momentum
+ * away from its hull. They are rounds like any other, and pass through
+ * nothing of the ship that threw them but the warhead itself: all the harm a
+ * warhead does, to its own ship as to any other, is its fragments'. A module
+ * shields what is behind it, and a warhead inside a hull wrecks it.
  */
 
 /** How many bearings each side of its facing a burst's cone is traced through (`fragmentCone`). */
@@ -120,15 +126,6 @@ const FRAGMENT_DENSITY = 7800;
 /** How fast a warhead tops itself up from its ship's tanks, kg/s. */
 export const WARHEAD_FILL_RATE = 20;
 
-/** The share of what a module shattered by a blast took that throws its wreckage. */
-const BLAST_THROW = 0.5;
-
-/** The least a piece of it weighs, kg, so a light module breaks into fewer. */
-const LEAST_PIECE = 1;
-
-/** How far a piece strays from straight out from the warhead, radians either way. */
-const BLAST_STRAY = 0.3;
-
 /**
  * The chance a warhead holding charge goes off in a step it is damaged in,
  * while sound. It rises to certain as its integrity falls to nothing, and one
@@ -141,12 +138,6 @@ export function cookOffChance(integrity: number): number {
     const worn = integrity < 0 ? 1 : integrity > 1 ? 0 : 1 - integrity;
     return COOK_OFF_CHANCE + (1 - COOK_OFF_CHANCE) * worn;
 }
-
-/** How many lines a blast crushes its carrier along, each with an even share of it. */
-export const BLAST_LINES = 64;
-
-const path = new HullPath();
-const escaped = { left: 0 };
 
 const warheadCache = new WeakMap<ShipDesign, readonly number[]>();
 
@@ -201,9 +192,8 @@ export function detonateWarheads(ships: Ships, world: World, projectiles: Projec
  * severing, which forgets them.
  *
  * A craft parked on a pad is let off it first, so it goes as a free hull
- * does, and its blast goes on into the carrier's hull from where it leaves
- * the craft's. Not on a hull more than one ship rides, which severing does not
- * break up.
+ * does, its fragments into the carrier it sat on as into anything else. Not
+ * on a hull more than one ship rides, which severing does not break up.
  */
 export function cookOff(ships: Ships, world: World, projectiles: Projectiles, log?: ImpactLog): number {
     const damage = ships.damage;
@@ -219,10 +209,9 @@ export function cookOff(ships: Ships, world: World, projectiles: Projectiles, lo
         if (!(ships.fuel.held(b, m) > 0)) continue;
         const shattered = damage.stepJoules[e]! >= SHATTER * damage.capacityOf(b, m);
         if (!shattered && !(world.rng.nextFloat() < cookOffChance(damage.integrity(b, m)))) continue;
-        // Off its pad first, so it goes as a free hull does, into the one it sat on.
-        const carrier = ships.parkedOn[i]! >= 0 ? ships.carrierBodyOf(bodies, i) : -1;
+        // Off its pad first, so it goes as a free hull does.
         if (ships.parkedOn[i]! >= 0) shipDocking.unpark(ships, bodies, i, world.tick);
-        detonate(ships, world, projectiles, i, b, ships.designs[i]!, m, log, carrier);
+        detonate(ships, world, projectiles, i, b, ships.designs[i]!, m, log);
         count++;
     }
     return count;
@@ -245,7 +234,23 @@ export function tripped(
     dt: number,
 ): boolean {
     const w = design.warheads.findIndex((head) => head.module === m);
-    if (w < 0 || !warheadTrigger(ships, bodies, i, b, w, TRIGGER)) return false;
+    if (w < 0) return false;
+    // Either way it throws: ahead, or behind for a spray.
+    return trippedOneWay(ships, bodies, grid, i, b, w, dt, false) || trippedOneWay(ships, bodies, grid, i, b, w, dt, true);
+}
+
+/** `tripped` for the arc ahead of warhead `w`, or the one behind it. */
+function trippedOneWay(
+    ships: Ships,
+    bodies: Bodies,
+    grid: SpatialGrid,
+    i: number,
+    b: number,
+    w: number,
+    dt: number,
+    rear: boolean,
+): boolean {
+    if (!warheadTrigger(ships, bodies, i, b, w, TRIGGER, rear)) return false;
     // Within a step of its reach, at the speed the two close.
     if (TRIGGER.range > TRIGGER.reach + max(0, TRIGGER.closing) * dt) return false;
     if (TRIGGER.half !== Infinity && abs(angleDelta(TRIGGER.facing, TRIGGER.centre)) > TRIGGER.half) return false;
@@ -292,19 +297,22 @@ const LEAD: Lead = { x: 0, y: 0, t: 0, shooterVx: 0, shooterVy: 0 };
  * off at in the layers its fragments are in: one ramming a part on the deck
  * waits until it has dropped to it.
  */
-export function warheadTrigger(ships: Ships, bodies: Bodies, i: number, b: number, w: number, out: WarheadTrigger): boolean {
+export function warheadTrigger(ships: Ships, bodies: Bodies, i: number, b: number, w: number, out: WarheadTrigger, rear = false): boolean {
     const design = ships.designs[i]!;
     const head = design.warheads[w]!;
     const placed = design.modules[head.module]!;
     const spec = placed.spec;
+    const fragments = warheadFragments(spec);
     const angle = bodies.angle[b]!;
     const ox = placed.x * cos(angle) - placed.y * sin(angle);
     const oy = placed.x * sin(angle) + placed.y * cos(angle);
     const spin = bodies.angularVel[b]!;
     out.x = bodies.x[b]! + ox;
     out.y = bodies.y[b]! + oy;
-    out.facing = angle + placed.angle;
+    out.facing = angle + placed.angle + (rear ? PI : 0);
     out.target = -1;
+    // A slug's backblast is no trigger.
+    if (rear && fragments === 1) return false;
     const order = shipOrders.effectiveOrder(ships, i);
     const target = order !== undefined && order.target >= 0 ? order.target : ships.chosenOf(i);
     if (target < 0 || ships.alive[target] !== 1 || !ships.hostile(i, target)) return false;
@@ -314,7 +322,6 @@ export function warheadTrigger(ships: Ships, bodies: Bodies, i: number, b: numbe
     // The part it rams, while it is there.
     const rammed = order?.ram === true ? ships.ramPart[i]! : WHOLE_SHIP;
     const part = rammed >= 0 && rammed < theirs.modules.length && !ships.damage.spent(tb, rammed) ? rammed : WHOLE_SHIP;
-    const fragments = spec.fragments !== undefined && spec.fragments > 1 ? spec.fragments : 1;
     // A lone slug is in its warhead's layer; a spray lands in either, as a shell's does.
     const layers = fragments > 1 ? BOTH_LAYERS : shipAim.firedLayers(ships, i, b, design, head.module);
     if (part >= 0 ? !shipAim.reaches(ships, layers, theirs, tb, target, part) : !shipAim.meetsWhole(ships, layers, target)) return false;
@@ -409,27 +416,34 @@ function within(speed: number, rvx: number, rvy: number, nose: number, centre: n
 }
 
 /**
- * The trigger warhead `w` of ship `i`, on body `b`, draws, as a gun's wedge
- * is drawn: about the bearing its lead says to point it along, as wide as it
- * may go off off that, out to its reach (`warheadTrigger`). With nothing to go
- * off at, its own spread the way it points.
+ * The trigger warhead `w` of ship `i`, on body `b`, draws, as a gun's wedge is
+ * drawn: about the bearing its lead says to throw along, as wide as it may go
+ * off off that, out to its reach (`warheadTrigger`). A spray goes off with
+ * either end that way, since a fragment thrown at the target flies the same
+ * from either. With nothing to go off at, its own spread the way it points.
+ * Returns whether it is going for something.
  */
-export function warheadCone(ships: Ships, bodies: Bodies, i: number, b: number, w: number, out: FragmentCone): FragmentCone {
+export function warheadCone(ships: Ships, bodies: Bodies, i: number, b: number, w: number, out: FragmentCone): boolean {
     if (warheadTrigger(ships, bodies, i, b, w, TRIGGER)) {
         out.centre = TRIGGER.centre;
         out.half = TRIGGER.half;
         out.reach = TRIGGER.reach;
-        return out;
+        return true;
     }
     const design = ships.designs[i]!;
     const head = design.warheads[w]!;
     out.centre = bodies.angle[b]! + design.modules[head.module]!.angle;
     out.half = head.spread >= TAU ? Infinity : head.spread / 2;
     out.reach = head.reach;
-    return out;
+    return false;
 }
 
-/** Set off warhead `m` of ship `i`, on body `b`. */
+/**
+ * Set off warhead `m` of ship `i`, on body `b`: its casing thrown ahead,
+ * behind and all round (`warheadBurst`), each fragment one way and its twin
+ * the other, so they carry no momentum away from the hull. They hit what is
+ * in their way, the ship that threw them included, and the warhead is gone.
+ */
 export function detonate(
     ships: Ships,
     world: World,
@@ -439,8 +453,6 @@ export function detonate(
     design: ShipDesign,
     m: number,
     log?: ImpactLog,
-    /** The body of the hull it was parked on, which its blast goes on into; -1 for none. */
-    carrier = -1,
 ): void {
     const bodies = world.bodies;
     const rng = world.rng;
@@ -457,177 +469,122 @@ export function detonate(
     discardFrom(ships, bodies, b, mass, inertia);
 
     const angle = bodies.angle[b]!;
-    const c = cos(angle);
-    const s = sin(angle);
-    const ox = placed.x * c - placed.y * s;
-    const oy = placed.x * s + placed.y * c;
-    const wx = bodies.x[b]! + ox;
-    const wy = bodies.y[b]! + oy;
+    const ox = placed.x * cos(angle) - placed.y * sin(angle);
+    const oy = placed.x * sin(angle) + placed.y * cos(angle);
     const spin = bodies.angularVel[b]!;
-    const vx = bodies.vx[b]! - spin * oy;
-    const vy = bodies.vy[b]! + spin * ox;
+    BLAST.x = bodies.x[b]! + ox;
+    BLAST.y = bodies.y[b]! + oy;
+    BLAST.vx = bodies.vx[b]! - spin * oy;
+    BLAST.vy = bodies.vy[b]! + spin * ox;
+    BLAST.px = 0;
+    BLAST.py = 0;
+    BLAST.home = shipAim.firedLayers(ships, i, b, design, m);
     const facing = angle + placed.angle;
-
-    // The casing, out across the spread: each fragment in its own slice of it.
     const n = burst.fragments;
-    const home = shipAim.firedLayers(ships, i, b, design, m);
-    const each = casing / n;
-    const width = pow(each / FRAGMENT_DENSITY, 1 / 3);
-    const all = burst.spread >= TAU;
-    let px = 0;
-    let py = 0;
-    if (each > 0) {
+
+    if (n === 1) {
+        // Its liner ahead, as a jet and the slug following it, and its back plate behind.
+        throwOne(projectiles, rng, i, b, m, facing, burst.speed, burst.each, true);
+        throwOne(projectiles, rng, i, b, m, facing, burst.slugSpeed, burst.slugEach, true);
+        for (let k = 0; k < WARHEAD_BACKBLAST_FRAGMENTS; k++) {
+            throwOne(projectiles, rng, i, b, m, facing + PI + backblastBearing(k, rng.nextFloat()), burst.backSpeed, burst.backEach, false);
+        }
+    } else {
+        // Across the spread ahead, each in its own slice of it, and its mirror behind.
+        const all = burst.spread >= TAU;
         for (let k = 0; k < n; k++) {
-            const slice = n === 1 && !all ? 0.5 : (k + rng.nextFloat()) / n;
+            const slice = (k + rng.nextFloat()) / n;
             const heading = facing + (all ? slice * TAU : (slice - 0.5) * burst.spread);
-            const ux = cos(heading) * burst.speed;
-            const uy = sin(heading) * burst.speed;
-            const round = projectiles.spawnRaw(
-                wx,
-                wy,
-                vx + ux,
-                vy + uy,
-                width,
-                WARHEAD_FRAGMENT_LIFE,
-                each,
-                0,
-                0,
+            throwOne(projectiles, rng, i, b, m, heading, burst.speed, burst.each, false);
+            throwOne(projectiles, rng, i, b, m, heading + PI, burst.backSpeed, burst.backEach, false);
+        }
+    }
+    // Outside the arcs, lighter and slower away from them: a spray's twinned across the hull, a slug's across its axis.
+    if (burst.sideEach > 0) {
+        for (let k = 0; k < WARHEAD_SIDE_FRAGMENTS / 2; k++) {
+            const bearing = warheadSideBearing(n, burst.spread, k, rng.nextFloat());
+            const g = warheadSideGrade(n, k);
+            throwOne(projectiles, rng, i, b, m, facing + bearing, g * burst.sideSpeed, g * burst.sideEach, false);
+            throwOne(
+                projectiles,
+                rng,
+                i,
                 b,
-                0,
                 m,
-                fragmentLayer(home, rng, n === 1),
+                facing + (n === 1 ? -bearing : bearing + PI),
+                g * burst.sideSpeed,
+                g * burst.sideEach,
+                false,
             );
-            projectiles.ship[round] = i;
-            projectiles.fragment[round] = 1;
-            px += each * ux;
-            py += each * uy;
         }
     }
 
-    // The hull keeps what they left with, the other way.
-    bodies.vx[b] = bodies.vx[b]! - px * bodies.invMass[b]!;
-    bodies.vy[b] = bodies.vy[b]! - py * bodies.invMass[b]!;
-    bodies.angularVel[b] = bodies.angularVel[b]! - (ox * py - oy * px) * bodies.invInertia[b]!;
+    // The gas, which carries off the momentum they leave and harms what is close behind it.
+    if (burst.gasSpeed > 0) {
+        const way = facing + (burst.gas < 0 ? PI : 0);
+        for (let k = 0; k < WARHEAD_GAS_PARCELS; k++) {
+            const heading = way + gasBearing(k, rng.nextFloat());
+            throwOne(projectiles, rng, i, b, m, heading, burst.gasSpeed, burst.gasEach, true, placed.spec.width, WARHEAD_GAS_LIFE);
+        }
+    }
+    // What little their momentum does not cancel to, the gas carries off unseen.
+    ships.discardedPx -= BLAST.px;
+    ships.discardedPy -= BLAST.py;
+    ships.discardedL -= BLAST.x * BLAST.py - BLAST.y * BLAST.px;
     // The warhead is counted discarded when it goes, at its hull's velocity then;
-    // its casing flew on, and is counted here instead, as it was before it flew.
-    ships.discarded -= casing;
-    ships.discardedPx -= casing * vx;
-    ships.discardedPy -= casing * vy;
-    ships.discardedL -= casing * (wx * vy - wy * vx);
-
-    // What the fragments did not take, into the rest of the hull: a crush out
-    // along each of `BLAST_LINES` lines across the turn outside the spread.
-    const blast = (1 - burst.focus) * burst.energy;
-    const arc = TAU - burst.spread;
-    if (blast > 0 && arc > 0) {
-        for (let k = 0; k < BLAST_LINES; k++) {
-            const heading = facing + 0.5 * burst.spread + ((k + 0.5) * arc) / BLAST_LINES;
-            const ux = cos(heading);
-            const uy = sin(heading);
-            resolveCollision(design, damage, bodies, b, path, wx, wy, ux, uy, blast / BLAST_LINES, 0, 0, m, escaped);
-            // What came out of its own hull goes on into the one it sat on.
-            const under = carrier >= 0 && escaped.left > 0 ? ships.designOf(carrier) : null;
-            if (under !== null) resolveCollision(under, damage, bodies, carrier, path, wx, wy, ux, uy, escaped.left);
-        }
-    }
+    // its casing and any gas thrown flew on, and are counted here instead, as they were before they flew.
+    const flown = casing + (burst.gasSpeed > 0 ? burst.charge : 0);
+    ships.discarded -= flown;
+    ships.discardedPx -= flown * BLAST.vx;
+    ships.discardedPy -= flown * BLAST.vy;
+    ships.discardedL -= flown * (BLAST.x * BLAST.vy - BLAST.y * BLAST.vx);
     // And the warhead is gone.
     damage.absorb(b, m, SHATTER * damage.capacityOf(b, m) * 2);
     ships.thrown.add(blowKey(b, m));
-    throwBlasted(ships, bodies, projectiles, rng, i, b, design, m, wx, wy);
-    const under = carrier >= 0 ? ships.designOf(carrier) : null;
-    if (under !== null && (ships.shipByBody[carrier] ?? -1) >= 0 && ships.pilots[carrier] == null) {
-        throwBlasted(ships, bodies, projectiles, rng, i, carrier, under, -1, wx, wy);
-    }
-    log?.push(wx, wy, burst.energy, IMPACT_BURST, undefined, -1, vx, vy, burst.speed);
+    log?.push(BLAST.x, BLAST.y, burst.energy, IMPACT_BURST, undefined, -1, BLAST.vx, BLAST.vy, burst.speed);
 }
 
-const masses: number[] = [];
+/** Where a warhead going off is, how it moves, what it has thrown, and the layer it throws from. */
+const BLAST = { x: 0, y: 0, vx: 0, vy: 0, px: 0, py: 0, home: 0 };
 
 /**
- * Throw on as wreckage every module of the hull on body `b` this step's blows
- * shattered, but `m`, away from a blast at (`wx`, `wy`), credited to ship `i`.
+ * Throw one fragment of `each` kg from the warhead at `BLAST` along
+ * `heading` at `speed`, into a layer as a shell's fragments land
+ * (`fragmentLayer`): passing through nothing of ship `i` but warhead `m`.
  */
-function throwBlasted(
-    ships: Ships,
-    bodies: Bodies,
+function throwOne(
     projectiles: Projectiles,
     rng: World["rng"],
     i: number,
     b: number,
-    design: ShipDesign,
     m: number,
-    wx: number,
-    wy: number,
+    heading: number,
+    speed: number,
+    each: number,
+    lone: boolean,
+    width = pow(each / FRAGMENT_DENSITY, 1 / 3),
+    life = WARHEAD_FRAGMENT_LIFE,
 ): void {
-    const damage = ships.damage;
-    const angle = bodies.angle[b]!;
-    const c = cos(angle);
-    const s = sin(angle);
-    const spin = bodies.angularVel[b]!;
-    const layers = ships.layersOf(b);
-    let gasX = 0;
-    let gasY = 0;
-    let gasL = 0;
-    for (let e = 0; e < damage.stepCount; e++) {
-        if (damage.stepBody[e] !== b) continue;
-        const k = damage.stepModule[e]!;
-        const capacity = damage.capacityOf(b, k);
-        if (k === m || !(capacity > 0) || damage.stepJoules[e]! < SHATTER * capacity) continue;
-        if (ships.thrown.has(blowKey(b, k))) continue;
-        ships.thrown.add(blowKey(b, k));
-        const other = design.modules[k]!;
-        const mass = WRECKAGE_SHARE * heldMass(ships, b, design, k);
-        if (!(mass > 0)) continue;
-        const speed = sqrt((2 * BLAST_THROW * damage.stepJoules[e]!) / mass);
-        // Where it is and how it was moving, in the world.
-        const rx = other.x * c - other.y * s;
-        const ry = other.x * s + other.y * c;
-        const mx = bodies.x[b]! + rx;
-        const my = bodies.y[b]! + ry;
-        const vx = bodies.vx[b]! - spin * ry;
-        const vy = bodies.vy[b]! + spin * rx;
-        // Straight out from the warhead.
-        const out = atan2(my - wy, mx - wx);
-
-        const count = min(MOST_FRAGMENTS, max(1, (mass / LEAST_PIECE) | 0), 2 + ((rng.nextFloat() * (MOST_FRAGMENTS - 1)) | 0));
-        let total = 0;
-        for (let f = 0; f < count; f++) {
-            masses[f] = -log(1 - rng.nextFloat() * 0.999999);
-            total += masses[f]!;
-        }
-        for (let f = 0; f < count; f++) {
-            const piece = (mass * masses[f]!) / total;
-            const heading = out + (rng.nextFloat() * 2 - 1) * BLAST_STRAY;
-            const ux = cos(heading) * speed;
-            const uy = sin(heading) * speed;
-            const across = (rng.nextFloat() - 0.5) * other.spec.width;
-            const x = mx - s * across;
-            const y = my + c * across;
-            gasX += piece * ux;
-            gasY += piece * uy;
-            gasL += piece * (x * uy - y * ux);
-            // Counted discarded whole when its module goes; it is counted here instead.
-            ships.discardedL -= piece * (x * vy - y * vx);
-            projectiles.spawn({
-                x,
-                y,
-                vx: vx + ux,
-                vy: vy + uy,
-                width: pow(piece / FRAGMENT_DENSITY, 1 / 3),
-                ttl: WRECKAGE_LIFE,
-                mass: piece,
-                owner: b,
-                ship: i,
-                layers: moduleLayers(other, layers),
-                kind: ROUND_WRECKAGE,
-            });
-        }
-        ships.discarded -= mass;
-        ships.discardedPx -= mass * vx;
-        ships.discardedPy -= mass * vy;
-    }
-    // The gas went the other way.
-    ships.discardedPx -= gasX;
-    ships.discardedPy -= gasY;
-    ships.discardedL -= gasL;
+    if (!(each > 0)) return;
+    const ux = cos(heading) * speed;
+    const uy = sin(heading) * speed;
+    const round = projectiles.spawnRaw(
+        BLAST.x,
+        BLAST.y,
+        BLAST.vx + ux,
+        BLAST.vy + uy,
+        width,
+        life,
+        each,
+        0,
+        0,
+        b,
+        0,
+        m,
+        fragmentLayer(BLAST.home, rng, lone),
+    );
+    projectiles.ship[round] = i;
+    projectiles.fragment[round] = 1;
+    BLAST.px += each * ux;
+    BLAST.py += each * uy;
 }

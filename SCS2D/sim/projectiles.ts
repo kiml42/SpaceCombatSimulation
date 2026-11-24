@@ -67,6 +67,12 @@ export const NO_OWNER = -1;
 /** A projectile in open flight rather than passing through a hull. */
 export const NOT_INSIDE = -1;
 
+/**
+ * A `fromModule` that names no module, so a round with an owner spares none
+ * of it: a piece broken off a hull, which is no part of it any more.
+ */
+export const SPARES_NONE = 0x7fffffff;
+
 /** The chance a fragment lands in the layer its round was in, rather than the other. */
 export const FRAGMENT_STAYS = 0.75;
 

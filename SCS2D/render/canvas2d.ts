@@ -1575,10 +1575,11 @@ function drawLoad(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, mx: 
 }
 
 /**
- * Where each warhead will go off at: the cone its fragments fly in at what it
- * is going for, its own velocity added, out to their reach, as a gun's wedge
- * is drawn; and a line the way it points. Fouled once its fuze is dead
- * (`DUD_INTEGRITY`).
+ * Where each warhead will go off: the cone its fragments must be thrown in at
+ * what it is going for, out to their reach, as a gun's wedge is drawn, and a
+ * line the way its nose points; for a spray, which throws both ways, one the
+ * way its tail points too, and it goes off with either in the cone. At rest,
+ * its spread each way it throws. Fouled once its fuze is dead (`DUD_INTEGRITY`).
  */
 function drawWarheadTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
     const design = ship.currentStructure;
@@ -1592,30 +1593,37 @@ function drawWarheadTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metr
         const head = design.warheads[w]!;
         const module = design.modules[head.module];
         if (module === undefined) continue;
-        const facing = ship.angle + module.angle;
-        const centre = cones?.[3 * w] ?? facing;
-        const half = cones?.[3 * w + 1] ?? (head.spread >= TAU ? Infinity : head.spread / 2);
-        const reach = cones?.[3 * w + 2] ?? head.reach;
-        if (!(reach > 0)) continue;
         const x = ship.x + module.x * c - module.y * s;
         const y = ship.y + module.x * s + module.y * c;
         const tint = (ship.integrity[head.module] ?? 1) <= DUD_INTEGRITY ? TRIGGER_FOULED : TRIGGER_OFF;
         ctx.fillStyle = tint;
         ctx.strokeStyle = tint;
-        ctx.beginPath();
-        // All round, a ring with no edges to draw; else a wedge from the warhead.
-        if (half === Infinity) ctx.arc(x, y, reach, 0, TAU);
-        else {
-            ctx.moveTo(x, y);
-            ctx.arc(x, y, reach, centre - half, centre + half);
-            ctx.closePath();
+        const nose = ship.angle + module.angle;
+        const centre = cones?.[4 * w] ?? nose;
+        const half = cones?.[4 * w + 1] ?? (head.spread >= TAU ? Infinity : head.spread / 2);
+        const reach = cones?.[4 * w + 2] ?? head.reach;
+        const live = cones?.[4 * w + 3] === 1;
+        const spray = head.spread > 0;
+        if (!(reach > 0)) continue;
+        for (let side = 0; side < (spray && !live ? 2 : 1); side++) {
+            ctx.beginPath();
+            // All round, a ring with no edges to draw; else a wedge from the warhead.
+            if (half === Infinity) ctx.arc(x, y, reach, 0, TAU);
+            else {
+                ctx.moveTo(x, y);
+                ctx.arc(x, y, reach, centre + side * PI - half, centre + side * PI + half);
+                ctx.closePath();
+            }
+            ctx.fill();
+            ctx.stroke();
         }
-        ctx.fill();
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + cos(facing) * reach, y + sin(facing) * reach);
-        ctx.stroke();
+        for (let side = 0; side < (spray ? 2 : 1); side++) {
+            const along = nose + side * PI;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + cos(along) * reach, y + sin(along) * reach);
+            ctx.stroke();
+        }
     }
     ctx.restore();
 }
@@ -2296,8 +2304,7 @@ function shadeDome(ctx: CanvasRenderingContext2D, x: number, y: number, radius: 
  * bronze rods with round ends, shaded as such in `light`.
  */
 function drawWarheadLines(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: number, light: Light | undefined, thick: boolean): void {
-    const { width, ends } = warheadLines(spec);
-    const r = width / 2;
+    const { widths, ends } = warheadLines(spec);
     const slope = light === undefined ? null : lightSlope(light);
     const level: Level = thick ? "thick" : "deck";
     ctx.globalAlpha = 1;
@@ -2309,6 +2316,8 @@ function drawWarheadLines(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle
         const dy = ends[k + 3]! - y0;
         const span = length(dx, dy);
         const along = math.atan2(dy, dx);
+        const width = widths[k / 4]!;
+        const r = width / 2;
         ctx.save();
         ctx.translate(x0, y0);
         ctx.rotate(along);

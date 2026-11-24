@@ -1,5 +1,6 @@
 import { abs, angleDelta, atan2, max, min, normalizeAngle, PI, TAU } from "./math.js";
 import type { DesignWarhead, ShipDesign } from "./blueprint.js";
+import { warheadFragments } from "./modules.js";
 
 /**
  * Which way round a ship fights: the bearing off its bow it wants its target
@@ -60,6 +61,22 @@ export class AttackArcs {
         }
         this.guns++;
         this.piece(from, width, slowness);
+    }
+
+    /**
+     * A weapon that bears from `from` anticlockwise through `width` and the same
+     * the opposite way, as a warhead throwing both ways does: one weapon in two
+     * pieces, or all round once they meet.
+     */
+    addBothWays(from: number, width: number, speed: number): void {
+        if (width >= PI) {
+            this.add(from, TAU, speed);
+            return;
+        }
+        this.guns++;
+        const slowness = speed > 0 ? 1 / speed : 0;
+        this.piece(from, width, slowness);
+        this.piece(from + PI, width, slowness);
     }
 
     private piece(from: number, width: number, slowness: number): void {
@@ -303,10 +320,12 @@ export function designArcs(design: ShipDesign, out: AttackArcs): AttackArcs {
 /** The narrowest a warhead bears through, radians: a single slug's, which goes straight ahead. */
 const SLUG_ARC = (2 * PI) / 180;
 
-/** A warhead's spread about its facing, as wide as a slug's at least. */
+/** A warhead's spread about its facing, as wide as a slug's at least; and the same behind, for a spray, which throws both ways. */
 export function addWarhead(out: AttackArcs, design: ShipDesign, head: DesignWarhead): void {
     const width = head.spread > SLUG_ARC ? head.spread : SLUG_ARC;
-    out.add(design.modules[head.module]!.angle - width / 2, width, 0);
+    const placed = design.modules[head.module]!;
+    if (warheadFragments(placed.spec) > 1) out.addBothWays(placed.angle - width / 2, width, 0);
+    else out.add(placed.angle - width / 2, width, 0);
 }
 
 /** A mount's arc, as its spec gives it, less its trigger mask: right round when it gives none. */

@@ -1,5 +1,4 @@
 import {
-    DEFAULT_WARHEAD_FRAGMENTS,
     engineGeometry,
     hullMountGeometry,
     isHullMount,
@@ -10,6 +9,12 @@ import {
     type ModuleSpec,
     type ShipDesign,
     type ShipView,
+    WARHEAD_BACKBLAST_FRAGMENTS,
+    WARHEAD_BACKBLAST_SPREAD,
+    WARHEAD_SIDE_FRAGMENTS,
+    warheadFragments,
+    warheadSideBearing,
+    warheadSideGrade,
     warheadSpread,
 } from "../sim/index.js";
 import { engineLayout } from "./engineLayout.js";
@@ -44,10 +49,12 @@ export const BARREL = "#8f6f25";
  */
 const WARHEAD_LINE_SHARE = 0.12;
 const WARHEAD_LINE_MOST = 0.3;
-/** The most lines a fan of fragments is drawn as, and an all-round burst: fewer where they would not fit. */
+/** The most lines each arc is drawn as, and an all-round burst: fewer where they would not fit. */
 const WARHEAD_FAN_LINES = 5;
 const WARHEAD_RING_LINES = 6;
-/** How far short of the middle a lone line stops, as a share of the shorter half side. */
+/** Lines down each side, outside the arcs. */
+const WARHEAD_SIDE_LINES = 2;
+/** How far short of the middle the lines stop at least, as a share of the shorter half side. */
 const WARHEAD_LINE_HUB = 0.2;
 /** The hull left between a line's end and the module's edge, as a share of the line's width. */
 const WARHEAD_LINE_GAP = 0.5;
@@ -57,54 +64,100 @@ const WARHEAD_LINES_INSET = 0.12;
 const WARHEAD_LINES_APART = 0.4;
 /** How far towards the edge the lines may stop to keep apart before they narrow instead, as a share of the shorter half side. */
 const WARHEAD_LINES_HUB_MOST = 0.6;
-/** The narrowest the lines are drawn to keep apart, as a share of their width, before there are fewer of them. */
+/** The narrowest an arc's lines are drawn to keep apart, as a share of their width, before there are fewer of them. */
 const WARHEAD_LINES_THINNEST = 0.6;
 
+/** A warhead's lines (`warheadLines`): x0, y0 (outer), x1, y1 (inner) for each in `ends`, and each one's width. */
+export interface WarheadLines {
+    ends: number[];
+    widths: number[];
+}
+
 /**
- * A warhead's bronze lines, in its own frame: one along each of a few of the
- * bearings its fragments fly at, from near its edge in towards its middle, the
- * outer two at the edges of its spread, and a single slug's down its centre line.
- * `ends` holds x0, y0 (outer), x1, y1 (inner) for each; `width` is each line's.
+ * A warhead's bronze lines, in its own frame, from near its edge in towards
+ * its middle along a few of the bearings its fragments fly at, as it throws
+ * them (`warheadBurst`): a spray's arc ahead and its mirror behind, their outer
+ * lines at the arcs' edges; a slug's down its centre line and its back plate's
+ * arc behind; and down each side, outside the arcs, thinner as the side
+ * fragments there are lighter and slower (`warheadSideGrade`). A spray whose
+ * arcs meet is drawn as spokes all round.
  */
-export function warheadLines(spec: ModuleSpec): { width: number; ends: number[] } {
-    const fragments = spec.fragments ?? DEFAULT_WARHEAD_FRAGMENTS;
+export function warheadLines(spec: ModuleSpec): WarheadLines {
+    const fragments = warheadFragments(spec);
     const spread = warheadSpread(spec);
     const l = spec.length / 2;
     const w = spec.width / 2;
     const short = Math.min(l, w);
     const share = WARHEAD_LINE_SHARE * (spec.reinforcement ?? 1);
-    const ring = spread >= 2 * Math.PI;
     const full = 2 * short * (share < WARHEAD_LINE_MOST ? share : WARHEAD_LINE_MOST);
-    let count = spread > 0 ? Math.max(1, Math.min(fragments, ring ? WARHEAD_RING_LINES : WARHEAD_FAN_LINES)) : 1;
-    let width = full;
-    let hub = Math.max(short * WARHEAD_LINE_HUB, width / 2);
-    let inset = 0;
-    if (count > 1) {
-        // Stopping far enough out that neighbours' round ends keep apart; narrower where that is too far,
-        // and fewer where they would narrow past `WARHEAD_LINES_THINNEST`.
-        const far = short * WARHEAD_LINES_HUB_MOST;
-        for (; ; count--) {
-            const step = ring ? (2 * Math.PI) / count : spread / (count - 1);
-            const chord = 2 * Math.sin(Math.min(step, Math.PI) / 2);
+    const far = short * WARHEAD_LINES_HUB_MOST;
+    const slug = fragments === 1;
+    // Bearing and width of each, before they are kept apart.
+    const lines: [number, number][] = [];
+    if (!slug && spread >= Math.PI) {
+        const count = Math.min(fragments * 2, WARHEAD_RING_LINES);
+        for (let k = 0; k < count; k++) lines.push([(k / count) * 2 * Math.PI, full]);
+    } else {
+        // The arcs: a spray's both ways, or a slug's back plate behind it and its slug ahead.
+        const arc = slug ? WARHEAD_BACKBLAST_SPREAD : spread;
+        const behind = slug ? WARHEAD_BACKBLAST_FRAGMENTS : fragments;
+        let count = Math.max(1, Math.min(behind, WARHEAD_FAN_LINES));
+        let width = full;
+        // Narrower where they would crowd at `far`, and fewer where they would narrow past `WARHEAD_LINES_THINNEST`.
+        for (; count > 1; count--) {
+            const chord = 2 * Math.sin(arc / (count - 1) / 2);
             width = Math.min(full, (far * chord) / (1 + WARHEAD_LINES_APART));
-            if (width >= full * WARHEAD_LINES_THINNEST || count === 2) {
-                hub = Math.max(hub, Math.min((width * (1 + WARHEAD_LINES_APART)) / chord, far));
-                break;
-            }
+            if (width >= full * WARHEAD_LINES_THINNEST || count === 2) break;
         }
-        inset = short * WARHEAD_LINES_INSET;
+        for (let k = 0; k < count; k++) {
+            const off = count === 1 ? 0 : (k / (count - 1) - 0.5) * arc;
+            lines.push([Math.PI + off, width]);
+            if (!slug) lines.push([off, width]);
+        }
+        if (slug) lines.push([0, full]);
+        // The sides, each slot's grade the share of an arc's edge fragment it weighs and goes at.
+        const slots = WARHEAD_SIDE_FRAGMENTS / 2;
+        for (let j = 0; j < WARHEAD_SIDE_LINES; j++) {
+            const k = Math.floor(((j + 0.5) / WARHEAD_SIDE_LINES) * slots);
+            const bearing = warheadSideBearing(fragments, spread, k);
+            const side = width * Math.sqrt(warheadSideGrade(fragments, k));
+            // A spray's twin is opposite it; a slug's, mirrored across its axis.
+            lines.push([bearing, side], [slug ? -bearing : bearing + Math.PI, side]);
+        }
     }
+    // Stopping far enough out that neighbours' round ends keep apart, or all narrower where that is too far.
+    lines.sort((p, q) => norm(p[0]) - norm(q[0]));
+    let hub = short * WARHEAD_LINE_HUB;
+    for (const [, width] of lines) hub = Math.max(hub, width / 2);
+    for (let i = 0; lines.length > 1 && i < lines.length; i++) {
+        const [b0, w0] = lines[i]!;
+        const [b1, w1] = lines[(i + 1) % lines.length]!;
+        const gap = norm(b1 - b0) || 2 * Math.PI;
+        const chord = 2 * Math.sin(Math.min(gap, Math.PI) / 2);
+        hub = Math.max(hub, (((w0 + w1) / 2) * (1 + WARHEAD_LINES_APART)) / chord);
+    }
+    const narrow = hub > far ? far / hub : 1;
+    if (narrow < 1) hub = far;
+    const inset = lines.length > 1 ? short * WARHEAD_LINES_INSET : 0;
     const ends: number[] = [];
-    for (let k = 0; k < count; k++) {
-        const bearing = ring ? (k / count) * 2 * Math.PI : count === 1 ? 0 : (k / (count - 1) - 0.5) * spread;
+    const widths: number[] = [];
+    for (const [bearing, wide] of lines) {
+        const width = wide * narrow;
         const ux = Math.cos(bearing);
         const uy = Math.sin(bearing);
         // To the box's edge along it, less the line's round end and a gap.
         const edge = Math.min(Math.abs(ux) > 1e-9 ? l / Math.abs(ux) : Infinity, Math.abs(uy) > 1e-9 ? w / Math.abs(uy) : Infinity);
         const outer = Math.max(hub, edge - width / 2 - width * WARHEAD_LINE_GAP - inset);
         ends.push(ux * outer, uy * outer, ux * hub, uy * hub);
+        widths.push(width);
     }
-    return { width, ends };
+    return { ends, widths };
+}
+
+/** An angle brought into [0, 2π). */
+function norm(angle: number): number {
+    const turn = 2 * Math.PI;
+    return ((angle % turn) + turn) % turn;
 }
 
 /** How much of a slipway's width each side rail takes, and of its length the feed block aft. */
