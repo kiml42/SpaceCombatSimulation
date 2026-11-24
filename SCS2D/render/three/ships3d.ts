@@ -732,12 +732,10 @@ function build(ship: ShipView): { model: BufferGeometry; worn: Map<number, Buffe
     return { model: base.geometry(), worn, patterned };
 }
 
-/** How far a warhead's rods stand clear of its top at least: as high as canvas2d.ts lays its gauge, so they show over it. */
-const ROD_LIFT = 0.05;
 /** Steps round each of a rod's round ends. */
 const ROD_END_STEPS = 6;
 
-/** A warhead's rods (`warheadLines`) as capsules lying on top of its block, `half` its depth. */
+/** A warhead's rods (`warheadLines`) as capsules half sunk into the top of its block, `half` its depth. */
 function warheadRods(b: Builder, m: { x: number; y: number; angle: number; spec: ModuleSpec }, half: number, rgb: readonly number[]): void {
     const { widths, ends } = warheadLines(m.spec);
     const z = b.z;
@@ -763,7 +761,7 @@ function warheadRods(b: Builder, m: { x: number; y: number; angle: number; spec:
         const dy = ends[k + 3]! - y0;
         const r = widths[k / 4]! / 2;
         b.place(m.x + x0 * c - y0 * s, m.y + x0 * s + y0 * c, m.angle + Math.atan2(dy, dx), z);
-        b.lathe(profile(Math.hypot(dx, dy), r), 0, half + Math.max(r, ROD_LIFT), 1, rgb, false);
+        b.lathe(profile(Math.hypot(dx, dy), r), 0, half, 1, rgb, false);
     }
     b.place(m.x, m.y, m.angle, z);
 }

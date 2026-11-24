@@ -1042,6 +1042,8 @@ function drawHull(
                 // strength however torn the store, since a wreck's load is still there
                 // for a claw to take.
                 const inset = min(spec.length, spec.width) * TANK_INSET;
+                // In 3D, a warhead's gauge lies all but on its top, under the rods standing half out of it.
+                if (spec.kind === "warhead") fx?.on(fx.moduleTop(ship, i) + GAUGE_UNDER_RODS);
                 const share = gaugeStep(
                     (spec.kind === "tank" || spec.kind === "warhead"
                         ? ship.fuel?.[i]
@@ -2926,6 +2928,8 @@ let solid = false;
 let fx: Solid3D | null = null;
 /** How far above a module's top what is drawn on it lies in 3D, metres, so the top does not hide it. */
 const ON_TOP = 0.05;
+/** How far above a warhead's top its gauge lies in 3D, metres: under the thinnest of its rods' tops. */
+const GAUGE_UNDER_RODS = 0.002;
 /** Where rounded parts are recorded while the main view is drawn, and nowhere otherwise. */
 let rounded: RoundedParts | null = null;
 /** A barrel's colour, as its channels. */
