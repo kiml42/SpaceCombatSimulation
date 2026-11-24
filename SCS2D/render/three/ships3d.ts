@@ -739,13 +739,12 @@ const ROD_END_STEPS = 6;
 
 /** A warhead's rods (`warheadLines`) as capsules lying on top of its block, `half` its depth. */
 function warheadRods(b: Builder, m: { x: number; y: number; angle: number; spec: ModuleSpec }, half: number, rgb: readonly number[]): void {
-    const { width, ends } = warheadLines(m.spec);
-    const r = width / 2;
+    const { widths, ends } = warheadLines(m.spec);
     const z = b.z;
     const c = Math.cos(m.angle);
     const s = Math.sin(m.angle);
     // A profile of x and radius: a half circle at each end of a straight run.
-    const profile = (span: number): number[] => {
+    const profile = (span: number, r: number): number[] => {
         const p: number[] = [];
         for (let k = 0; k <= ROD_END_STEPS; k++) {
             const a = (k / ROD_END_STEPS) * (Math.PI / 2);
@@ -762,8 +761,9 @@ function warheadRods(b: Builder, m: { x: number; y: number; angle: number; spec:
         const y0 = ends[k + 1]!;
         const dx = ends[k + 2]! - x0;
         const dy = ends[k + 3]! - y0;
+        const r = widths[k / 4]! / 2;
         b.place(m.x + x0 * c - y0 * s, m.y + x0 * s + y0 * c, m.angle + Math.atan2(dy, dx), z);
-        b.lathe(profile(Math.hypot(dx, dy)), 0, half + Math.max(r, ROD_LIFT), 1, rgb, false);
+        b.lathe(profile(Math.hypot(dx, dy), r), 0, half + Math.max(r, ROD_LIFT), 1, rgb, false);
     }
     b.place(m.x, m.y, m.angle, z);
 }
