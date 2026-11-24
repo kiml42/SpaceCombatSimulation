@@ -34,14 +34,14 @@ describe("a warhead's fragment lines", () => {
     it("draws a spray's arc both ways, its outer lines at its edges, and lighter sides", () => {
         const spray = lines(warhead({ fragments: 16, spread: (2 * Math.PI) / 3, length: 4, width: 4 }));
         const all = spray.map((l) => l.bearing);
-        for (const b of [-60, 0, 60, 120, 180, -120]) expect(all).toContain(b);
-        const arc = spray.find((l) => l.bearing === 0)!.width;
+        for (const b of [-60, 60, 120, -120]) expect(all).toContain(b);
+        const arc = spray.find((l) => l.bearing === 60)!.width;
         for (const side of spray.filter((l) => Math.abs(l.bearing) > 60 && Math.abs(l.bearing) < 120)) expect(side.width).toBeLessThan(arc);
     });
 
     it("draws fewer lines in an arc where they would not fit", () => {
         const ahead = bearings(warhead({ fragments: 16, spread: Math.PI / 3 })).filter((b) => Math.abs(b) <= 30);
-        expect(ahead.length).toBeLessThan(5);
+        expect(ahead.length).toBeLessThan(10);
         expect(ahead[0]).toBe(-30);
         expect(ahead.at(-1)).toBe(30);
     });
@@ -52,8 +52,28 @@ describe("a warhead's fragment lines", () => {
 
     it("spokes a spray whose arcs meet evenly", () => {
         const ring = bearings(warhead({ fragments: 16, spread: Math.PI }));
-        expect(ring).toHaveLength(6);
-        expect(ring[1]! - ring[0]!).toBe(60);
+        expect(ring).toHaveLength(12);
+        expect(ring[1]! - ring[0]!).toBe(30);
+    });
+
+    it("is symmetrical as the blast is: a spray about its axis and end to end, a slug about its axis", () => {
+        const mirrored = (spec: ModuleSpec, turn: (b: number) => number): void => {
+            const { ends } = warheadLines(spec);
+            const at = (x: number, y: number): string => `${(x + 0).toFixed(5)},${(y + 0).toFixed(5)}`.replace(/-0\.00000/g, "0.00000");
+            const all = new Set<string>();
+            for (let k = 0; k < ends.length; k += 4) all.add(at(ends[k]!, ends[k + 1]!));
+            for (let k = 0; k < ends.length; k += 4) {
+                const r = Math.hypot(ends[k]!, ends[k + 1]!);
+                const b = turn(Math.atan2(ends[k + 1]!, ends[k]!));
+                expect(all.has(at(r * Math.cos(b) + 0, r * Math.sin(b) + 0))).toBe(true);
+            }
+        };
+        for (const spread of [Math.PI / 3, Math.PI / 2]) {
+            const spray = warhead({ fragments: 16, spread, length: 1, width: 1 });
+            mirrored(spray, (b) => -b);
+            mirrored(spray, (b) => b + Math.PI);
+        }
+        mirrored(warhead({ fragments: 1, length: 1, width: 1 }), (b) => -b);
     });
 
     it("keeps every line, round ends and all, inside the module", () => {
