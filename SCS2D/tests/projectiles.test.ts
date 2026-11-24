@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Bodies } from "../sim/bodies.js";
-import { ProjectileHits, Projectiles, NO_OWNER } from "../sim/projectiles.js";
+import { ProjectileHits, Projectiles, NO_OWNER, SPARES_NONE } from "../sim/projectiles.js";
 import { SpatialGrid } from "../sim/spatialGrid.js";
 import type { WellSpec } from "../sim/gravity.js";
 
@@ -236,6 +236,15 @@ describe("impacts", () => {
         expect(count).toBe(1);
         expect(struck).toBe(target);
         expect(struck).not.toBe(shooter);
+    });
+
+    it("hits the hull it came from when it says it spares none of it, as a piece broken off does", () => {
+        const r = range({ x: 0, y: 0, radius: 40 }, { x: 300, y: 0, radius: 20 });
+        const shooter = r.bodies.indexOf(r.ids[0]!);
+        r.projectiles.spawn({ x: -100, y: 0, vx: 6000, vy: 0, width: 0.5, ttl: 5, owner: shooter, fromModule: SPARES_NONE });
+        r.projectiles.step(DT, r.bodies, r.grid, r.hits);
+        expect(r.hits.count).toBe(1);
+        expect(r.hits.body[0]).toBe(shooter);
     });
 
     it("hits its own hull when no owner is set", () => {

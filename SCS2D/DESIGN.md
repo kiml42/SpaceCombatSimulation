@@ -777,14 +777,28 @@ inside any one file is not contiguous.
   (`WARHEAD_DRAIN_PRIORITY`), so its ship burns it only once every other tank on its piece is dry, refuelling
   fills it first, and it tops itself up from the tanks drawn before it, one rebuilt or holed included. **What
   it yields is what it holds** (`EXPLOSIVE_YIELD` a kilogram), so a torpedo that has burnt into its warhead hits
-  weaker. It throws its casing as `fragments` rounds across its `spread` about its facing: one is a single
-  slug, a shaped charge's, straight ahead; more are never narrower than they need (`SPREAD_PER_FRAGMENT`,
-  10° for 64). Its fragments take the share of the yield its spread takes of the turn, never less than a
-  shaped liner's fifth (`WARHEAD_FOCUS`), and leave at the speed that energy gives the casing
-  (`warheadBurst`), so `reinforcement`, which sets the casing, trades speed for weight. **It is a weapon like a
+  weaker. **It always throws both ways, and all round.** A spray throws its casing as `fragments` rounds
+  across its `spread` about its facing and as many the same way behind it, never narrower than they need
+  (`SPREAD_PER_FRAGMENT`, 10° for 64); a slug, one fragment, is a shaped charge: two fifths of its casing is its liner
+  (`WARHEAD_LINER_SHARE`), a quarter of which goes straight ahead as a jet, the fastest thing it throws
+  (`WARHEAD_JET_SHARE`), and the rest after it as a heavy slug at a tenth of the jet's speed
+  (`WARHEAD_SLUG_SPEED`); the rest of its casing bursts at a fifth of the jet's speed
+  (`WARHEAD_CASING_SPEED`), as a back plate of 16 (`WARHEAD_BACKBLAST_FRAGMENTS`) over 60° behind it and its
+  sides. Outside the arcs, 32 more (`WARHEAD_SIDE_FRAGMENTS`) go round the turn, each as heavy and as
+  fast as an arc's edge fragment, a slug's back plate piece, times a grade that eases from one there to a
+  quarter broadside (`warheadSideGrade`, `WARHEAD_SIDE_FLOOR`), as though the casing thinned and the blast
+  weakened towards the sides, with no step where the arcs end. A slug's go on down ahead of broadside to a
+  quarter of that beside the slug (`WARHEAD_SLUG_FORE`), since a shaped charge throws little forward but
+  its liner. **The charge goes to gas**, which carries off whatever momentum the fragments do not balance,
+  backwards from a shaped charge, and the yield pays for that as well as for the fragments, by the Gurney
+  balance (`warheadBurst`). It goes out as 8 parcels over 60° (`WARHEAD_GAS_PARCELS`): rounds of its mass,
+  as wide as the warhead, spent within 0.02 s (`WARHEAD_GAS_LIFE`), so it wrecks what is close behind a
+  shaped charge, its own carrier included, and nothing further off; a 60° spray of 16 puts nearly three quarters of its yield into its
+  arcs. So `reinforcement`, which sets the casing, trades speed for weight, and a warhead
+  mounted sideways still harms its carrier. **It is a weapon like a
   gun's mount** (`DesignWarhead`, beside rather than among `design.turrets`, which are guns): its mount's doctrine
   says what size it is for, its reach is how far its fragments are worth throwing at that, until the gap
-  between them at the edge of its spread is as wide (`warheadReach`), its `fireRange` takes its share as a
+  between them at the edge of its spread is as wide (`warheadReach`), its `fireRange`, a tenth unless its doctrine says otherwise, so it goes off close, takes its share as a
   gun's does, and a main warhead counts towards its ship's reach and its attack rosette. **Its fuze** is a hull
   gun's trigger, in the same code (`warheadTrigger`): a hull mount whose muzzle speed is its burst and whose
   barrel is its nose. It goes for its order's target, a ram's among them, else the one its doctrine chose,
@@ -792,17 +806,18 @@ inside any one file is not contiguous.
   gun would fire in (`aimPoint`, `fireCone`), widened by how far its fragments spread across the target,
   measured in noses, since at a burst no faster than it closes a turn of the nose moves its fragments less
   (`noseCone`). It goes off when its nose is inside that cone, within the reach its fragments are worth
-  throwing at the speed they close (`fragmentCone`), and no friend is across its line (`friendAlong`). Only
+  throwing at the speed they close (`fragmentCone`), and no friend is across its line (`friendAlong`). A spray goes off with either end that way, since a fragment thrown at the target flies the same
+  whichever end throws it: the battle view draws the one cone, with a line along its nose and one along its
+  tail. A slug's backblast has no trigger. Only
   what its fragments' layers can reach counts, as for a gun, so one ramming a part on the deck waits until it
   has dropped to it, and one ramming a turret or thick module goes off from above. Not while its craft is
   parked on a pad, and never on a collision, so a ram is still a ram. **Going
   off**, the charge is burnt; its fragments land in layers as a shell's do, from the warhead's own layer (a
-  committed craft's is the hull layer, where it rams), and a lone one always in that layer; they pass through nothing of their ship but the warhead; the hull keeps
-  their momentum the other way; and what the fragments did not take crushes the carrier outward from the
-  warhead, as a collision crushes a hull inward, along 64 lines over the turn outside the spread
-  (`BLAST_LINES`), so a module shields what is behind it and a line that meets nothing carries its share into
-  space. What that shatters of the carrier flies on as wreckage, away from the warhead, the charge's gas
-  taking its momentum, so a warhead is dangerous all round its carrier. **Damage**: its fuze is dead at half
+  committed craft's is the hull layer, where it rams), and a lone one always in that layer. **All the harm it
+  does is its fragments**, and they strike its own ship as they strike anything, sparing only the warhead
+  they came out of: a module shields what is behind it, and one mounted inside a hull wrecks it. What
+  they and the gas carry off balances, so the hull keeps none of it. No friend check spares a ship beside it, so a
+  torpedo is dangerous to be near. **Damage**: its fuze is dead at half
   its integrity (`DUD_INTEGRITY`); any damage to one holding charge may set it off wherever it points
   (`cookOff`, 5% while sound, certain as it is destroyed and always if a blow shatters it), one setting off
   another; and one parked on a pad is let off it first, its blast going on into its carrier from where it
@@ -1839,16 +1854,16 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   velocity its place on the hull had before the impulse, spin and all, and what it struck gives back the
   momentum it spent stopping them. Their energy against what they struck is at most what the crush could
   not spend on their side, so energy the front threw away goes on as wreckage, and none is made. They are
-  rounds, which armour stops as it stops any round of their mass and calibre, passing through their own
-  hull and flying half a second; cold, they are drawn as wreckage rather than tracer. Both hulls' shattered
+  rounds, which armour stops as it stops any round of their mass and calibre, sparing only the module
+  that broke, so they go on into what of their own ship is in their way, and flying half a second; cold, they are drawn as wreckage rather than tracer. Both hulls' shattered
   modules are thrown, the struck one's at its own velocity, so only what was going into the other hull
   reaches it. Gunfire and beams shatter modules too and throw nothing: their energy already goes through
   armour into the internals. This is what makes a KKV's spent nose a spray of shrapnel into its
   target; a warhead (Status) throws its own casing.
 - **A piece broken off too small to keep flies on as shrapnel** (`throwShrapnel`): under 2 t with
   nothing to fly it, it is never made a body, but its metal is still going where its hull was. It flies
-  on as one round of its mass, as wide as its own footprint, at the velocity it broke off with, through
-  the hull it came off and for as long as a fragment. So a torpedo cut apart on its way in, or torn
+  on as one round of its mass, as wide as its own footprint, at the velocity it broke off with, into
+  the hull it came off as into anything else (`SPARES_NONE`), for as long as a fragment. So a torpedo cut apart on its way in, or torn
   apart on its target, still strikes it, and a fighter shot to pieces beside a carrier sprays it.
 - **How hard a contact was is the share of the weaker module it met that its lost energy would take**
   (`sim/contactGrades.ts`), which is what a check on piloting counts rather than raw contacts: a

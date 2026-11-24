@@ -55,7 +55,14 @@ import {
     type ModuleSpec,
     type ShipDesign,
 } from "../sim/index.js";
-import { GunType, warheadBurst, warheadReach } from "../sim/modules.js";
+import { GunType, WARHEAD_SIDE_FRAGMENTS, warheadBurst, warheadReach, warheadSideGrade } from "../sim/modules.js";
+
+/** The least grade among a warhead's side fragments: the slowest of them, as a share of the fastest. */
+function leastSideGrade(fragments: number): number {
+    let least = 1;
+    for (let k = 0; k < WARHEAD_SIDE_FRAGMENTS / 2; k++) least = Math.min(least, warheadSideGrade(fragments, k));
+    return least;
+}
 import { buildWork, fittingOf } from "../sim/rebuild.js";
 
 /** A build time, in seconds, minutes or hours as reads best. */
@@ -551,13 +558,32 @@ export function moduleReadout(
     if (spec.kind === "warhead") {
         const burst = warheadBurst(spec, stats);
         add({ name: "Yield", value: megajoules(burst.energy), title: "Full: it is the fuel it holds" });
-        add({
-            name: "Fragments at",
-            under: "spread",
-            value: `${n(burst.speed, 0)} m/s`,
-            title: `Taking ${n(burst.focus * 100, 0)}% of the yield; the rest goes into the ship carrying it`,
-        });
-        add({ name: "Each", under: "fragments", value: `${n(burst.casing / burst.fragments, 1)} kg`, sub: true });
+        if (burst.slugEach > 0) {
+            add({
+                name: "Jet at",
+                under: "fragments",
+                value: `${n(burst.speed, 0)} m/s`,
+                title: `Its liner's fastest part, taking ${n(burst.focus * 100, 0)}% of the yield with its slug`,
+            });
+            add({ name: "Each", value: `${n(burst.each, 1)} kg`, sub: true });
+            add({ name: "Slug at", value: `${n(burst.slugSpeed, 0)} m/s`, title: "The rest of its liner, following the jet" });
+            add({ name: "Each", value: `${n(burst.slugEach, 1)} kg`, sub: true });
+        } else {
+            add({
+                name: "Fragments at",
+                under: "spread",
+                value: `${n(burst.speed, 0)} m/s`,
+                title: `Ahead and the same behind, taking ${n(burst.focus * 100, 0)}% of the yield between them`,
+            });
+            add({ name: "Each", under: "fragments", value: `${n(burst.each, 1)} kg`, sub: true });
+        }
+        if (burst.sideEach > 0) {
+            add({
+                name: "All round at",
+                value: `${n(burst.sideSpeed * leastSideGrade(burst.fragments), 0)}–${n(burst.sideSpeed, 0)} m/s`,
+                title: "The rest of the yield, outside its arcs, lighter and slower away from them, into whatever is near, its own ship included",
+            });
+        }
         if (shipRadius > 0) {
             // As a gun's "Fires within": against the size its mount wants, as far as its doctrine goes off.
             const targeting = resolveTargeting(spec.targeting, defaultTargeting(spec.kind));
