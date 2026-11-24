@@ -392,8 +392,8 @@ describe("a round taking time to cross a hull", () => {
         return { world, ships, bodies, body, grid, projectiles, hits: new ProjectileHits(), impacts: new Impacts() };
     }
 
-    /** What the same round does walked through the hull all at once, through the same fuel. */
-    function walkedOnce(): Damage {
+    /** What the same round does walked through the hull all at once, through the same fuel, at `speed` against it. */
+    function walkedOnce(speed = 3000): Damage {
         const world = new World({ dt: 1 / 60, seed: 5 });
         const ships = new Ships();
         ships.spawn(world, { design: destroyer, x: 0, y: 0, team: 0 });
@@ -409,7 +409,7 @@ describe("a round taking time to cross a hull", () => {
             0,
             20000,
             0.5,
-            3000,
+            speed,
             undefined,
             ships,
         );
@@ -440,10 +440,13 @@ describe("a round taking time to cross a hull", () => {
         // Hurting the hull as it goes rather than all at once.
         expect(counts[0]!).toBeLessThan(counts[counts.length - 1]!);
 
-        // And the same hurt, in the end, as the whole walk taken at once.
+        // And the same hurt, in the end, as the whole walk taken at once, but for the hull
+        // it shoves on its way moving off from under it a little.
         const once = walkedOnce();
         for (let m = 0; m < destroyer.modules.length; m++) {
-            expect(r.ships.damage.absorbedAt(r.body, m)).toBeCloseTo(once.absorbedAt(0, m), 3);
+            expect(Math.abs(r.ships.damage.absorbedAt(r.body, m) - once.absorbedAt(0, m))).toBeLessThanOrEqual(
+                1e-5 * once.absorbedAt(0, m) + 1e-3,
+            );
         }
     });
 
@@ -481,6 +484,33 @@ describe("a round taking time to cross a hull", () => {
         expect(ships.damage.integrity(behind, 0)).toBeLessThan(1);
     });
 
+    it("strikes with the speed it moves against the hull, not the speed it moves in the world", () => {
+        // The same round into the same hull, the two at rest and the two moving together at 1 km/s.
+        const hurt = (drift: number): number => {
+            const world = new World({ dt: 1 / 60, seed: 5 });
+            const ships = new Ships();
+            const body = world.bodies.indexOf(ships.body(ships.spawn(world, { design: destroyer, x: 0, y: 0, vx: 0, vy: drift, team: 0 })));
+            const grid = new SpatialGrid(256);
+            grid.rebuild(world.bodies);
+            const projectiles = new Projectiles(8);
+            projectiles.spawn({ x: -destroyer.radius - 10, y: 0, vx: 3000, vy: drift, width: 0.5, ttl: 10, mass: 20000 });
+            const hits = new ProjectileHits();
+            const impacts = new Impacts();
+            for (let step = 0; step < 120; step++) {
+                world.step();
+                grid.rebuild(world.bodies);
+                projectiles.step(1 / 60, world.bodies, grid, hits, undefined, ships.hulls);
+                impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, undefined, undefined, 1 / 60, grid, ships.hulls);
+            }
+            let total = 0;
+            for (let m = 0; m < destroyer.modules.length; m++) total += ships.damage.absorbedAt(body, m);
+            return total;
+        };
+        const still = hurt(0);
+        expect(still).toBeGreaterThan(0);
+        expect(Math.abs(hurt(1000) - still)).toBeLessThan(1e-3 * still);
+    });
+
     it("is not caught again by a hull moving the way it is going", () => {
         // A round out of the far side is where the hull was; the hull, moving
         // after it, must not sweep it up and walk it through a second time.
@@ -497,10 +527,12 @@ describe("a round taking time to cross a hull", () => {
         expect(r.projectiles.inside[0]).toBe(-1);
         expect(r.projectiles.x[0]!).toBeGreaterThan(r.bodies.x[r.body]! + destroyer.radius);
         expect(hits).toBeGreaterThanOrEqual(1);
-        // Walked through once: a second time would be more hurt than one walk.
-        const once = walkedOnce();
+        // Walked through once, at the speed it overtakes the hull: a second time would be more hurt than one walk.
+        const once = walkedOnce(3000 - 400);
         for (let m = 0; m < destroyer.modules.length; m++) {
-            expect(r.ships.damage.absorbedAt(r.body, m)).toBeCloseTo(once.absorbedAt(0, m), 3);
+            expect(Math.abs(r.ships.damage.absorbedAt(r.body, m) - once.absorbedAt(0, m))).toBeLessThanOrEqual(
+                1e-5 * once.absorbedAt(0, m) + 1e-3,
+            );
         }
     });
 });
