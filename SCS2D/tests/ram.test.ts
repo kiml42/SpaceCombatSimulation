@@ -5,21 +5,33 @@ import { makeBattle } from "../scenarios/battle.js";
 import { CORVETTE, GUNSHIP } from "../scenarios/blueprints.js";
 import { QUARRY } from "./fixtures/quarry.js";
 
+const WEAPONS = new Set(["turret", "beamTurret", "hullGun", "hullBeam"]);
+/** The corvette, or `from`, with every weapon taken off, ramming within `radii` of its target. */
+function unarmed(radii: number, from: Blueprint = CORVETTE): Blueprint {
+    const strip = (modules: readonly Placement[]): Placement[] => modules.filter((m) => !("kind" in m && WEAPONS.has(m.kind)));
+    const assemblies = Object.fromEntries(
+        Object.entries(from.assemblies ?? {}).map(([name, a]) => [name, { ...a, modules: strip(a.modules) }]),
+    );
+    const doctrine = from.doctrine ?? DEFAULT_DOCTRINE;
+    return {
+        ...from,
+        name: "Ram",
+        assemblies,
+        modules: strip(from.modules),
+        doctrine: { ...doctrine, approach: { ...doctrine.approach, ramRadii: radii, ramArmed: 0 } },
+    };
+}
+
 /** A ram order (`Ships.pushRam`) overrides the rest of a ship's movement doctrine. */
 
 describe("a ram order", () => {
     /** Steps until the rammer first touches a target crossing its bow, or -1. */
     function stepsToContact(ram: boolean): number {
-        const corvette = compileBlueprint(CORVETTE);
-        // A target that keeps its guns on rather than burning clear, so this is
-        // about how the rammer flies and not about the target dodging it.
-        const doctrine = CORVETTE.doctrine ?? DEFAULT_DOCTRINE;
-        const sitting = compileBlueprint({
-            ...CORVETTE,
-            doctrine: { ...doctrine, approach: { ...doctrine.approach, burnWeight: 0 } },
-        });
+        // Unarmed both, so this is about how the rammer flies, not about what either shoots off the
+        // other: a target that neither shoots, rams back nor runs, crossing an unarmed corvette's bow.
+        const corvette = compileBlueprint(unarmed(0));
         const battle = makeBattle({ seed: 4 }, (ships, world) => {
-            const target = ships.spawn(world, { design: sitting, x: 0, y: 0, vy: 30, team: 0 });
+            const target = ships.spawn(world, { design: QUARRY, x: 0, y: 0, vy: 30, team: 0 });
             const rammer = ships.spawn(world, { design: corvette, x: 300, y: 0, angle: Math.PI, team: 1 });
             ships.clearOrder(rammer);
             ships.clearOrder(target);
@@ -45,23 +57,6 @@ describe("a ram order", () => {
 });
 
 describe("an unarmed rammer", () => {
-    const WEAPONS = new Set(["turret", "beamTurret", "hullGun", "hullBeam"]);
-    /** The corvette, or `from`, with every weapon taken off, ramming within `radii` of its target. */
-    function unarmed(radii: number, from: Blueprint = CORVETTE): Blueprint {
-        const strip = (modules: readonly Placement[]): Placement[] => modules.filter((m) => !("kind" in m && WEAPONS.has(m.kind)));
-        const assemblies = Object.fromEntries(
-            Object.entries(from.assemblies ?? {}).map(([name, a]) => [name, { ...a, modules: strip(a.modules) }]),
-        );
-        const doctrine = from.doctrine ?? DEFAULT_DOCTRINE;
-        return {
-            ...from,
-            name: "Ram",
-            assemblies,
-            modules: strip(from.modules),
-            doctrine: { ...doctrine, approach: { ...doctrine.approach, ramRadii: radii, ramArmed: 0 } },
-        };
-    }
-
     /** Whether it touches an enemy within 40 s, on its own doctrine. */
     function hits(radii: number): boolean {
         const design = compileBlueprint(unarmed(radii));

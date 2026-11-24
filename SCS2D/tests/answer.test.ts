@@ -25,7 +25,7 @@ const closingAt = (speed: number) =>
 const steady = closingAt(40);
 const slow = closingAt(30);
 /** A seed the player's Corvette beats the slower one on. */
-const MIRROR_WON = 17;
+const MIRROR_WON = 11;
 
 function decide(player = gunship, enemy = corvette, seed = WON): Decision {
     const battle = customBattle(roundBattle(player, enemy, seed));
