@@ -468,10 +468,9 @@ export class Demonstration {
             for (let k = 0; k < WARHEAD_BACKBLAST_FRAGMENTS; k++)
                 this.throwOne(x, y, facing + math.PI + backblastBearing(k), burst.backSpeed, burst.backEach);
         } else {
-            const all = burst.spread >= math.TAU;
             for (let k = 0; k < n; k++) {
                 const slice = (k + 0.5) / n;
-                const heading = facing + (all ? slice * math.TAU : (slice - 0.5) * burst.spread);
+                const heading = facing + (slice - 0.5) * burst.spread;
                 this.throwOne(x, y, heading, burst.speed, burst.each);
                 this.throwOne(x, y, heading + math.PI, burst.backSpeed, burst.backEach);
             }

@@ -692,11 +692,11 @@ export function ModulePanel({
                             {
                                 step: 5,
                                 min: 0,
-                                max: 360,
+                                max: 180,
                                 disabled: (spec.fragments ?? DEFAULT_WARHEAD_FRAGMENTS) <= 1,
-                                title: `How wide it throws them, degrees, centred on its facing. The same again behind it, and lighter, slower fragments between; 180 or more throws them all round. Never narrower than its fragments need, ${radiansToDegrees(SPREAD_PER_FRAGMENT).toFixed(2)}° for each past the first, and none for a single slug, which goes straight ahead.`,
+                                title: `How wide it throws them, degrees, centred on its facing. The same again behind it, and lighter, slower fragments between; 180 throws them all round. Never narrower than its fragments need, ${radiansToDegrees(SPREAD_PER_FRAGMENT).toFixed(2)}° for each past the first, and none for a single slug, which goes straight ahead.`,
                             },
-                            (degrees) => patch({ spread: degreesToRadians(Math.min(Math.max(degrees, 0), 360)) }),
+                            (degrees) => patch({ spread: degreesToRadians(Math.min(Math.max(degrees, 0), 180)) }),
                         )}
                     </Field>
                 </Shell>

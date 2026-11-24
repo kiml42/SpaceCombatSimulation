@@ -1599,7 +1599,7 @@ function drawWarheadTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metr
         ctx.strokeStyle = tint;
         const nose = ship.angle + module.angle;
         const centre = cones?.[4 * w] ?? nose;
-        const half = cones?.[4 * w + 1] ?? (head.spread >= TAU ? Infinity : head.spread / 2);
+        const half = cones?.[4 * w + 1] ?? (head.spread >= PI ? Infinity : head.spread / 2);
         const reach = cones?.[4 * w + 2] ?? head.reach;
         const live = cones?.[4 * w + 3] === 1;
         const spray = head.spread > 0;
