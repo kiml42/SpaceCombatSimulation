@@ -3,6 +3,7 @@ import { LIGHTS, lit } from "./lights.js";
 import { duel } from "./duel.js";
 import { railDuel } from "./railDuel.js";
 import { lanceDuel } from "./lanceDuel.js";
+import { armour, ARMOUR_ATTACKERS, ARMOUR_LEVELS } from "./armour.js";
 import { beamDuel } from "./beamDuel.js";
 import { swarm } from "./swarm.js";
 import { torpedoes } from "./torpedoes.js";
@@ -51,6 +52,20 @@ export const SCENES: readonly Scene[] = [
     { name: "Beam Duel", create: () => lit(beamDuel(SCENE_SEED), LIGHTS.eclipse) },
     { name: "Rail Duel", create: () => lit(railDuel(SCENE_SEED), LIGHTS.blueGiant) },
     { name: "Lance Duel", create: () => lit(lanceDuel(SCENE_SEED), LIGHTS.redDwarf) },
+    {
+        name: "Armour",
+        // Each attacker against the Gun Platform's plating, at each reinforcement from none to extreme.
+        variants: ARMOUR_ATTACKERS.flatMap(([name]) => ARMOUR_LEVELS.map((level) => `${name}, reinforced ${level}`)),
+        create: (variant = 0) =>
+            lit(
+                armour(
+                    SCENE_SEED,
+                    (variant - (variant % ARMOUR_LEVELS.length)) / ARMOUR_LEVELS.length,
+                    ARMOUR_LEVELS[variant % ARMOUR_LEVELS.length]!,
+                ),
+                LIGHTS.daylight,
+            ),
+    },
     { name: "Star Wars", create: () => lit(starWars(SCENE_SEED), LIGHTS.noon) },
     {
         name: "Swarm",

@@ -156,7 +156,17 @@ inside any one file is not contiguous.
   its path, each taking the energy its armour stopped, until it embeds, skids
   off or comes out the far side — at the speed it moves against that hull, the hull's own
   velocity and spin where it meets it taken away, so crossing a long hull takes time and a round
-  overtaking a hull strikes softly; a beam pours its power into what it is burning
+  overtaking a hull strikes softly. **A round that goes through a module breaks up going in** (`debrisPieces`, `breakUp`): it
+  goes on from that face as debris, its mass shared between the pieces, in a cone about the way it was going,
+  through the module it broke on and on through the hull. Whether it breaks, and into how many, up to 4
+  (`DEBRIS_PIECES`), is by its size and speed: not below 300 m/s (`DEBRIS_BREAK_SPEED`), nor into pieces
+  under 2 kg (`DEBRIS_LEAST`), and more the more of its energy the plate took and the faster it struck, shock
+  alone counting fully at 3 km/s (`DEBRIS_SHOCK_SPEED`). So a Dinky's shot never breaks, and a rail slug breaks
+  again at each layer while its pieces stay big and fast. The cone is as wide as the speed the plate took out
+  of it sends it sideways against the speed it kept (`debrisCone`, up to 60° either side): one that only just
+  got through spreads wide, one that went through with little lost stays narrow. Debris too small or slow to
+  break wears a quarter of itself away at each module it goes through, into that module (`DEBRIS_ERODE`); it
+  flies half a second at most, and once out of the hull it came through does not strike it again; a beam pours its power into what it is burning
   through, a fifth of it taken in and the rest reflected or radiated away (`BEAM_ABSORBED_SHARE`, a stand-in
   for heat). **The outer face of each hull it meets reflects some of what it stops**, a tenth head on
   (`BEAM_REFLECTANCE`) rising to all it does not take in at grazing, as a dimmer beam of its own that can

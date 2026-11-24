@@ -62,7 +62,10 @@ it("fires only with its barrel on the stuck ship, not anywhere on the rock", () 
     for (let t = 0; t < 60 * 60; t++) {
         run.step();
         const gunship = bodies.indexOf(run.ships.body(run.gunship));
-        run.ships.locate(bodies, run.corvette, bodies.indexOf(run.ships.body(run.corvette)), at);
+        // Only while it is still stuck: torn off the rock, it is an ordinary target.
+        const stuckTo = bodies.indexOf(run.ships.body(run.corvette));
+        if (stuckTo !== bodies.indexOf(run.ships.body(0))) continue;
+        run.ships.locate(bodies, run.corvette, stuckTo, at);
         for (let q = 0; q < p.alive.length; q++) {
             if (p.alive[q] !== 1 || p.fragment[q] === 1 || p.owner[q] !== gunship) continue;
             const key = `${q} ${p.startX[q]} ${p.startY[q]}`;
