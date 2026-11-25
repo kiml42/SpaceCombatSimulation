@@ -309,6 +309,28 @@ export function reachOn(ships: Ships, i: number, mount: DesignTurret, target: nu
     return reachFor(ships, i, mount, selective ? aimRadius(design.modules[part]!.spec) : sizeOf(ships, target));
 }
 
+/**
+ * How far ship `i` fights `target` from, metres, for the band it holds: its
+ * design's reach, unless every main mount minds what it hits. Those fire only
+ * as far as the part each is aimed at allows (`reachOn`), so the furthest of
+ * those, a mount not yet aimed at `target` counting its design reach.
+ */
+export function reachAt(ships: Ships, i: number, target: number): number {
+    const design = ships.designs[i]!;
+    let reach = 0;
+    let mains = 0;
+    for (let t = 0; t < design.turrets.length; t++) {
+        const mount = design.turrets[t]!;
+        if (!mount.main) continue;
+        mains++;
+        if (!refusesAnything(aimDoctrine(ships, i, mount))) return design.reach;
+        const part = ships.turretTarget[i]![t] === target ? ships.turretAimModule[i]![t]! : -1;
+        const at = part >= 0 && part < ships.designs[target]!.modules.length ? reachOn(ships, i, mount, target, part) : design.reach;
+        if (at > reach) reach = at;
+    }
+    return mains > 0 ? reach : design.reach;
+}
+
 /** How far a mount will fire at something of this radius, metres. */
 export function reachFor(ships: Ships, i: number, mount: DesignTurret, radius: number): number {
     return reachAgainst(mount.gun, radius) * aimDoctrine(ships, i, mount).fireRange;
