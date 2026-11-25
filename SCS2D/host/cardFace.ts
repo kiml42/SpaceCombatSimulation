@@ -95,7 +95,8 @@ function face(card: Card): HTMLElement {
         effects.append(line);
     }
     const kind = document.createElement("div");
-    kind.textContent = card.unlocks !== undefined ? "unlock" : isSimple(card) ? "upgrade" : "trade-off";
+    // A card the deck no longer has moves nothing, so is no trade-off.
+    kind.textContent = card.unlocks !== undefined ? "unlock" : isSimple(card) || card.effects.length === 0 ? "upgrade" : "trade-off";
     Object.assign(kind.style, { color: "var(--colour-muted)", fontSize: "0.75em", letterSpacing: "0.1em" });
     out.append(name, effects, kind);
     return out;

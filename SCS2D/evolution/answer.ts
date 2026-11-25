@@ -365,8 +365,8 @@ export class EnemySearch {
      * so far presses hardest, by its share of it used.
      */
     private drawCard(): void {
-        // An unlock moves no limit, so is never the neediest: the enemy unlocks what the player does.
-        const hand = drawHand(this.cardRng, this.start, this.cards, (card) => isSimple(card) && card.unlocks === undefined);
+        // Simple cards only, so no unlock, which moves no limit: the enemy unlocks what the player does.
+        const hand = drawHand(this.cardRng, this.start, this.cards, isSimple);
         const hulls = fleetHulls(this.best.enemy);
         const bill = fleetBill(hulls);
         const { maxShips, radius } = this.limits;
