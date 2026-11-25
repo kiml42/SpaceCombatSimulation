@@ -226,7 +226,7 @@ export function liveBand(ships: Ships, i: number, order: Order): void {
     const approach = ships.doctrines[i]!.approach;
     order.approachSpeed = order.speed ?? approach.approachSpeed;
     if (order.ram || order.defend === true || order.target === NO_TARGET || ships.alive[order.target] !== 1) return;
-    const band = holdBand(approach, ships.designs[i]!.reach, ships.designs[order.target]!.radius, order.distance);
+    const band = holdBand(approach, shipAim.reachAt(ships, i, order.target), ships.designs[order.target]!.radius, order.distance);
     order.minRange = band.min;
     order.maxRange = band.max;
 }
