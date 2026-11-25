@@ -497,7 +497,10 @@ export class PixiCanvas {
         }
         this.particlesUsed++;
         batch.start(this.textureOf(image), this.state.m, additive, this.state.globalAlpha);
-        (onDeck && this.deck !== null ? this.deck : this.target()).addChild(batch.container);
+        // The deck is the battle's own, placed for its camera: a close-up's or a strip's box draws over the
+        // battle with a camera of its own, so what it draws stays in its turn there, cut to the box.
+        const deck = onDeck && this.state.masks === 0 ? this.deck : null;
+        (deck ?? this.target()).addChild(batch.container);
         this.graphics = null;
         return batch;
     }

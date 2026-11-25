@@ -187,4 +187,22 @@ describe("a batch of particles", () => {
         context.begin();
         expect(context.deck.children).toEqual([]);
     });
+
+    it("stays in a close-up's box rather than going to the battle's deck, which is placed for the battle's camera", () => {
+        const context = new PixiCanvas();
+        context.deck = new Container();
+        context.begin();
+        const image = new Uint8Array(4);
+        context.save();
+        context.beginPath();
+        context.rect(10, 10, 100, 100);
+        context.clip();
+        const boxed = context.particles(image, false, true);
+        context.restore();
+        expect(context.deck.children).toEqual([]);
+        expect(context.root.children.some((child) => child.children.includes(boxed.container))).toBe(true);
+        // Out of the box again, the deck.
+        const decked = context.particles(image, false, true);
+        expect(context.deck.children).toEqual([decked.container]);
+    });
 });
