@@ -176,6 +176,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
     },
     { field: "dodgeSpeed", label: "dodges at", hint: "The sideways speed it asks for to get out of the way, metres per second", step: 10 },
     {
+        field: "evasion",
+        label: "jinks at",
+        hint: "How fast it jinks sideways while an enemy gun is aimed at it, metres per second, so that gun's lead is stale when its rounds arrive. Zero flies straight",
+        step: 5,
+    },
+    {
         field: "responseTime",
         label: "responds in",
         hint: "How quickly it corrects its velocity, seconds: smaller asks its engines for more, and turns to burn more readily",
@@ -851,6 +857,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                     entry("approach", "rockMargin", { shown: (v) => v.approach.separation > 0 }),
                     entry("approach", "orbitWeight"),
                     entry("approach", "dodgeSpeed", { shown: (v) => v.approach.separation > 0 }),
+                    entry("approach", "evasion"),
                 ],
             },
         ],

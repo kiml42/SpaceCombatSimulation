@@ -73,6 +73,30 @@ export const NOT_INSIDE = -1;
  */
 export const SPARES_NONE = 0x7fffffff;
 
+/** How far a fragment's life strays either side of its burst's, as a share of it, so a burst's fragments do not all vanish at once. */
+export const FRAGMENT_LIFE_SPREAD = 0.25;
+
+/** The share of a fragment's life it spends fading out, at its end. Presentation only. */
+export const FRAGMENT_FADE = 0.4;
+
+/** One fragment's life, drawn about a burst's `life` by `FRAGMENT_LIFE_SPREAD`. */
+export function fragmentLifeOf(life: number, rng: Rng): number {
+    return life * (1 + FRAGMENT_LIFE_SPREAD * (2 * rng.nextFloat() - 1));
+}
+
+/** How opaque round `i` is drawn: 1, but for a fragment in the last `FRAGMENT_FADE` of its life. */
+export function roundFade(projectiles: Projectiles, i: number): number {
+    if (projectiles.fragment[i] !== 1) return 1;
+    const fading = FRAGMENT_FADE * projectiles.life[i]!;
+    const left = projectiles.ttl[i]!;
+    return left >= fading ? 1 : left > 0 ? left / fading : 0;
+}
+
+/** A fragment's `life`, but no longer than the `left` of the round it burst from. */
+function lifeLeft(life: number, left: number): number {
+    return life < left ? life : left;
+}
+
 /** The chance a fragment lands in the layer its round was in, rather than the other. */
 export const FRAGMENT_STAYS = 0.75;
 
@@ -227,6 +251,8 @@ export class Projectiles {
     vy!: Float64Array;
     width!: Float64Array;
     ttl!: Float64Array;
+    /** The `ttl` it started with, for drawing; nothing in the simulation reads it. */
+    life!: Float64Array;
     mass!: Float64Array;
     damage!: Float64Array;
     penetration!: Float64Array;
@@ -326,6 +352,7 @@ export class Projectiles {
         this.vy = f64(this.vy);
         this.width = f64(this.width);
         this.ttl = f64(this.ttl);
+        this.life = f64(this.life);
         this.mass = f64(this.mass);
         this.damage = f64(this.damage);
         this.penetration = f64(this.penetration);
@@ -414,6 +441,7 @@ export class Projectiles {
         this.vy[i] = vy;
         this.width[i] = width;
         this.ttl[i] = ttl;
+        this.life[i] = ttl;
         this.mass[i] = mass;
         this.damage[i] = damage;
         this.penetration[i] = penetration;
@@ -623,7 +651,7 @@ export class Projectiles {
         const vy = this.vy[i]!;
         const width = this.width[i]! * sqrt(this.metal[i]! / n);
         const life = this.fragmentLife[i]!;
-        const ttl = life < this.ttl[i]! ? life : this.ttl[i]!;
+        const left = this.ttl[i]!;
         const mass = this.casing[i]! / n;
         const damage = this.damage[i]! / n;
         const penetration = this.penetration[i]!;
@@ -646,7 +674,7 @@ export class Projectiles {
                     vx + kx,
                     vy + ky,
                     width,
-                    ttl,
+                    lifeLeft(fragmentLifeOf(life, rng), left),
                     mass,
                     damage,
                     penetration,
@@ -663,7 +691,7 @@ export class Projectiles {
                     vx - kx,
                     vy - ky,
                     width,
-                    ttl,
+                    lifeLeft(fragmentLifeOf(life, rng), left),
                     mass,
                     damage,
                     penetration,
@@ -676,7 +704,21 @@ export class Projectiles {
         }
         if (n % 2 === 1) {
             this.fragment[
-                this.spawnRaw(x, y, vx, vy, width, ttl, mass, damage, penetration, owner, kind, from, fragmentLayer(home, rng, lone))
+                this.spawnRaw(
+                    x,
+                    y,
+                    vx,
+                    vy,
+                    width,
+                    lifeLeft(fragmentLifeOf(life, rng), left),
+                    mass,
+                    damage,
+                    penetration,
+                    owner,
+                    kind,
+                    from,
+                    fragmentLayer(home, rng, lone),
+                )
             ] = 1;
         }
     }

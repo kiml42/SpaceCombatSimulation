@@ -25,6 +25,7 @@ import { addFlame, addTurret, attackBearing } from "./attack.js";
 import { interceptTime } from "./turrets.js";
 import { edgeFade } from "./doctrine.js";
 import type { SpatialGrid } from "./index.js";
+import type { Rng } from "./rng.js";
 import { moduleOutline, moduleRadius, SLIPWAY_CLEAR_TIME } from "./modules.js";
 import { distanceToOutline, shapeOf } from "./shape.js";
 import * as shipSupply from "./shipSupply.js";
@@ -159,7 +160,7 @@ function moduleSizes(design: ShipDesign): Float64Array {
 /** How long a fighter a pad's field has taken hold of takes to hand itself over, easing its engines off, seconds. */
 const HANDOFF_TIME = 0.5;
 
-export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid?: SpatialGrid): void {
+export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid?: SpatialGrid, rng?: Rng): void {
     ships.dodgingFrom[i] = -1;
     const b = bodies.indexOf(ships.bodyIds[i]!);
     if (b < 0) return;
@@ -350,8 +351,17 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
 
     // Nothing to want is a want of its own: a craft with no orders, no charge,
     // no well's pull and nothing in its way kills its drift and waits.
-    const wantVx = ships.urgeWeight > 0 ? ships.urgeVx / ships.urgeWeight : 0;
-    const wantVy = ships.urgeWeight > 0 ? ships.urgeVy / ships.urgeWeight : 0;
+    let wantVx = ships.urgeWeight > 0 ? ships.urgeVx / ships.urgeWeight : 0;
+    let wantVy = ships.urgeWeight > 0 ? ships.urgeVy / ships.urgeWeight : 0;
+    // Jinking across the line of a gun aimed at it, on top of all that, unless it means to touch something.
+    const touchingAnything = order !== undefined && (order.ram || order.grapple || order.land || order.dock);
+    if (!touchingAnything && rng !== undefined && evade(ships, bodies, i, b, dt, rng)) {
+        wantVx += ships.jink[i]! * ships.jinkUx;
+        wantVy += ships.jink[i]! * ships.jinkUy;
+    } else {
+        ships.jink[i] = 0;
+        ships.jinkUntil[i] = 0;
+    }
     // What it wants to speed up by, less what the wells' pull does for it: wanting to keep on as it is
     // is pushing against the pull, and wanting to fall is leaving it to.
     let leadAx = ships.urgeWeight > 0 ? ships.urgeAx / ships.urgeWeight : 0;
@@ -508,6 +518,53 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     ships.demandFx[i] = fx;
     ships.demandFy[i] = fy;
     ships.demandTorque[i] = torque;
+}
+
+/** Bounds on how long a jink is held, seconds: long enough to move it, short enough to stay unpredictable. */
+const JINK_MIN_TIME = 0.5;
+const JINK_MAX_TIME = 6;
+
+/**
+ * Whether ship `i` is jinking, and if so which way across the line of fire,
+ * into `jinkUx`, `jinkUy`, at the signed `jink[i]`. It jinks while an armed
+ * enemy's mount is aimed at it with a gun whose rounds take time to arrive,
+ * the nearest such setting the line and the flight time. Each jink is a
+ * sideways speed drawn up to its doctrine's `evasion`, either way, held for
+ * around that flight time: a gun led on how it was moving when it fired is
+ * then wrong by the time its rounds get there, where a steady sideways push
+ * would be led as easily as a straight course.
+ */
+function evade(ships: Ships, bodies: Bodies, i: number, b: number, dt: number, rng: Rng): boolean {
+    const evasion = ships.doctrines[i]!.approach.evasion;
+    if (!(evasion > 0)) return false;
+    let nearest = Infinity;
+    let flight = 0;
+    let fromX = 0;
+    let fromY = 0;
+    for (let e = 0; e < ships.alive.length; e++) {
+        if (ships.alive[e] !== 1 || !ships.hostile(i, e) || !aimsAt(ships, e, i)) continue;
+        const eb = bodies.indexOf(ships.bodyIds[e]!);
+        if (eb < 0 || eb === b) continue;
+        let speed = 0;
+        for (const mount of ships.designs[e]!.turrets) if (mount.gun.muzzleSpeed > speed) speed = mount.gun.muzzleSpeed;
+        if (!(speed > 0)) continue;
+        const d = length(bodies.x[b]! - bodies.x[eb]!, bodies.y[b]! - bodies.y[eb]!);
+        if (!(d < nearest) || !(d > 0)) continue;
+        nearest = d;
+        flight = d / speed;
+        fromX = (bodies.x[b]! - bodies.x[eb]!) / d;
+        fromY = (bodies.y[b]! - bodies.y[eb]!) / d;
+    }
+    if (nearest === Infinity) return false;
+    if (ships.now >= ships.jinkUntil[i]!) {
+        const side = rng.nextFloat() < 0.5 ? -1 : 1;
+        ships.jink[i] = side * evasion * (0.5 + 0.5 * rng.nextFloat());
+        const hold = clamp(flight * (0.5 + rng.nextFloat()), JINK_MIN_TIME, JINK_MAX_TIME);
+        ships.jinkUntil[i] = ships.now + (dt > 0 ? hold / dt : 1);
+    }
+    ships.jinkUx = -fromY;
+    ships.jinkUy = fromX;
+    return true;
 }
 
 /**

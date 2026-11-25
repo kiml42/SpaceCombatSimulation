@@ -4522,7 +4522,7 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
             const width = glowPass
                 ? legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale) * exposure
                 : legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
-            ctx.globalAlpha = glowPass ? 1 : exposure;
+            ctx.globalAlpha = (glowPass ? 1 : exposure) * (snapshot.projectileFade[i] ?? 1);
             if (fx !== null) {
                 // In the world's frame: the last streak left the context in its own.
                 ctx.setTransform(base);
