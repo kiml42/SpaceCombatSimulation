@@ -1,5 +1,7 @@
 This routine triggers to make use of the last of my weekly usage just before it resets at 18:00 UTC on Wednesday. Don't start anything new after that time, but you can finish off what you've started (Check with `date` before starting anything new).
 
+Any edit to this file (or any other) should be made on a branch and go through a PR.
+
 Issues are tracked here: https://linear.app/space-combat-simulation/team/SCS/all use the `SCS_LINEAR_API_KEY` API key to access it. (the connector uses a different workspace)
 
 Check for outstanding branches and PRs to make sure you don't start working on something that's already in progress, or going to cause difficult conflicts.
