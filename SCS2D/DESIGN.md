@@ -1580,7 +1580,12 @@ inside any one file is not contiguous.
   below one. Three losses in a row on a round (a setup setting), each with a fleet that has not lost it
   before, draw the player a hand of three from the round's seed, held in the fleet editor until one is
   picked, before the next try. Each time the search goes 4 generations without an answer, the enemy draws
-  three simple cards and keeps the one for the limit its best fleet uses most of. A card is drawn by
+  three simple cards and keeps the one for the limit its best fleet uses most of. **A skirmish has a tech
+  tree** (`skirmish/techTree.ts`): the player starts with the module kinds chosen in its setup (Core,
+  Engine and Hull gun unless changed), a hand can deal an unlock card for any kind whose prerequisites they
+  have, the ship editor offers only what is unlocked, and a fleet built of a locked kind cannot fight. The
+  enemy has what its first fleet was built of and whatever the player unlocks, and is bred only with those;
+  a skirmish saved before the tree locks nothing. A card is drawn by
   `host/cardFace.ts`, one face in ems at any size, bordered in the colour of the cost it adds to
   (`render/resources.ts`, which the battle's gauges use too): large to pick, small in either side's hand on
   the skirmish page, copies stacked, and in the timeline beside the match it came before. Both sides' limits — metal, fuel, build time, ships and spread — are shown
