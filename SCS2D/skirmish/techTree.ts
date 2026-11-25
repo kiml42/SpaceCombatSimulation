@@ -3,7 +3,7 @@ import { fleetBlueprint } from "../sim/fleetHangar.js";
 
 /**
  * The tech tree: which module kinds a side must have before it can unlock
- * another, in a skirmish (and, later, a campaign). A side builds only with
+ * another, in a skirmish. A side builds only with
  * the kinds it has unlocked, and is offered cards to unlock those it has the
  * prerequisites for.
  */
@@ -31,7 +31,7 @@ export const PREREQUISITES: Readonly<Record<ShipModuleKind, readonly (readonly S
     slipway: [["pad"], ["structure"]],
 };
 
-/** What a skirmish starts the player with, unless its settings say otherwise. */
+/** What a new skirmish starts the player with, unless they choose otherwise. */
 export const STARTING_TECH: readonly ShipModuleKind[] = ["core", "engine", "hullGun"];
 
 /** Every kind there is: the tech of a skirmish from before the tree, which locked nothing. */
