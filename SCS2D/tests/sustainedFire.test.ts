@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { expandBlueprint } from "../sim/index.js";
-import { CORVETTE, RAIL_CORVETTE } from "../scenarios/blueprints.js";
-import { moduleReadout, sustainedShare } from "../editor/stats.js";
+import { expandBlueprint, firingPeriod, moduleStats } from "../sim/index.js";
+import { CORVETTE, LANCE_CORVETTE, RAIL_CORVETTE } from "../scenarios/blueprints.js";
+import { moduleReadout, powerDraw, sustainedShare } from "../editor/stats.js";
 
 /** The readout of the first module of `kind` in a layout. */
 function readout(layout: ReturnType<typeof expandBlueprint>, kind: string) {
@@ -28,5 +28,12 @@ describe("the rate of fire a ship's power can keep up", () => {
         const layout = expandBlueprint(CORVETTE);
         const kind = layout.find((module) => module.kind === "turret" || module.kind === "hullGun")!.kind;
         expect(readout(layout, kind).sustainedPerMinute).toBeUndefined();
+    });
+
+    it("counts what a lance takes from the ship's charge, not the fuel it throws", () => {
+        const layout = expandBlueprint(LANCE_CORVETTE);
+        const gun = moduleStats(layout.find((module) => module.kind === "plasmaLance")!).gun!;
+        expect(powerDraw(gun)).toBeCloseTo(gun.shotEnergy / firingPeriod(gun), 6);
+        expect(powerDraw(gun)).toBeLessThan((gun.beamPower * gun.beamOnTime) / firingPeriod(gun));
     });
 });

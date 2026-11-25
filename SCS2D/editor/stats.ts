@@ -126,22 +126,22 @@ export interface TurretReadout {
 }
 
 /**
- * What a weapon draws, on average, firing as fast as it can on its own, W:
- * a beam's power for its share of the cycle, a rail gun's or lance's charge a
- * shot over its period. Nothing for a gun on fuel.
+ * What a weapon draws from its ship's charge, on average, firing as fast as it
+ * can on its own, W: the charge a shot takes over its period, as the battle
+ * draws it. A lance's pulse is hotter than that by the fuel it throws, which
+ * comes from the tanks. Nothing for a gun on fuel.
  */
 export function powerDraw(gun: GunStats): number {
     const period = firingPeriod(gun);
-    if (!(period > 0)) return 0;
-    if (gun.type === GunType.Beam) return (gun.beamPower * gun.beamOnTime) / period;
-    return gun.shotEnergy / period;
+    return period > 0 ? gun.shotEnergy / period : 0;
 }
 
 /**
  * The share of its own rate each powered weapon of `layout` can keep up on
  * what its generators make, every one firing as fast as it can: 1 where they
  * make enough. Batteries are left out, since they only put the shortfall off;
- * so are an engine's coils, which draw only while it burns.
+ * so are an engine's coils, which draw only while it burns. A layout is one
+ * piece of hull, so one supply.
  */
 export function sustainedShare(layout: readonly ModuleSpec[]): number {
     let generation = 0;
@@ -725,6 +725,7 @@ export function moduleReadout(
         });
     }
     const gun = stats.gun;
+    const rate = gun !== null && firingPeriod(gun) > 0 ? 60 / firingPeriod(gun) : 0;
     return {
         rows,
         gun:
@@ -740,10 +741,8 @@ export function moduleReadout(
                       beamPower: gun.beamPower,
                       jetThrust: gun.jetThrust,
                       muzzleSpeed: gun.muzzleSpeed,
-                      roundsPerMinute: firingPeriod(gun) > 0 ? 60 / firingPeriod(gun) : 0,
-                      ...(powerDraw(gun) > 0 && firingPeriod(gun) > 0
-                          ? { sustainedPerMinute: (60 / firingPeriod(gun)) * sustainedShare(layout) }
-                          : {}),
+                      roundsPerMinute: rate,
+                      ...(powerDraw(gun) > 0 && rate > 0 ? { sustainedPerMinute: rate * sustainedShare(layout) } : {}),
                       ...arcOf(layout, index, gun.barrelLength, barrelHalfWidth(gun)),
                       halfTurn: slewTime(math.PI, TRAVERSE_TOP_RATE, mountAccel(spec, stats)),
                       // Against what its doctrine goes after, which is sized from the
