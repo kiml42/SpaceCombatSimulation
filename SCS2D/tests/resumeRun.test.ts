@@ -35,17 +35,14 @@ describe("a resumed run", { timeout: 120_000 }, () => {
     it("carries on from the file as it is written at the end of each generation", () => {
         const whole = runEvolution([CORVETTE, DINKY], settings);
         // What `pnpm evolve` writes as the first generation closes, and nothing after: as if killed then.
-        let written: RunRecord | null = null;
+        let onDisk: RunRecord | null = null;
         const first: Run = new Run([CORVETTE, DINKY], settings, () => {
-            written ??= throughFile(first.record());
+            onDisk ??= throughFile(first.record());
         });
-        while (written === null) first.advance(500);
-        expect(
-            Run.resume(written)
-                .finish()
-                .generations.map((g) => g.index),
-        ).toEqual([0, 1, 2]);
-        expect(written_(Run.resume(written).finish())).toEqual(written_(whole));
+        while (onDisk === null) first.advance(500);
+        const resumed = Run.resume(onDisk).finish();
+        expect(resumed.generations.map((g) => g.index)).toEqual([0, 1, 2]);
+        expect(written(resumed)).toEqual(written(whole));
     });
 
     it("refuses a run with nothing to carry on from", () => {
