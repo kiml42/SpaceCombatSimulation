@@ -45,6 +45,21 @@ export class Rng {
         this.d = mix();
     }
 
+    /** Where it is in its sequence: what `restore` carries on from. */
+    get state(): readonly [number, number, number, number] {
+        return [this.a, this.b, this.c, this.d];
+    }
+
+    /** A generator carrying on from `state`, drawing exactly what the one it was taken from would have next. */
+    static restore(state: readonly number[]): Rng {
+        const rng = new Rng(0);
+        rng.a = state[0]! | 0;
+        rng.b = state[1]! | 0;
+        rng.c = state[2]! | 0;
+        rng.d = state[3]! | 0;
+        return rng;
+    }
+
     /** A uniform integer in [0, 2^32). */
     nextUint32(): number {
         const t0 = (this.a + this.b) | 0;
