@@ -190,8 +190,12 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
         const candidate = look(bodies, b, tb, t, ships.designs[t]!.mass, !ships.isDisarmed(t), !ships.hasNoEngines(t));
         // Which consort is the ordinary stack's question — proximity dominating,
         // nearly always the nearest. How hard it pulls is the pilot's, and is
-        // asked every step rather than on this schedule.
-        ships.choice.offer(candidate, score(doctrine, candidate, design.reach, design.mass, loyalTo));
+        // asked every step rather than on this schedule. Not by which way the escort
+        // happens to face or move, which swing as it manoeuvres and would have it
+        // swap between two at much the same score; and loyal to the consort it has,
+        // not to the enemy it chose.
+        const still = { ...candidate, facing: 0, closing: 0 };
+        ships.choice.offer(still, score(doctrine, still, design.reach, design.mass, ships.consort[i]!));
     }
     ships.consort[i] = ships.choice.ship;
     guard(ships, bodies, i, b, wasGuarding);

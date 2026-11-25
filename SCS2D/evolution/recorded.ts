@@ -17,8 +17,11 @@ export class RecordedRun {
     readonly done = true;
     readonly played: readonly MatchRecord[] = [];
     private readonly halls: readonly [Hall, Hall];
+    /** Where it carries on from, kept to be written back (`RunRecord.resume`). */
+    private readonly resume: unknown;
 
     constructor(record: RunRecord) {
+        this.resume = record.resume;
         this.config = { ...DEFAULT_RUN, ...record.config };
         this.coevolution = record.rival === undefined ? null : { ...DEFAULT_COEVOLUTION, ...record.rival.config };
         this.generations = record.generations;
@@ -65,6 +68,7 @@ export class RecordedRun {
             config: this.config,
             generations: this.generations,
             ...(this.coevolution === null ? {} : { rival: { config: this.coevolution, generations: this.rivalGenerations } }),
+            ...(this.resume === undefined ? {} : { resume: this.resume }),
         };
     }
 }
