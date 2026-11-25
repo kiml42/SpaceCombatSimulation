@@ -172,7 +172,8 @@ export function pickPad(
     const now = ships.layoutOf(i);
     if (ships.unfinished[i] !== 1 && (set.maxTorque(1) > 0 || set.maxTorque(-1) > 0) && !(now.maxTorque(1) > 0 || now.maxTorque(-1) > 0))
         return;
-    const box = footprintOf(ships.designs[i]!);
+    // Its whole design, not what damage has left of it, which robots will build back out over the pad.
+    const box = footprintOf(ships.blueprint(i));
     const lift = shipFlight.pushAbility(ships, bodies, i, b);
     let bestScore = 0;
     for (let t = 0; t < ships.alive.length; t++) {

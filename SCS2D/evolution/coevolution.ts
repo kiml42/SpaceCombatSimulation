@@ -2,7 +2,8 @@ import { Rng } from "../sim/index.js";
 import { max, min } from "../sim/math.js";
 import { BARE_CORE } from "../scenarios/blueprints.js";
 import { DEFAULT_MATCH, isFleet, Match, planned, type Entrant, type MatchPlan, type Score } from "./match.js";
-import { breed, fitness, type Generation, type Individual } from "./generation.js";
+import { blank, breed, fitness, Generation, type Individual } from "./generation.js";
+import { decodeExact, encodeExact } from "./exactJson.js";
 import {
     DEFAULT_RUN,
     describe,
@@ -167,6 +168,8 @@ export class Coevolution {
     /** Per design of the side being bred, by kind: matches fought, and matches won. */
     private owed = new Map<Kind, number[]>();
     private wins: number[] = [];
+    /** Where the generation being fought began (`RunRecord.resume`), or undefined once the run is done. */
+    private checkpoint: unknown = undefined;
 
     constructor(
         founders: readonly Entrant[],
@@ -174,28 +177,95 @@ export class Coevolution {
         config?: Partial<RunConfig>,
         coevolution?: Partial<CoevolutionConfig>,
         onGeneration?: OnCoGeneration,
+        from?: CoResumed,
     ) {
-        const settings: RunConfig = { ...DEFAULT_RUN, ...config };
+        const settings: RunConfig = { ...DEFAULT_RUN, ...(from?.config ?? config) };
         this.config = settings;
-        this.coevolution = { ...DEFAULT_COEVOLUTION, ...coevolution };
+        this.coevolution = { ...DEFAULT_COEVOLUTION, ...(from?.coevolution ?? coevolution) };
         this.onGeneration = onGeneration;
-        this.rng = new Rng(settings.seed);
         const rival = rivalSettings(settings, this.coevolution.rival);
-        const a = seedPopulation(founders, this.rng, settings);
-        const b = seedPopulation(rivals, this.rng, rival, a.individuals.length);
-        this.nextId = a.individuals.length + b.individuals.length;
-        // A fixed side B fields all its founders; one that evolves, as many as its hall holds.
-        const hallOf = (generation: Generation, all: boolean): Champion[] =>
-            generation.individuals
-                .filter((individual) => individual.parent < 0)
-                .slice(0, all ? undefined : max(1, this.coevolution.hall))
-                .map((individual) => ({ id: individual.id, entrant: individual.entrant }));
-        this.sides = [
-            { config: settings, generation: a, generations: [], matches: [], hall: hallOf(a, false), fought: false },
-            { config: rival, generation: b, generations: [], matches: [], hall: hallOf(b, !this.coevolution.rivalEvolves), fought: false },
-        ];
+        if (from === undefined) {
+            this.rng = new Rng(settings.seed);
+            const a = seedPopulation(founders, this.rng, settings);
+            const b = seedPopulation(rivals, this.rng, rival, a.individuals.length);
+            this.nextId = a.individuals.length + b.individuals.length;
+            // A fixed side B fields all its founders; one that evolves, as many as its hall holds.
+            const hallOf = (generation: Generation, all: boolean): Champion[] =>
+                generation.individuals
+                    .filter((individual) => individual.parent < 0)
+                    .slice(0, all ? undefined : max(1, this.coevolution.hall))
+                    .map((individual) => ({ id: individual.id, entrant: individual.entrant }));
+            this.sides = [
+                { config: settings, generation: a, generations: [], matches: [], hall: hallOf(a, false), fought: false },
+                {
+                    config: rival,
+                    generation: b,
+                    generations: [],
+                    matches: [],
+                    hall: hallOf(b, !this.coevolution.rivalEvolves),
+                    fought: false,
+                },
+            ];
+            if (settings.generations <= 0 || founders.length === 0 || rivals.length === 0) this.over = true;
+        } else {
+            this.rng = Rng.restore(from.rng);
+            this.nextId = from.nextId;
+            this.side = from.side;
+            this.roundCount = from.roundCount;
+            this.roundGenerations = from.roundGenerations;
+            this.generationCount = from.generationCount;
+            const sideOf = (k: 0 | 1): Side => ({
+                config: k === 0 ? settings : rival,
+                generation: new Generation(from.sides[k].index, from.sides[k].individuals.map(restored)),
+                generations: [...from.generations[k]],
+                matches: [],
+                hall: from.sides[k].hall.map((champion) => ({ ...champion })),
+                fought: from.sides[k].fought,
+            });
+            this.sides = [sideOf(0), sideOf(1)];
+            if (this.generationCount >= settings.generations) this.over = true;
+        }
         this.reset();
-        if (settings.generations <= 0 || founders.length === 0 || rivals.length === 0) this.over = true;
+        this.mark();
+    }
+
+    /**
+     * A co-evolution run carrying on from where `record` was written, before
+     * it finished: the same run as one that had never stopped.
+     */
+    static resume(record: RunRecord, onGeneration?: OnCoGeneration): Coevolution {
+        if (record.rival === undefined) throw new Error("not a co-evolution run");
+        if (record.resume === undefined) throw new Error("the run finished, or was written before runs could be resumed");
+        const from = decodeExact(record.resume) as Omit<CoResumed, "generations">;
+        return new Coevolution([], [], undefined, undefined, onGeneration, {
+            ...from,
+            generations: [record.generations, record.rival.generations],
+        });
+    }
+
+    /** Keep where the generation now being fought begins, while there is one to fight. */
+    private mark(): void {
+        if (this.over) {
+            this.checkpoint = undefined;
+            return;
+        }
+        const sideOf = (s: Side) => ({
+            index: s.generation.index,
+            individuals: s.generation.individuals.map((individual) => ({ ...individual, met: [...individual.met] })),
+            hall: s.hall,
+            fought: s.fought,
+        });
+        this.checkpoint = encodeExact({
+            config: this.config,
+            coevolution: this.coevolution,
+            rng: this.rng.state,
+            nextId: this.nextId,
+            side: this.side,
+            roundCount: this.roundCount,
+            roundGenerations: this.roundGenerations,
+            generationCount: this.generationCount,
+            sides: [sideOf(this.sides[0]), sideOf(this.sides[1])],
+        });
     }
 
     get done(): boolean {
@@ -316,6 +386,7 @@ export class Coevolution {
             config: this.config,
             generations: this.sides[0].generations,
             rival: { config: this.coevolution, generations: this.sides[1].generations },
+            ...(this.checkpoint === undefined ? {} : { resume: this.checkpoint }),
         };
     }
 
@@ -479,11 +550,13 @@ export class Coevolution {
         own.generations.push(record);
         own.matches = [];
         own.fought = true;
-        this.onGeneration?.(record, this.side);
+        const side = this.side;
         this.generationCount++;
         this.roundGenerations++;
         if (this.generationCount >= this.config.generations) {
             this.over = true;
+            this.mark();
+            this.onGeneration?.(record, side);
             return;
         }
         const ends = this.alternates && (won >= this.coevolution.phaseWin || this.roundGenerations >= this.coevolution.phaseCap);
@@ -499,6 +572,9 @@ export class Coevolution {
             own.generation = this.bred(own);
         }
         this.reset();
+        // Told once the checkpoint is the next generation's, so a record written now carries on from there.
+        this.mark();
+        this.onGeneration?.(record, side);
     }
 
     private bred(s: Side): Generation {
@@ -531,6 +607,35 @@ export class Coevolution {
         s.hall.push({ id: best.id, entrant: best.entrant });
         while (s.hall.length > max(1, this.coevolution.hall)) s.hall.shift();
     }
+}
+
+/** An individual as a checkpoint holds it: whom it met as pairs, rather than a map. */
+type HeldIndividual = Omit<Individual, "met"> & { readonly met: readonly (readonly [number, number])[] };
+
+/** A co-evolution run's state as a generation began, which `Coevolution.resume` carries on from. */
+interface CoResumed {
+    readonly config: RunConfig;
+    readonly coevolution: CoevolutionConfig;
+    readonly rng: readonly number[];
+    readonly nextId: number;
+    readonly side: 0 | 1;
+    readonly roundCount: number;
+    readonly roundGenerations: number;
+    readonly generationCount: number;
+    readonly sides: readonly [CoSide, CoSide];
+    readonly generations: readonly [readonly GenerationRecord[], readonly GenerationRecord[]];
+}
+
+interface CoSide {
+    readonly index: number;
+    readonly individuals: readonly HeldIndividual[];
+    readonly hall: readonly Champion[];
+    readonly fought: boolean;
+}
+
+/** An individual from a checkpoint, with what it has been credited so far. */
+function restored(held: HeldIndividual): Individual {
+    return { ...blank(held.id, held.entrant, held.parent, held.edits), ...held, met: new Map(held.met) };
 }
 
 /** A drill's score: only what was done to the other side, since its own ships could not be hurt or there was nothing to hurt them. */

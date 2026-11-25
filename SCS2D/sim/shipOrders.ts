@@ -410,7 +410,7 @@ export function couldDockAt(ships: Ships, i: number, t: number): boolean {
     const design = ships.designs[i]!;
     const host = ships.designs[t]!;
     if (design.fighter) {
-        const box = footprintOf(design);
+        const box = footprintOf(ships.blueprint(i));
         return host.modules.some((m) => m.spec.kind === "pad" && shipDecide.fitsPad(box, m.spec));
     }
     return design.modules.some((m) => m.spec.kind === "port") && host.modules.some((m) => m.spec.kind === "port");
