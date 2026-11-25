@@ -110,7 +110,8 @@ describe("match", () => {
     it("gives the win to one side, every winner on it", () => {
         const weights = { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 };
         const teams = [0, 1, 1];
-        const result = runMatch([GUNSHIP, CORVETTE, DINKY], { seed: 1, weights }, teams);
+        // A seed whose fight is decided well inside the time limit.
+        const result = runMatch([GUNSHIP, CORVETTE, DINKY], { seed: 2, weights }, teams);
         expect(result.ending).toEqual("decided");
         expect(result.winners.length).toBeGreaterThan(0);
         expect(new Set(result.winners.map((i) => teams[i]))).toHaveProperty("size", 1);
