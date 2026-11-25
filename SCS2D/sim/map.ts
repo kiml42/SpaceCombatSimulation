@@ -33,6 +33,12 @@ export interface MapSettings {
     /** The mean share of rock that is ore, and that is ice. */
     readonly metal?: number;
     readonly fuel?: number;
+    /**
+     * 1 puts the first major at the middle of the field, between the sides,
+     * which start far enough out to clear it (`middleRock`); 0 keeps every
+     * major clear of where they start.
+     */
+    readonly middle?: number;
 }
 
 export type MapKey = keyof MapSettings;
@@ -49,10 +55,11 @@ export const MAP_KEYS: readonly MapKey[] = [
     "surfaceGravity",
     "metal",
     "fuel",
+    "middle",
 ];
 
 /** The counts, which are whole numbers. */
-const COUNTS: readonly MapKey[] = ["majors", "minors"];
+const COUNTS: readonly MapKey[] = ["majors", "minors", "middle"];
 /** The shares, which are 0 to 1. */
 const SHARES: readonly MapKey[] = ["eccentricity", "metal", "fuel"];
 
@@ -67,6 +74,7 @@ export const DEFAULT_MAP: Required<MapSettings> = {
     surfaceGravity: 0.5,
     metal: 0.2,
     fuel: 0.1,
+    middle: 0,
 };
 
 /**
@@ -182,8 +190,23 @@ export function hasAsteroids(settings: MapSettings | undefined): boolean {
  * Draw a map. Its stream is the seed's own, mixed, so a battle's world draws
  * the same whether or not it has a map. Majors' wells come first in `wells`.
  */
+/**
+ * The radius of the major a map with `middle` puts at the middle of the field,
+ * metres, which whatever starts there must clear; zero for a map without one.
+ * Drawn as `generateMap` draws it, from the same seed.
+ */
+export function middleRock(settings: MapSettings | undefined, seed: number): number {
+    if (settings === undefined || !((settings.middle ?? 0) >= 1) || !((settings.majors ?? 0) >= 1)) return 0;
+    const rng = mapRng(seed);
+    return drawSize(settings.majorSize ?? DEFAULT_MAP.majorSize, settings.majorSpread ?? DEFAULT_MAP.majorSpread, rng) + MARGIN;
+}
+
+function mapRng(seed: number): Rng {
+    return new Rng((seed ^ 0x6d617073) >>> 0);
+}
+
 export function generateMap(settings: MapSettings, seed: number, clear: readonly Clearing[]): AsteroidMap {
-    const rng = new Rng((seed ^ 0x6d617073) >>> 0);
+    const rng = mapRng(seed);
     const g = settings.surfaceGravity ?? DEFAULT_MAP.surfaceGravity;
     const ore = settings.metal ?? DEFAULT_MAP.metal;
     const ice = settings.fuel ?? DEFAULT_MAP.fuel;
@@ -214,8 +237,13 @@ export function generateMap(settings: MapSettings, seed: number, clear: readonly
             root = { pair: [root, { well: k }], orbit };
             extent = a * (1 + e) + max(extent, reach[k]!);
         }
-        // Somewhere the system's opening seconds keep clear of every clearing.
+        // Somewhere the system's opening seconds keep clear of every clearing; or, asked
+        // for one in the middle, with its first major there, whatever it starts beside.
         let found: Rails | undefined;
+        if ((settings.middle ?? 0) >= 1) {
+            new Railway({ x: 0, y: 0, root }, wells).at(0);
+            found = { x: -wells[0]!.x, y: -wells[0]!.y, root };
+        }
         for (let t = 0; t < TRIES && found === undefined; t++) {
             const out = t === 0 ? 0 : MARGIN * 4 * t;
             const bearing = rng.nextFloat() * TAU;

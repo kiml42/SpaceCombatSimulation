@@ -45,6 +45,7 @@ export {
     majorWell,
     MAP_KEYS,
     mapProblem,
+    middleRock,
     writeMap,
     type AsteroidMap,
     type Clearing,

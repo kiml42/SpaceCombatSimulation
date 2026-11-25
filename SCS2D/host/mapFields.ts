@@ -19,6 +19,12 @@ const LABELS: Record<MapKey, { label: string; title: string; step: number; max?:
     surfaceGravity: { label: "gravity m/s²", title: "A major’s pull at its surface", step: 0.1 },
     metal: { label: "metal", title: "The share of rock that is ore, on average", step: 0.05, max: 1 },
     fuel: { label: "fuel", title: "The share of rock that is ice, on average", step: 0.05, max: 1 },
+    middle: {
+        label: "in the middle",
+        title: "1 puts the first major between the sides, which start far enough out to clear it; 0 keeps every major clear of where they start",
+        step: 1,
+        max: 1,
+    },
 };
 
 /** Which of the settings is drawn as the ± of another. */
