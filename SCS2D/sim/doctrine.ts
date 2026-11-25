@@ -322,6 +322,13 @@ export interface Approach {
      */
     readonly dodgeSpeed: number;
     /**
+     * How fast it jinks sideways while an enemy gun is aimed at it, m/s: a
+     * sideways speed drawn afresh, either way and up to this, about as often as
+     * that gun's rounds take to arrive, so the lead it was given is stale by
+     * the time they do. Zero flies as straight as its orders say.
+     */
+    readonly evasion: number;
+    /**
      * How quickly it tries to correct a velocity error, seconds: the pilot asks
      * for the error over this long. Larger is gentler, and asks less of its
      * engines, so it also turns to burn less readily.
@@ -632,6 +639,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         metalReserve: 0,
         chargeReserve: 0.25,
         dodgeSpeed: 60,
+        evasion: 0,
         responseTime: 2,
         spinResist: 0,
         tolerance: 0.2,
@@ -867,6 +875,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "separationRadii",
     "avoidHorizon",
     "dodgeSpeed",
+    "evasion",
     "responseTime",
     "spinResist",
     "tolerance",
@@ -916,6 +925,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 /** Fields that mean nothing below zero, though zero itself is a setting. */
 export const NON_NEGATIVE_FIELDS: readonly string[] = [
     "guardRange",
+    "evasion",
     "ramSelectiveFuel",
     "escortInner",
     "spinResist",

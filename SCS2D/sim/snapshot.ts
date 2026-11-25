@@ -3,7 +3,7 @@ import { originOf, type ShipDesign } from "./blueprint.js";
 import type { WellSpec } from "./gravity.js";
 import type { Doctrine, DoctrineOverride } from "./doctrine.js";
 import { FILL_KEPT } from "./fuel.js";
-import { NOT_INSIDE, ROUND_SHRAPNEL, ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
+import { NOT_INSIDE, ROUND_SHRAPNEL, ROUND_WRECKAGE, roundFade, type Projectiles } from "./projectiles.js";
 import { BEAM_PLASMA, type Beams } from "./beams.js";
 import { MOST_CLOUDS, type Debris } from "./debris.js";
 import type { ImpactLog } from "./damage.js";
@@ -359,6 +359,8 @@ export class Snapshot {
     projectileWreckage = new Uint8Array(0);
     /** The layers each flies in, as a `HULL_LAYER` / `WEAPONS_LAYER` mask. */
     projectileLayers = new Uint8Array(0);
+    /** How opaque each is drawn, 0 to 1: a fragment fades out at the end of its life (`roundFade`). */
+    projectileFade = new Float64Array(0);
     projectileCount = 0;
 
     /** Beams in flight, as flat pairs so a renderer can loop without objects. */
@@ -475,6 +477,7 @@ function growProjectiles(snapshot: Snapshot, needed: number): void {
     snapshot.projectileTeam = new Int16Array(size);
     snapshot.projectileWreckage = new Uint8Array(size);
     snapshot.projectileLayers = new Uint8Array(size);
+    snapshot.projectileFade = new Float64Array(size);
 }
 
 function growBeams(snapshot: Snapshot, needed: number): void {
@@ -948,6 +951,7 @@ export function capture(
         out.projectileTeam[p] = bodyTeam[projectiles.owner[i]!] ?? -1;
         out.projectileWreckage[p] = projectiles.kind[i] === ROUND_WRECKAGE || projectiles.kind[i] === ROUND_SHRAPNEL ? 1 : 0;
         out.projectileLayers[p] = projectiles.layers[i]!;
+        out.projectileFade[p] = roundFade(projectiles, i);
         p++;
     }
     out.projectileCount = p;

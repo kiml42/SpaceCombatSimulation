@@ -297,8 +297,17 @@ describe("a gun and the target it was trained on", () => {
         let worstAt = "";
         let rounds = 0;
 
+        // What each mount was aiming at going into the step: a target lost in the
+        // step a round left at it was still what that round was fired at.
+        const before = new Map<string, number>();
         // Forty seconds, since most of what fires here is the two gunships.
         for (let step = 0; step < 2400; step++) {
+            before.clear();
+            for (let s = 0; s < run.ships.highWater; s++) {
+                if (!run.ships.isAlive(s)) continue;
+                const turrets = run.ships.currentStructure(s).turrets.length;
+                for (let t = 0; t < turrets; t++) before.set(`${s}:${t}`, run.ships.targetOfTurret(bodies, s, t));
+            }
             run.step();
             for (let k = 0; k < projectiles.highWater; k++) {
                 // A slot is reused once its round is gone, so a slot falling empty is
@@ -322,12 +331,13 @@ describe("a gun and the target it was trained on", () => {
                 // with none of them is the failure this is looking for.
                 let off = Math.PI;
                 for (let t = 0; t < design.turrets.length; t++) {
-                    const target = run.ships.targetOfTurret(bodies, shooter, t);
-                    if (target < 0) continue;
-                    const tb = bodies.indexOf(run.ships.body(target));
-                    if (tb < 0) continue;
-                    const wanted = Math.atan2(bodies.y[tb]! - bodies.y[own]!, bodies.x[tb]! - bodies.x[own]!);
-                    off = Math.min(off, Math.abs(math.angleDelta(heading, wanted)));
+                    for (const target of [run.ships.targetOfTurret(bodies, shooter, t), before.get(`${shooter}:${t}`) ?? -1]) {
+                        if (target < 0) continue;
+                        const tb = bodies.indexOf(run.ships.body(target));
+                        if (tb < 0) continue;
+                        const wanted = Math.atan2(bodies.y[tb]! - bodies.y[own]!, bodies.x[tb]! - bodies.x[own]!);
+                        off = Math.min(off, Math.abs(math.angleDelta(heading, wanted)));
+                    }
                 }
                 rounds++;
                 if (off <= worst) continue;
