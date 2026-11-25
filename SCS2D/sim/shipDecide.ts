@@ -436,7 +436,7 @@ export function canRestock(ships: Ships, bodies: Bodies, i: number, b: number): 
     const metalRoom = approach.rearmBelow >= 0 ? ships.metal.pieceRoom(b, own) : 0;
     const chargeRoom = approach.rechargeBelow > 0 ? ships.power.pieceRoom(b, own) : 0;
     if (!(metalRoom > 0 || chargeRoom > 0)) return false;
-    const box = footprintOf(design);
+    const box = footprintOf(ships.blueprint(i));
     for (let t = 0; t < ships.alive.length; t++) {
         if (t === i || ships.alive[t] === 0 || ships.derelict[t] === 1) continue;
         if (ships.team[t] !== ships.team[i] || ships.hostile(i, t)) continue;
