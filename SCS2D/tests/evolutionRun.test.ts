@@ -37,7 +37,9 @@ describe("a run fought off the page", { timeout: 60_000 }, () => {
         const { live, sends } = fought({ founders: [designOf(DINKY)], rivals: [], config: SETTINGS, coevolution: null });
         expect(live.done).toBe(true);
         expect(live.progress).toBe(1);
-        expect(JSON.stringify(live.record())).toBe(JSON.stringify(runEvolution([DINKY], SETTINGS)));
+        // All but where a run of one carries on from, which only `pnpm evolve --resume` reads.
+        const { resume: _resume, ...here } = runEvolution([DINKY], SETTINGS);
+        expect(JSON.stringify(live.record())).toBe(JSON.stringify(here));
         // Sent the first time before anything is fought. How often after that depends on the
         // machine's speed, so is not asserted: the record above is what has to come out right.
         expect(sends[0]!.generations).toEqual([]);

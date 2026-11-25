@@ -29,6 +29,7 @@ import { blank, breed, fitness, Generation, offspring, type Individual } from ".
 import type { CoevolutionConfig } from "./coevolution.js";
 import { withFleetFighters } from "../sim/fleetHangar.js";
 import { firstLivery, liveryRng } from "../sim/liveryDrift.js";
+import { decodeExact, encodeExact } from "./exactJson.js";
 
 /**
  * A run: generations of designs, each fought in groups and bred from what
@@ -382,6 +383,12 @@ export interface RunRecord {
     readonly config: RunConfig;
     readonly generations: readonly GenerationRecord[];
     /**
+     * Where a run of one carries on from (`Run.resume`): the generation being
+     * fought as it began, or the next once it has finished, with the draws and
+     * settings it began with, written exactly (`encodeExact`).
+     */
+    readonly resume?: unknown;
+    /**
      * The other lineage of a co-evolution run, side B, bred against this one;
      * absent from a run of one. Side A is `generations`, so whatever reads a
      * run of one reads side A of a co-evolution run the same way.
@@ -469,6 +476,16 @@ export function matchYards(...sides: readonly Pick<RunConfig, "budget" | "robots
     return { yards: sides.map((side) => ({ deadline: side.budget.build, robots: robotsOf(side) })) };
 }
 
+/** A run's state as a generation began, which `Run.resume` carries on from. */
+interface Resumed {
+    readonly config: RunConfig;
+    readonly rng: readonly number[];
+    readonly nextId: number;
+    readonly index: number;
+    readonly individuals: readonly { id: number; parent: number; edits: readonly string[]; entrant: Entrant }[];
+    readonly generations: readonly GenerationRecord[];
+}
+
 /**
  * A run in progress: the generation being fought, and the record so far.
  *
@@ -495,16 +512,66 @@ export class Run {
     private competitors: number[] = [];
     private seed = 0;
     private over = false;
+    /** Where the generation being fought began (`RunRecord.resume`). */
+    private checkpoint: unknown = undefined;
 
-    constructor(founders: readonly Entrant[], config?: Partial<RunConfig>, onGeneration?: OnGeneration) {
-        const settings: RunConfig = { ...DEFAULT_RUN, ...config };
+    constructor(founders: readonly Entrant[], config?: Partial<RunConfig>, onGeneration?: OnGeneration, from?: Resumed) {
+        const settings: RunConfig = { ...DEFAULT_RUN, ...(from?.config ?? config) };
         this.config = settings;
         this.onGeneration = onGeneration;
-        this.rng = new Rng(settings.seed);
-        this.generation = seedPopulation(founders, this.rng, settings);
-        this.nextId = this.generation.individuals.length;
+        if (from === undefined) {
+            this.rng = new Rng(settings.seed);
+            this.generation = seedPopulation(founders, this.rng, settings);
+            this.nextId = this.generation.individuals.length;
+        } else {
+            this.rng = Rng.restore(from.rng);
+            this.generation = new Generation(
+                from.index,
+                from.individuals.map((individual) => blank(individual.id, individual.entrant, individual.parent, individual.edits)),
+            );
+            this.nextId = from.nextId;
+            this.generations.push(...from.generations);
+        }
         this.limit = settings.population * settings.minMatches * 4 + 16;
-        if (settings.generations <= 0) this.over = true;
+        if (this.generations.length >= settings.generations) this.over = true;
+        if (from === undefined) this.mark();
+        else this.checkpoint = encodeExact({ ...from, generations: undefined });
+    }
+
+    /**
+     * A run carrying on from where `record` was written, to `generations` in
+     * all if given, else to as many as it was set: the same run as one that had
+     * never stopped, or had been set to go on longer. Only a run of one; a co-evolution run keeps more than its
+     * record holds.
+     */
+    static resume(record: RunRecord, generations?: number, onGeneration?: OnGeneration): Run {
+        if (record.rival !== undefined) throw new Error("a co-evolution run carries on with `Coevolution.resume`");
+        if (record.resume === undefined) {
+            throw new Error("the run holds nothing to carry on from: only a run file `pnpm evolve` wrote can be resumed");
+        }
+        const from = decodeExact(record.resume) as Omit<Resumed, "generations">;
+        const rng = from.rng;
+        if (!Array.isArray(rng) || rng.length !== 4 || !rng.every(Number.isFinite) || rng.every((n) => n === 0)) {
+            throw new Error("the run's checkpoint is damaged: its generator state is not four numbers");
+        }
+        if (!Array.isArray(from.individuals) || from.individuals.length === 0 || typeof from.config !== "object") {
+            throw new Error("the run's checkpoint is damaged: it holds no generation to carry on from");
+        }
+        // Never fewer than it has already fought.
+        const config =
+            generations === undefined ? from.config : { ...from.config, generations: max(generations, record.generations.length) };
+        return new Run([], undefined, onGeneration, { ...from, config, generations: record.generations });
+    }
+
+    /** Keep where `generation`, the next to be fought, begins. */
+    private mark(generation: Generation = this.generation): void {
+        this.checkpoint = encodeExact({
+            config: this.config,
+            rng: this.rng.state,
+            nextId: this.nextId,
+            index: generation.index,
+            individuals: generation.individuals.map(({ id, parent, edits, entrant }) => ({ id, parent, edits, entrant })),
+        });
     }
 
     get done(): boolean {
@@ -574,7 +641,11 @@ export class Run {
     }
 
     record(): RunRecord {
-        return { config: this.config, generations: this.generations };
+        return {
+            config: this.config,
+            generations: this.generations,
+            ...(this.checkpoint === undefined ? {} : { resume: this.checkpoint }),
+        };
     }
 
     /**
@@ -646,13 +717,10 @@ export class Run {
         const settings = this.config;
         const record = describe(this.generation, this.matches);
         this.generations.push(record);
-        this.onGeneration?.(record);
         this.matches = [];
-        if (this.generations.length >= settings.generations) {
-            this.over = true;
-            return;
-        }
-        this.generation = breed(
+        // Bred even past the last, as the checkpoint a longer run carries on from: the
+        // draws are the ones it would have made, and nothing here draws again after.
+        const next = breed(
             this.generation,
             this.rng,
             {
@@ -664,6 +732,14 @@ export class Run {
             },
             () => this.nextId++,
         );
+        this.mark(next);
+        // Told once the checkpoint is the next generation's, so a record written now carries on from there.
+        this.onGeneration?.(record);
+        if (this.generations.length >= settings.generations) {
+            this.over = true;
+            return;
+        }
+        this.generation = next;
     }
 }
 

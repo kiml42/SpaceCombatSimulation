@@ -107,7 +107,14 @@ export function refit(ships: Ships, world: World, i: number, to: ShipDesign): st
  */
 export function buildsFor(ships: Ships, i: number, design: ShipDesign): void {
     const builds = design.builds ?? [];
-    ships.broods[i] = builds.length === 0 ? null : { fighters: builds.map(() => []), work: new Float64Array(builds.length) };
+    ships.broods[i] =
+        builds.length === 0
+            ? null
+            : {
+                  fighters: builds.map(() => []),
+                  work: new Float64Array(builds.length),
+                  coveredSince: new Float64Array(builds.length).fill(-1),
+              };
     ships.yards[i] = yardFor(design);
 }
 
@@ -573,6 +580,55 @@ export function awaited(ships: Ships, i: number, pad: number): boolean {
 }
 
 /**
+/** The longest a pad holds a core it is ready to lay while something is over its deck, seconds. */
+const PAD_COVERED_WAIT = 10;
+
+/**
+ * Whether any ship but carrier `i` and those parked on it reaches over where
+ * `fighter` would lie on pad `pad`, by its bounding circle: one just launched
+ * from it, still lifting off, say, which the next would be laid down into.
+ * Only one under control and with engines to move off with; a hulk left there
+ * would hold the pad for good.
+ */
+export function padCovered(
+    ships: Ships,
+    bodies: Bodies,
+    i: number,
+    b: number,
+    design: ShipDesign,
+    pad: number,
+    fighter: ShipDesign,
+): boolean {
+    const deck = design.modules[pad]!;
+    const box = footprintOf(fighter);
+    const halfX = (box.maxX - box.minX) / 2;
+    const halfY = (box.maxY - box.minY) / 2;
+    const angle = bodies.angle[b]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    // The deck's centre in the world, with the fighter laid along the pad.
+    const px = bodies.x[b]! + deck.x * c - deck.y * s;
+    const py = bodies.y[b]! + deck.x * s + deck.y * c;
+    const ux = cos(angle + deck.angle);
+    const uy = sin(angle + deck.angle);
+    for (let o = 0; o < bodies.count; o++) {
+        if (o === b) continue;
+        const ship = ships.shipByBody[o];
+        if (ship === undefined || ship < 0 || ship === i || ships.parkedOn[ship] === i) continue;
+        if (!ships.hasControl(ship) || ships.hasNoEngines(ship)) continue;
+        const dx = bodies.x[o]! - px;
+        const dy = bodies.y[o]! - py;
+        const along = abs(dx * ux + dy * uy) - halfX;
+        const across = abs(-dx * uy + dy * ux) - halfY;
+        const ax = along > 0 ? along : 0;
+        const ay = across > 0 ? across : 0;
+        const r = bodies.radius[o]!;
+        if (ax * ax + ay * ay < r * r) return true;
+    }
+    return false;
+}
+
+/**
  * Put a step of the pad's work into the walls of the core it lays next, at
  * the rate and price a pad mends at, and lay them down once there is a
  * shell's step of them and the metal to pay for it.
@@ -608,6 +664,13 @@ export function layDown(
         ships.builtAt[i] = world.tick;
     }
     if (brood.work[k]! < wall) return;
+    // Ready to lay, but not into something still over the deck: one just launched, lifting off, say.
+    // Not for ever, though, should whatever it is stay there.
+    if (padCovered(ships, bodies, i, b, design, pad, fighter)) {
+        if (brood.coveredSince[k]! < 0) brood.coveredSince[k] = world.tick;
+        if ((world.tick - brood.coveredSince[k]!) * world.dt < PAD_COVERED_WAIT) return;
+    }
+    brood.coveredSince[k] = -1;
     brood.work[k] = 0;
 
     // Where the whole fighter would lie, and where its core's first step is in that.

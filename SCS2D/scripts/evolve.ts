@@ -28,6 +28,7 @@ import {
     type RunRecord,
 } from "../evolution/run.js";
 import { Coevolution, DEFAULT_COEVOLUTION, type CoevolutionConfig } from "../evolution/coevolution.js";
+import { parseRunRecord } from "../evolution/recorded.js";
 import type { Entrant } from "../evolution/match.js";
 import { DEFAULT_BUILD_WEIGHTS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS } from "../evolution/mutate.js";
 import { parseRunConfig, runConfigWarnings, serialiseRunConfig } from "../evolution/configFile.js";
@@ -42,7 +43,8 @@ import type { ModuleKind } from "../sim/modules.js";
  * every generation, every design in it, and every match with the seed it was
  * fought under, which is all it takes to watch any one of them again. It is
  * rewritten as each generation finishes, so a run stopped part way still
- * leaves every generation it finished.
+ * leaves every generation it finished, and `--resume <run file>` carries it on
+ * from there: a run of one to `--generations` if given.
  */
 
 interface Options {
@@ -59,6 +61,8 @@ interface Options {
     readonly name: string | undefined;
     readonly config: Partial<RunConfig>;
     readonly quiet: boolean;
+    /** A run file to carry on from, which every other setting but `--generations` and `--out` is taken from. */
+    readonly resume: string | undefined;
 }
 
 /** Side B's founders, as `Options.from`, and how it is bred against side A. */
@@ -140,6 +144,7 @@ function parse(argv: readonly string[]): Options {
     let saveConfig = "";
     let quiet = false;
     let budget = 0;
+    let resume: string | undefined;
 
     for (let i = 0; i < argv.length; i++) {
         const arg = argv[i]!;
@@ -371,6 +376,9 @@ function parse(argv: readonly string[]): Options {
             case "--quiet":
                 quiet = true;
                 break;
+            case "--resume":
+                resume = value();
+                break;
             default:
                 throw new Error(`unknown argument ${arg}`);
         }
@@ -414,8 +422,11 @@ function parse(argv: readonly string[]): Options {
     }
     const coevolving = versusFrom.length + versusFleets.length > 0;
     const versus = coevolving ? { from: versusFrom, fleets: versusFleets, coevolution } : null;
-    out ??= configPath === undefined ? "runs/run.json" : runBeside(configPath);
-    return { from, fleets, versus, out, saveConfig, name, config, quiet };
+    if (resume !== undefined && (coevolving || saveConfig !== "")) {
+        throw new Error("--resume carries a run on as it was set: it takes no --versus or --save-config");
+    }
+    out ??= resume ?? (configPath === undefined ? "runs/run.json" : runBeside(configPath));
+    return { from, fleets, versus, out, saveConfig, name, config, quiet, resume };
 }
 
 const options = parse(process.argv.slice(2));
@@ -427,7 +438,11 @@ const rivals: Entrant[] =
 const names = (side: { from: readonly { name: string }[]; fleets: readonly { name: string }[] }): string =>
     [...side.from, ...side.fleets].map(({ name }) => name).join(", ");
 
-if (!options.quiet) {
+if (!options.quiet && options.resume !== undefined) {
+    console.log(
+        `resuming ${options.resume}${options.config.generations === undefined ? "" : `, to ${options.config.generations} generations`}`,
+    );
+} else if (!options.quiet) {
     console.log(
         versus === null
             ? `${names(options)} — ${settings.generations} generations of ` +
@@ -484,19 +499,29 @@ const line = (generation: GenerationRecord, label = "gen"): string =>
     `| hull ${generation.mean.survival.toFixed(2)}  function ${generation.mean.functional.toFixed(2)}  ` +
     `damage ${generation.mean.damage.toFixed(3)}  disabling ${generation.mean.disabling.toFixed(3)}  ` +
     `race ${generation.mean.race.toFixed(2)}`;
+const generated = (generation: GenerationRecord): void => {
+    writeRun();
+    if (!options.quiet) console.log(line(generation));
+};
+const coGenerated = (generation: GenerationRecord, side: 0 | 1): void => {
+    writeRun();
+    if (!options.quiet) {
+        const round = generation.round === undefined ? "" : `round ${generation.round + 1} `;
+        console.log(`${round}${line(generation, side === 0 ? "A" : "B")}  won ${((generation.won ?? 0) * 100).toFixed(0)}%`);
+    }
+};
+const resumed = options.resume === undefined ? null : parseRunRecord(JSON.parse(readFileSync(options.resume, "utf8")));
+if (resumed?.rival !== undefined && options.config.generations !== undefined) {
+    throw new Error("a co-evolution run carries on only to the generations it was set to");
+}
 const runner: { record(): RunRecord; finish(): RunRecord } =
-    versus === null
-        ? new Run(founders, options.config, (generation) => {
-              writeRun();
-              if (!options.quiet) console.log(line(generation));
-          })
-        : new Coevolution(founders, rivals, options.config, versus.coevolution, (generation, side) => {
-              writeRun();
-              if (!options.quiet) {
-                  const round = generation.round === undefined ? "" : `round ${generation.round + 1} `;
-                  console.log(`${round}${line(generation, side === 0 ? "A" : "B")}  won ${((generation.won ?? 0) * 100).toFixed(0)}%`);
-              }
-          });
+    resumed !== null
+        ? resumed.rival === undefined
+            ? Run.resume(resumed, options.config.generations, generated)
+            : Coevolution.resume(resumed, coGenerated)
+        : versus === null
+          ? new Run(founders, options.config, generated)
+          : new Coevolution(founders, rivals, options.config, versus.coevolution, coGenerated);
 const run = runner.finish();
 const spent = (Date.now() - started) / 1000;
 writeRun();
