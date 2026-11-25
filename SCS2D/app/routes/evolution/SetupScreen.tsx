@@ -3,10 +3,10 @@ import { useRef, type ReactNode } from "react";
 import { byCategory, type Library, type LibraryEntry } from "~/editor/library";
 import { MUTATION_FIELDS } from "~/evolution/mutationFields";
 import type { SettingField } from "~/host/settingsFields";
-import type { Blueprint, Fleet } from "~/sim/index";
+import { expandBlueprint, type Blueprint, type Fleet } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
 import { clampOnBlur } from "~/ui/fields/clamp";
-import { coRun, fleetRun, MAP_FIELDS, RIVAL, rivalTexts, valueOf, type Goal, type SetupForm } from "./evolutionSetup";
+import { coRun, fleetRun, MAP_FIELDS, pickOf, RIVAL, rivalTexts, valueOf, type Goal, type SetupForm } from "./evolutionSetup";
 import { Fold } from "./Fold";
 import { EVOLUTION_PRESETS } from "./evolutionPresets";
 
@@ -290,11 +290,33 @@ export interface SetupScreenProps {
     readonly onReset: () => void;
 }
 
+/** The fleet's design chance, as a ship bred alone uses it: for the craft its pads and slipways build. */
+const CRAFT_FIELDS: readonly SettingField[] = MUTATION_FIELDS.filter((field) => field.name === "fleetDesign").map((field) => ({
+    ...field,
+    group: "craft",
+    label: "craft mutated",
+    title: "Chance each design the ship's pads and slipways build is mutated each generation, the way the ship is.",
+}));
+
+/** Whether a founder is a ship with a pad or slipway, which builds craft of its own. */
+function buildsCraft(value: string, ships: Library<Blueprint>): boolean {
+    const { kind, name } = pickOf(value);
+    if (kind !== "ship") return false;
+    try {
+        const blueprint = ships.load(name);
+        return blueprint !== null && expandBlueprint(blueprint).some((module) => module.kind === "pad" || module.kind === "slipway");
+    } catch {
+        return false;
+    }
+}
+
 /** Setting a run up: the settings have the width to themselves, beside the founders they would start from. */
 export function SetupScreen({ hidden, form, onForm, ships, fleets, onExport, onImport, onReset }: SetupScreenProps) {
     const file = useRef<HTMLInputElement>(null);
     const co = coRun(form);
     const fleet = fleetRun(form);
+    // A ship bred alone breeds what its pads and slipways build too, by the fleet's design chance.
+    const crafts = !fleet && [...form.founders, ...form.versus].some((value) => buildsCraft(value, ships));
     const field = (props: Omit<FieldProps, "form" | "onForm">): ReactNode => (
         <Field key={props.id} {...props} form={form} onForm={onForm} />
     );
@@ -640,6 +662,7 @@ export function SetupScreen({ hidden, form, onForm, ships, fleets, onExport, onI
                             Relative odds of each kind, when a module is added or refitted into something else; hover one for what it is.
                             Zero shuts a kind out altogether.
                         </Note>
+                        {crafts && <Group fields={CRAFT_FIELDS} group="craft" form={form} onForm={onForm} sided />}
                     </Fold>
                     {fleet && (
                         <Fold k="fleetMutations" title="Fleet mutations">
