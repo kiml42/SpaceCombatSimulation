@@ -294,11 +294,11 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
                 const part = shipAim.ramPart(ships, bodies, i, b, target, tb);
                 ships.ramPart[i] = part;
                 if (part >= 0) {
-                    const module = ships.designs[target]!.modules[part]!;
+                    shipAim.ramSpot(ships.designs[target]!, part, RAM_SPOT);
                     const c = cos(bodies.angle[tb]!);
                     const s = sin(bodies.angle[tb]!);
-                    at.x = bodies.x[tb]! + module.x * c - module.y * s;
-                    at.y = bodies.y[tb]! + module.x * s + module.y * c;
+                    at.x = bodies.x[tb]! + RAM_SPOT.x * c - RAM_SPOT.y * s;
+                    at.y = bodies.y[tb]! + RAM_SPOT.x * s + RAM_SPOT.y * c;
                     at.vx = bodies.vx[tb]!;
                     at.vy = bodies.vy[tb]!;
                     wantAngle = atan2(at.y - bodies.y[b]!, at.x - bodies.x[b]!);
@@ -509,6 +509,9 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     ships.demandFy[i] = fy;
     ships.demandTorque[i] = torque;
 }
+
+/** Where a ram goes for on the part it picked, in the target's frame (`shipAim.aimSpot`). */
+const RAM_SPOT = { x: 0, y: 0 };
 
 /**
  * The heading that puts a target lying at `towards` where this ship's
