@@ -166,6 +166,24 @@ function FigureRows({ rows }: { readonly rows: readonly ReadoutRow[] }) {
     );
 }
 
+/**
+ * How often a weapon fires: what the ship's generation keeps it to, and what it
+ * could manage alone beneath that where the generation holds it back.
+ */
+function rateRows(gun: NonNullable<ModuleReadout["gun"]>, unit: string): ReadoutRow[] {
+    const alone = gun.roundsPerMinute;
+    const kept = gun.sustainedPerMinute ?? alone;
+    if (!(kept < alone * 0.99)) return [{ name: "Rate", value: `${numbers(alone)} ${unit}` }];
+    return [
+        {
+            name: "Rate",
+            value: `${numbers(kept)} ${unit}`,
+            title: "What the ship's generators can keep up, with every powered weapon firing as fast as it can. Batteries hold off the shortfall only until they run down",
+        },
+        { name: "Alone", value: `${numbers(alone)} ${unit}`, sub: true, title: "What the mount could manage if the ship had the power" },
+    ];
+}
+
 /** A weapon's figures: what it throws, how often and how far it trains, the first few what a weapon is chosen by. */
 function weaponRows(gun: ModuleReadout["gun"], rounds: number | null): ReadoutRow[] {
     if (gun === null) return [];
@@ -174,7 +192,7 @@ function weaponRows(gun: ModuleReadout["gun"], rounds: number | null): ReadoutRo
             ? [
                   { name: "Pulse power", value: `${numbers(gun.beamPower / 1e6, 1)} MW` },
                   { name: "Reach", value: `${numbers(gun.plasmaReach, 0)} m` },
-                  { name: "Rate", value: `${numbers(gun.roundsPerMinute)} /min` },
+                  ...rateRows(gun, "/min"),
                   { name: "Energy a pulse", value: `${numbers(gun.shotEnergy / 1e6, 1)} MJ` },
                   { name: "Fuel a pulse", value: `${numbers(gun.shotFuel, 1)} kg` },
                   { name: "Kick", value: `${numbers(gun.jetThrust / 1e3, 0)} kN`, more: true },
@@ -185,7 +203,7 @@ function weaponRows(gun: ModuleReadout["gun"], rounds: number | null): ReadoutRo
                       under: "bore",
                       value: `${numbers(gun.calibre * 1000, 0)} mm${gun.barrels > 1 ? ` ×${gun.barrels}` : ""}`,
                   },
-                  { name: "Rate", value: `${numbers(gun.roundsPerMinute)} rpm` },
+                  ...rateRows(gun, "rpm"),
                   ...(gun.muzzleSpeed > 0
                       ? [{ name: "Muzzle speed", under: "barrelCalibres", value: `${numbers(gun.muzzleSpeed, 0)} m/s` }]
                       : []),
