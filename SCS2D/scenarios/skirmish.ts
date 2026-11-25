@@ -21,13 +21,15 @@ import {
     hasAsteroids,
     mapProblem,
     type MapSettings,
+    type ShipModuleKind,
 } from "../sim/index.js";
 import type { BattleSetup } from "./customBattle.js";
 import { QUIET_TIME, TIME_CAP } from "./decision.js";
 import { fleetBlueprint, hangarClashes } from "../sim/fleetHangar.js";
 import { repairFleet } from "../sim/repair.js";
 import { firstLivery, liveryRng, STOCK_BASES } from "../sim/liveryDrift.js";
-import { cardById, drawHand, withCards, type Limits } from "../skirmish/cards.js";
+import { cardById, drawHand, offerable, unlockedBy, withCards, type Limits } from "../skirmish/cards.js";
+import { fleetKinds, isTech, joined, KIND_NAMES, lockedIn } from "../skirmish/techTree.js";
 import { fleetId } from "./history.js";
 import { destinationById, offerDestinations } from "../skirmish/destinations.js";
 
@@ -81,6 +83,13 @@ export interface Skirmish {
     losing?: readonly string[];
     /** The card picked since the last try, which the next try's row in the history shows. */
     picked?: string;
+    /**
+     * The module kinds the player started with (`skirmish/techTree.ts`), which
+     * their unlock cards add to. Every kind, with no tree, where not given.
+     */
+    tech?: readonly ShipModuleKind[];
+    /** The module kinds the enemy started with: those its first fleet was built of. */
+    enemyTech?: readonly ShipModuleKind[];
 }
 
 /**
@@ -211,6 +220,8 @@ export function newSkirmish(
     settings?: SkirmishSettings,
     budget?: Budget,
     name?: string,
+    /** The module kinds the player starts with; none locked where not given. */
+    tech?: readonly ShipModuleKind[],
 ): Skirmish {
     // An enemy unpainted is given a livery from the skirmish's seed, far from the player's colours.
     const away = [player.livery?.base ?? STOCK_BASES[0]];
@@ -224,7 +235,25 @@ export function newSkirmish(
         tries: 0,
         seed: seed >>> 0,
         ...(settings === undefined ? {} : { settings }),
+        ...(tech === undefined ? {} : { tech: [...tech], enemyTech: fleetKinds(enemy) }),
     };
+}
+
+/** The module kinds the player may build with: what they started with and what their cards unlock; null for every kind. */
+export function playerTech(skirmish: Skirmish): ShipModuleKind[] | null {
+    if (skirmish.tech === undefined) return null;
+    return joined(skirmish.tech, unlockedBy(skirmish.cards ?? []));
+}
+
+/**
+ * The module kinds the enemy may build with: what its first fleet was built
+ * of, its own cards' unlocks, and whatever the player has unlocked; null for
+ * every kind.
+ */
+export function enemyTech(skirmish: Skirmish): ShipModuleKind[] | null {
+    const player = playerTech(skirmish);
+    if (player === null) return null;
+    return joined(joined(skirmish.enemyTech ?? fleetKinds(skirmish.enemy), unlockedBy(skirmish.enemyCards ?? [])), player);
 }
 
 /**
@@ -316,6 +345,10 @@ export function enemyLimits(skirmish: Skirmish): Limits {
  * null if it does not.
  */
 export function overLimit(skirmish: Skirmish): string | null {
+    const tech = playerTech(skirmish);
+    const locked = tech === null ? [] : lockedIn(skirmish.player, tech);
+    if (locked.length > 0)
+        return `${locked.length === 1 ? "a module" : "modules"} not unlocked: ${locked.map((k) => KIND_NAMES[k]).join(", ")}`;
     const { maxShips, radius } = playerLimits(skirmish);
     const hulls = fleetHulls(skirmish.player);
     if (hulls.length > maxShips) return `${hulls.length} ships, more than the ${maxShips} allowed`;
@@ -430,7 +463,10 @@ export function lost(skirmish: Skirmish): Skirmish {
     const next: Skirmish = { ...rest, tries: skirmish.tries + 1, losing: counts ? [...losing, id] : losing, streak };
     const after = settingsOf(skirmish).cardAfter;
     if (after < 1 || streak < after || skirmish.hand !== undefined) return next;
-    const hand = drawHand(handRng(skirmish), startLimits(skirmish), skirmish.cards ?? []);
+    const tech = playerTech(skirmish);
+    const hand = drawHand(handRng(skirmish), startLimits(skirmish), skirmish.cards ?? [], (card) =>
+        tech === null ? card.unlocks === undefined : offerable(card, tech),
+    );
     return hand.length === 0 ? next : { ...next, streak: 0, hand };
 }
 
@@ -478,6 +514,8 @@ export function serialiseSkirmish(skirmish: Skirmish): Record<string, unknown> {
         ...(skirmish.streak === undefined ? {} : { streak: skirmish.streak }),
         ...(skirmish.losing === undefined ? {} : { losing: [...skirmish.losing] }),
         ...(skirmish.picked === undefined ? {} : { picked: skirmish.picked }),
+        ...(skirmish.tech === undefined ? {} : { tech: [...skirmish.tech] }),
+        ...(skirmish.enemyTech === undefined ? {} : { enemyTech: [...skirmish.enemyTech] }),
         budget: { ...skirmish.budget },
         enemy: serialiseFleet(skirmish.enemy),
         player: serialiseFleet(skirmish.player),
@@ -581,6 +619,15 @@ export function parseSkirmish(value: unknown): Skirmish {
     if (picked !== undefined && (typeof picked !== "string" || cardById(picked) === null)) fail("picked must be a card the deck has");
     const name = file["name"];
     if (name !== undefined && typeof name !== "string") fail("name must be text");
+    const kinds = (key: string): ShipModuleKind[] | undefined => {
+        const raw = file[key];
+        if (raw === undefined) return undefined;
+        if (!Array.isArray(raw) || raw.some((kind) => typeof kind !== "string" || !isTech(kind)))
+            fail(`${key} must be a list of module kinds`);
+        return [...(raw as ShipModuleKind[])];
+    };
+    const tech = kinds("tech");
+    const enemyTech = kinds("enemyTech");
     return {
         ...(typeof name === "string" && name.trim() !== "" ? { name: name.trim() } : {}),
         ...(wonSeed === undefined ? {} : { won: wonSeed }),
@@ -592,6 +639,8 @@ export function parseSkirmish(value: unknown): Skirmish {
         ...(streak === undefined ? {} : { streak }),
         ...(losing === undefined ? {} : { losing }),
         ...(typeof picked === "string" ? { picked } : {}),
+        ...(tech === undefined ? {} : { tech }),
+        ...(enemyTech === undefined ? {} : { enemyTech }),
         round: whole("round", 1),
         tries: whole("tries", 0),
         seed: whole("seed", 0),

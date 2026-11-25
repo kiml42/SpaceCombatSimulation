@@ -1,16 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { Rng } from "../sim/index.js";
-import { DECK, drawHand, effectText, fits, isSimple, neediest, parseDeck, withCards, type Limits } from "../skirmish/cards.js";
+import {
+    DECK,
+    drawHand,
+    effectText,
+    fits,
+    isSimple,
+    neediest,
+    parseDeck,
+    UNLOCK_CARDS,
+    withCards,
+    type Limits,
+} from "../skirmish/cards.js";
 import deckFile from "../skirmish/cards.json" with { type: "json" };
 
 const START: Limits = { budget: { metal: 1000, fuel: 100, build: 50 }, maxShips: 4, radius: 500 };
 
 describe("the upgrade card deck", () => {
     it("reads, every card named once, with simple cards and trade-offs both", () => {
-        expect(DECK).toEqual(parseDeck(deckFile));
+        expect(DECK).toEqual([...parseDeck(deckFile), ...UNLOCK_CARDS]);
         expect(new Set(DECK.map((card) => card.id)).size).toBe(DECK.length);
         expect(DECK.filter(isSimple).map((card) => card.id)).toEqual(["metal", "fuel", "build", "ship", "spread", "robot"]);
-        expect(DECK.length).toBe(16);
+        expect(DECK.length).toBe(16 + UNLOCK_CARDS.length);
     });
 
     it("refuses a card it cannot use", () => {

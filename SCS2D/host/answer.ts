@@ -1,4 +1,4 @@
-import { parseFleet, serialiseFleet, type Budget, type Fleet, type Yard } from "../sim/index.js";
+import { parseFleet, serialiseFleet, type Budget, type Fleet, type ShipModuleKind, type Yard } from "../sim/index.js";
 import { EnemySearch, JobRunner, type AnswerJob, type Drill, type JobResult, type Standing } from "../evolution/answer.js";
 import type { SkirmishSettings } from "../scenarios/skirmish.js";
 
@@ -22,6 +22,8 @@ export interface AnswerInput {
     cards: readonly string[];
     /** What builds the player's fleet before the battle, its cards and all. */
     playerYard?: Yard;
+    /** The module kinds the enemy may build with; every kind where null or not given. */
+    tech?: readonly ShipModuleKind[] | null;
 }
 
 export interface AnswerProgress {
@@ -91,6 +93,7 @@ export function startAnswer(
         budget: input.budget,
         cards: input.cards,
         ...(input.playerYard === undefined ? {} : { playerYard: input.playerYard }),
+        ...(input.tech === undefined || input.tech === null ? {} : { tech: [...input.tech] }),
     };
     try {
         if (worker === undefined) throw new Error("no worker");
@@ -155,6 +158,8 @@ export interface SearchInput {
     budget: Budget;
     cards: readonly string[];
     playerYard?: Yard;
+    /** The module kinds the enemy may build with; every kind where null or not given. */
+    tech?: readonly ShipModuleKind[] | null;
 }
 
 function searchOf(input: SearchInput): EnemySearch {
@@ -167,6 +172,7 @@ function searchOf(input: SearchInput): EnemySearch {
         input.budget,
         input.cards,
         input.playerYard,
+        input.tech ?? null,
     );
 }
 

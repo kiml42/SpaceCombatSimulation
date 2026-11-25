@@ -1,5 +1,6 @@
-import { math, Rng, type Budget } from "../sim/index.js";
+import { math, Rng, type Budget, type ShipModuleKind } from "../sim/index.js";
 import deckFile from "./cards.json" with { type: "json" };
+import { ALL_TECH, canUnlock, KIND_NAMES } from "./techTree.js";
 
 /**
  * Upgrade cards (#691): what a skirmish's player picks after losing a few
@@ -22,6 +23,8 @@ export interface Card {
     readonly id: string;
     readonly name: string;
     readonly effects: readonly Effect[];
+    /** The module kind it unlocks (`techTree.ts`), on a card that moves no limit. */
+    readonly unlocks?: ShipModuleKind;
 }
 
 /** The limits a side's fleet is held to. */
@@ -49,9 +52,9 @@ export function amountOf(effect: Effect): number {
     return "share" in effect ? effect.share : effect.step;
 }
 
-/** Whether a card only adds: a trade-off cuts something. */
+/** Whether a card only adds to limits: a trade-off cuts something, and an unlock moves none. */
 export function isSimple(card: Card): boolean {
-    return card.effects.every((effect) => amountOf(effect) > 0);
+    return card.effects.length > 0 && card.effects.every((effect) => amountOf(effect) > 0);
 }
 
 /** The resource a card adds to, which colours it, or null if it adds only ships or spread. */
@@ -123,8 +126,29 @@ export function parseDeck(value: unknown): Card[] {
     });
 }
 
+/** A card to unlock each kind, but the core every ship needs. */
+export const UNLOCK_CARDS: readonly Card[] = ALL_TECH.filter((kind) => kind !== "core").map((kind) => ({
+    id: `unlock-${kind}`,
+    name: KIND_NAMES[kind],
+    effects: [],
+    unlocks: kind,
+}));
+
 /** Every card there is. */
-export const DECK: readonly Card[] = parseDeck(deckFile);
+export const DECK: readonly Card[] = [...parseDeck(deckFile), ...UNLOCK_CARDS];
+
+/** The kinds these cards unlock, by id, in the order taken. */
+export function unlockedBy(ids: readonly string[]): ShipModuleKind[] {
+    return cardsOf(ids).flatMap((card) => (card.unlocks === undefined ? [] : [card.unlocks]));
+}
+
+/**
+ * Whether a side with `unlocked` may be offered `card`: any card that moves
+ * limits, and an unlock only for a kind it lacks and has the prerequisites of.
+ */
+export function offerable(card: Card, unlocked: readonly ShipModuleKind[]): boolean {
+    return card.unlocks === undefined || (!unlocked.includes(card.unlocks) && canUnlock(card.unlocks, unlocked));
+}
 
 const BY_ID = new Map(DECK.map((card) => [card.id, card]));
 

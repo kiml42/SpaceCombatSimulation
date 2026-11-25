@@ -8,6 +8,7 @@ import {
     shipFleet,
     type Budget,
     type Fleet,
+    type ShipModuleKind,
     type Yard,
 } from "../sim/index.js";
 import { BARE_CORE } from "../scenarios/blueprints.js";
@@ -30,6 +31,7 @@ function yardOf(limits: Limits): Yard {
 import { drawHand, isSimple, neediest, shareOf, withCards, type Limits } from "../skirmish/cards.js";
 import { breeding, type Breeding } from "./mutationFields.js";
 import { mutateFleet } from "./fleetMutate.js";
+import type { KindWeights } from "./mutate.js";
 
 /**
  * The skirmish enemy's answer to a fleet that beat it (ROADMAP.md §8 step 5):
@@ -163,13 +165,18 @@ export class EnemySearch {
         cards: readonly string[] = [],
         /** What builds the player's fleet before the battle, its cards and all; ready for anything where not given. */
         private readonly playerYard?: Yard,
+        /** The module kinds the enemy may build with (`skirmish/techTree.ts`); every kind where null. */
+        tech: readonly ShipModuleKind[] | null = null,
     ) {
         this.cards = cards;
         this.rng = new Rng(seed);
         this.cardRng = new Rng((seed ^ 0x63617264) >>> 0);
         this.settings = { ...DEFAULT_ANSWER, ...settings };
         const odds = this.settings.breeding;
-        this.bred = breeding((name) => odds[name]);
+        this.bred = withTech(
+            breeding((name) => odds[name]),
+            tech,
+        );
         this.startEnemy = enemy;
         this.best = { enemy, wins: 0, onRound: false, margin: -Infinity };
         this.begin();
@@ -358,7 +365,8 @@ export class EnemySearch {
      * so far presses hardest, by its share of it used.
      */
     private drawCard(): void {
-        const hand = drawHand(this.cardRng, this.start, this.cards, isSimple);
+        // An unlock moves no limit, so is never the neediest: the enemy unlocks what the player does.
+        const hand = drawHand(this.cardRng, this.start, this.cards, (card) => isSimple(card) && card.unlocks === undefined);
         const hulls = fleetHulls(this.best.enemy);
         const bill = fleetBill(hulls);
         const { maxShips, radius } = this.limits;
@@ -536,4 +544,13 @@ export function drillBattle(
  */
 export function share(now: number, start: number): number {
     return start > 0 ? math.min(1, now / start) : 0;
+}
+
+/** Breeding that never reaches for a kind outside `tech`; as it is where `tech` is null. */
+export function withTech(bred: Breeding, tech: readonly ShipModuleKind[] | null): Breeding {
+    if (tech === null) return bred;
+    const kinds = Object.fromEntries(
+        Object.entries(bred.ship.kinds).map(([kind, n]) => [kind, tech.includes(kind as ShipModuleKind) ? n : 0]),
+    );
+    return { ...bred, ship: { ...bred.ship, kinds: kinds as KindWeights } };
 }
