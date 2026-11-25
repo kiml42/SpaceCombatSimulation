@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CORVETTE, DINKY } from "../scenarios/blueprints.js";
 import { Run, runEvolution, type RunRecord } from "../evolution/run.js";
+import { Coevolution, runCoevolution } from "../evolution/coevolution.js";
 
 const settings = { seed: 5, population: 4, winners: 2, group: 2, minMatches: 1, generations: 3, match: { duration: 15 } };
 
@@ -34,5 +35,23 @@ describe("a resumed run", { timeout: 120_000 }, () => {
     it("refuses a run written before runs could be resumed", () => {
         const { resume: _resume, ...old } = runEvolution([CORVETTE], { ...settings, generations: 1 });
         expect(() => Run.resume(old)).toThrow(/before/);
+    });
+});
+
+describe("a resumed co-evolution run", { timeout: 120_000 }, () => {
+    const co = { hall: 2, phaseCap: 2 };
+    const config = { ...settings, generations: 5 };
+
+    it("carries on to the same run as one that never stopped", () => {
+        const whole = runCoevolution([DINKY], [CORVETTE], config, co);
+        for (const stopAt of [1, 3]) {
+            const first = new Coevolution([DINKY], [CORVETTE], config, co);
+            while (first.record().generations.length + (first.record().rival?.generations.length ?? 0) < stopAt) first.advance(500);
+            first.advance(300);
+            const resumed = Coevolution.resume(throughFile(first.record())).finish();
+            expect(written(resumed)).toEqual(written(whole));
+            expect(JSON.stringify(resumed.rival?.generations)).toEqual(JSON.stringify(whole.rival?.generations));
+            expect(resumed.resume).toBeUndefined();
+        }
     });
 });

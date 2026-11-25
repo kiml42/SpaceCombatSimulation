@@ -545,7 +545,7 @@ export class Run {
      * record holds.
      */
     static resume(record: RunRecord, generations?: number, onGeneration?: OnGeneration): Run {
-        if (record.rival !== undefined) throw new Error("a co-evolution run cannot be resumed");
+        if (record.rival !== undefined) throw new Error("a co-evolution run carries on with `Coevolution.resume`");
         if (record.resume === undefined) throw new Error("the run was written before runs could be resumed");
         const from = decodeExact(record.resume) as Omit<Resumed, "generations">;
         const config = generations === undefined ? from.config : { ...from.config, generations };
