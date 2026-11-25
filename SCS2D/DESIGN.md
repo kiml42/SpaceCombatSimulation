@@ -575,7 +575,7 @@ inside any one file is not contiguous.
   radius — its own size, by default — so a capital does not trail round after the nearest fighter; a neutral objective is
   gone to whatever its size, since a goal is a marker far smaller than anything racing to it. A friend that
   has lost control is covered only while it has robots aboard, which may yet mend its core; wreckage and
-  any other hulk are nobody's charge. The Catamaran's halves escort each other this way, three radii apart.
+  any other hulk are nobody's charge. Each other ship already covering a friend counts `escortCrowding` against it, so escorts can be told to spread out rather than all cover the nearest. The Catamaran's halves escort each other this way, three radii apart.
   **Where a craft goes is several wants added up.** Holding the station it has been given, staying with what
   it is covering, and keeping out of everybody's way are not alternatives to choose between — but for an
   escort's own fight and its charge, as above: each is a
