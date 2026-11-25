@@ -147,7 +147,9 @@ export function build(ships: Ships, world: World): void {
             if (fielded(ships, bodies, i, brood.fighters[k]!) >= ships.keepFor(i, order.pad, order.keep)) continue;
             if (!shipDocking.padFree(ships, bodies, i, pad) || awaited(ships, i, pad)) continue;
             if (!mayBuild(ships, i, b, ships.launched[i]!.modules[order.pad]!.spec)) continue;
-            layDown(ships, world, i, b, design, pad, k, ships.craftFor(i, order.pad, order.design));
+            const fighter = ships.craftFor(i, order.pad, order.design);
+            if (padCovered(ships, bodies, i, b, design, pad, fighter)) continue;
+            layDown(ships, world, i, b, design, pad, k, fighter);
         }
     }
 }
@@ -568,6 +570,49 @@ export function awaited(ships: Ships, i: number, pad: number): boolean {
         if (ships.alive[o] === 0 || ships.salvaging[o] !== i || ships.landingPad[o] !== pad) continue;
         if (ships.derelict[o] === 1 || !ships.hasControl(o) || ships.hasNoEngines(o)) continue;
         return true;
+    }
+    return false;
+}
+
+/**
+ * Whether any ship but carrier `i` and those parked on it reaches over where
+ * `fighter` would lie on pad `pad`: one just launched from it, still lifting
+ * off, say, which the next would be laid down into. Only one under control,
+ * which will move off; a hulk left there would hold the pad for good.
+ */
+export function padCovered(
+    ships: Ships,
+    bodies: Bodies,
+    i: number,
+    b: number,
+    design: ShipDesign,
+    pad: number,
+    fighter: ShipDesign,
+): boolean {
+    const deck = design.modules[pad]!;
+    const box = footprintOf(fighter);
+    const halfX = (box.maxX - box.minX) / 2;
+    const halfY = (box.maxY - box.minY) / 2;
+    const angle = bodies.angle[b]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    // The deck's centre in the world, with the fighter laid along the pad.
+    const px = bodies.x[b]! + deck.x * c - deck.y * s;
+    const py = bodies.y[b]! + deck.x * s + deck.y * c;
+    const ux = cos(angle + deck.angle);
+    const uy = sin(angle + deck.angle);
+    for (let o = 0; o < bodies.count; o++) {
+        if (o === b) continue;
+        const ship = ships.shipByBody[o];
+        if (ship === undefined || ship < 0 || ship === i || ships.parkedOn[ship] === i || !ships.hasControl(ship)) continue;
+        const dx = bodies.x[o]! - px;
+        const dy = bodies.y[o]! - py;
+        const along = abs(dx * ux + dy * uy) - halfX;
+        const across = abs(-dx * uy + dy * ux) - halfY;
+        const ax = along > 0 ? along : 0;
+        const ay = across > 0 ? across : 0;
+        const r = bodies.radius[o]!;
+        if (ax * ax + ay * ay < r * r) return true;
     }
     return false;
 }
