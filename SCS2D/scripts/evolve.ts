@@ -43,8 +43,8 @@ import type { ModuleKind } from "../sim/modules.js";
  * every generation, every design in it, and every match with the seed it was
  * fought under, which is all it takes to watch any one of them again. It is
  * rewritten as each generation finishes, so a run stopped part way still
- * leaves every generation it finished, and `--resume <run file>` carries a run
- * of one on from there, to `--generations` if given.
+ * leaves every generation it finished, and `--resume <run file>` carries it on
+ * from there: a run of one to `--generations` if given.
  */
 
 interface Options {
@@ -503,18 +503,25 @@ const generated = (generation: GenerationRecord): void => {
     writeRun();
     if (!options.quiet) console.log(line(generation));
 };
+const coGenerated = (generation: GenerationRecord, side: 0 | 1): void => {
+    writeRun();
+    if (!options.quiet) {
+        const round = generation.round === undefined ? "" : `round ${generation.round + 1} `;
+        console.log(`${round}${line(generation, side === 0 ? "A" : "B")}  won ${((generation.won ?? 0) * 100).toFixed(0)}%`);
+    }
+};
+const resumed = options.resume === undefined ? null : parseRunRecord(JSON.parse(readFileSync(options.resume, "utf8")));
+if (resumed?.rival !== undefined && options.config.generations !== undefined) {
+    throw new Error("a co-evolution run carries on only to the generations it was set to");
+}
 const runner: { record(): RunRecord; finish(): RunRecord } =
-    options.resume !== undefined
-        ? Run.resume(parseRunRecord(JSON.parse(readFileSync(options.resume, "utf8"))), options.config.generations, generated)
+    resumed !== null
+        ? resumed.rival === undefined
+            ? Run.resume(resumed, options.config.generations, generated)
+            : Coevolution.resume(resumed, coGenerated)
         : versus === null
           ? new Run(founders, options.config, generated)
-          : new Coevolution(founders, rivals, options.config, versus.coevolution, (generation, side) => {
-                writeRun();
-                if (!options.quiet) {
-                    const round = generation.round === undefined ? "" : `round ${generation.round + 1} `;
-                    console.log(`${round}${line(generation, side === 0 ? "A" : "B")}  won ${((generation.won ?? 0) * 100).toFixed(0)}%`);
-                }
-            });
+          : new Coevolution(founders, rivals, options.config, versus.coevolution, coGenerated);
 const run = runner.finish();
 const spent = (Date.now() - started) / 1000;
 writeRun();
