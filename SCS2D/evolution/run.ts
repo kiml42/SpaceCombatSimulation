@@ -545,7 +545,7 @@ export class Run {
      * record holds.
      */
     static resume(record: RunRecord, generations?: number, onGeneration?: OnGeneration): Run {
-        if (record.rival !== undefined) throw new Error("a co-evolution run cannot be resumed");
+        if (record.rival !== undefined) throw new Error("a co-evolution run carries on with `Coevolution.resume`");
         if (record.resume === undefined) {
             throw new Error("the run holds nothing to carry on from: only a run file `pnpm evolve` wrote can be resumed");
         }
