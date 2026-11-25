@@ -105,8 +105,14 @@ export interface TurretReadout {
     jetThrust: number;
     /** Muzzle velocity, m/s. */
     muzzleSpeed: number;
-    /** Rounds per minute the mount can sustain. */
+    /** Rounds per minute the mount can manage on its own: its loading, or its bank's charging. */
     roundsPerMinute: number;
+    /**
+     * Rounds per minute the ship's generation keeps it to, with every powered
+     * weapon firing as fast as it can (`sustainedShare`); `roundsPerMinute`
+     * where that is enough, or where it draws no power.
+     */
+    sustainedPerMinute?: number;
     /** How far the mount may train off its rest bearing, degrees. */
     arcLeft: number;
     arcRight: number;
@@ -117,6 +123,35 @@ export interface TurretReadout {
      * firing wedge is drawn: null where the ship's size is not known.
      */
     triggerRange?: number | null;
+}
+
+/**
+ * What a weapon draws, on average, firing as fast as it can on its own, W:
+ * a beam's power for its share of the cycle, a rail gun's or lance's charge a
+ * shot over its period. Nothing for a gun on fuel.
+ */
+export function powerDraw(gun: GunStats): number {
+    const period = firingPeriod(gun);
+    if (!(period > 0)) return 0;
+    if (gun.type === GunType.Beam) return (gun.beamPower * gun.beamOnTime) / period;
+    return gun.shotEnergy / period;
+}
+
+/**
+ * The share of its own rate each powered weapon of `layout` can keep up on
+ * what its generators make, every one firing as fast as it can: 1 where they
+ * make enough. Batteries are left out, since they only put the shortfall off;
+ * so are an engine's coils, which draw only while it burns.
+ */
+export function sustainedShare(layout: readonly ModuleSpec[]): number {
+    let generation = 0;
+    let draw = 0;
+    for (let k = 0; k < layout.length; k++) {
+        const stats = statsInLayout(layout, k);
+        generation += stats.generation;
+        if (stats.gun !== null && stats.gun !== undefined) draw += powerDraw(stats.gun);
+    }
+    return draw > generation ? generation / draw : 1;
 }
 
 /** A power, for a readout. */
@@ -706,6 +741,9 @@ export function moduleReadout(
                       jetThrust: gun.jetThrust,
                       muzzleSpeed: gun.muzzleSpeed,
                       roundsPerMinute: firingPeriod(gun) > 0 ? 60 / firingPeriod(gun) : 0,
+                      ...(powerDraw(gun) > 0 && firingPeriod(gun) > 0
+                          ? { sustainedPerMinute: (60 / firingPeriod(gun)) * sustainedShare(layout) }
+                          : {}),
                       ...arcOf(layout, index, gun.barrelLength, barrelHalfWidth(gun)),
                       halfTurn: slewTime(math.PI, TRAVERSE_TOP_RATE, mountAccel(spec, stats)),
                       // Against what its doctrine goes after, which is sized from the
