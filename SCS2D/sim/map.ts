@@ -34,9 +34,10 @@ export interface MapSettings {
     readonly metal?: number;
     readonly fuel?: number;
     /**
-     * 1 puts the first major at the middle of the field, between the sides,
-     * which start far enough out to clear it (`middleRock`); 0 keeps every
-     * major clear of where they start.
+     * 1 puts a lone major at the middle of the field, between the sides,
+     * which start far enough out to clear it (`middleRock`); 0, or more than
+     * one major, or something starting where it would be, keeps every major
+     * clear of where the sides start.
      */
     readonly middle?: number;
 }
@@ -187,16 +188,12 @@ export function hasAsteroids(settings: MapSettings | undefined): boolean {
 }
 
 /**
- * Draw a map. Its stream is the seed's own, mixed, so a battle's world draws
- * the same whether or not it has a map. Majors' wells come first in `wells`.
- */
-/**
  * The radius of the major a map with `middle` puts at the middle of the field,
  * metres, which whatever starts there must clear; zero for a map without one.
  * Drawn as `generateMap` draws it, from the same seed.
  */
 export function middleRock(settings: MapSettings | undefined, seed: number): number {
-    if (settings === undefined || !((settings.middle ?? 0) >= 1) || !((settings.majors ?? 0) >= 1)) return 0;
+    if (settings === undefined || !((settings.middle ?? 0) >= 1) || settings.majors !== 1) return 0;
     const rng = mapRng(seed);
     return drawSize(settings.majorSize ?? DEFAULT_MAP.majorSize, settings.majorSpread ?? DEFAULT_MAP.majorSpread, rng) + MARGIN;
 }
@@ -205,6 +202,10 @@ function mapRng(seed: number): Rng {
     return new Rng((seed ^ 0x6d617073) >>> 0);
 }
 
+/**
+ * Draw a map. Its stream is the seed's own, mixed, so a battle's world draws
+ * the same whether or not it has a map. Majors' wells come first in `wells`.
+ */
 export function generateMap(settings: MapSettings, seed: number, clear: readonly Clearing[]): AsteroidMap {
     const rng = mapRng(seed);
     const g = settings.surfaceGravity ?? DEFAULT_MAP.surfaceGravity;
@@ -214,6 +215,7 @@ export function generateMap(settings: MapSettings, seed: number, clear: readonly
     const placed: Clearing[] = [];
 
     // Majors, as a system of rails: each joins the system so far as the second of a pair.
+    // The first major's size is the first draw, as `middleRock` draws it.
     const majors = settings.majors ?? 0;
     const wells: WellSpec[] = [];
     const reach: number[] = [];
@@ -240,9 +242,8 @@ export function generateMap(settings: MapSettings, seed: number, clear: readonly
         // Somewhere the system's opening seconds keep clear of every clearing; or, asked
         // for one in the middle, with its first major there, whatever it starts beside.
         let found: Rails | undefined;
-        if ((settings.middle ?? 0) >= 1) {
-            new Railway({ x: 0, y: 0, root }, wells).at(0);
-            found = { x: -wells[0]!.x, y: -wells[0]!.y, root };
+        if ((settings.middle ?? 0) >= 1 && majors === 1 && clear.every((c) => apart({ x: 0, y: 0 }, c) >= reach[0]! + c.radius + MARGIN)) {
+            found = { x: 0, y: 0, root };
         }
         for (let t = 0; t < TRIES && found === undefined; t++) {
             const out = t === 0 ? 0 : MARGIN * 4 * t;

@@ -20,16 +20,35 @@ function nearest(battle: { ships: Match["battle"]["ships"]; world: Match["battle
 }
 
 describe("a map with a rock in the middle", () => {
-    it("puts its first major at the middle, whatever starts beside it", () => {
-        const map = generateMap(MIDDLE, 3, [{ x: 50, y: 0, radius: 100 }]);
+    it("puts a lone major at the middle, with nothing starting there", () => {
+        const map = generateMap(MIDDLE, 3, [{ x: 2000, y: 0, radius: 100 }]);
         expect(Math.hypot(map.asteroids[0]!.x, map.asteroids[0]!.y)).toBeLessThan(1e-9);
         // Its radius, drawn about 400, and a margin.
         expect(middleRock(MIDDLE, 3)).toBeGreaterThan(300);
     });
 
-    it("keeps majors clear of the start without it", () => {
+    it("keeps majors clear of the start without it, or with more than one", () => {
         expect(middleRock({ majors: 1, majorSize: 400 }, 3)).toBe(0);
         expect(middleRock({ middle: 1 }, 3)).toBe(0);
+        expect(middleRock({ majors: 2, middle: 1 }, 3)).toBe(0);
+    });
+
+    it("keeps clear of something starting where it would be", () => {
+        const map = generateMap(MIDDLE, 3, [{ x: 0, y: 0, radius: 20 }]);
+        expect(Math.hypot(map.asteroids[0]!.x, map.asteroids[0]!.y)).toBeGreaterThan(400);
+    });
+
+    it("starts a custom battle's fleets clear of it, however close they were set", () => {
+        const battle = customBattle({
+            fleets: [shipFleet(CORVETTE), shipFleet(GUNSHIP)],
+            range: 200,
+            closingSpeed: 0,
+            crossingSpeed: 0,
+            rotation: 0,
+            seed: 6,
+            map: MIDDLE,
+        });
+        expect(nearest(battle)).toBeGreaterThan(middleRock(MIDDLE, 6) - 1);
     });
 
     it("starts a match's entrants clear of it", () => {

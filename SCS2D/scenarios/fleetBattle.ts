@@ -1,4 +1,14 @@
-import { compileBlueprint, exactTurn, expandFleet, math, schedule, type Fleet, type ShipDesign, type Yard } from "../sim/index.js";
+import {
+    compileBlueprint,
+    exactTurn,
+    expandFleet,
+    math,
+    middleRock,
+    schedule,
+    type Fleet,
+    type ShipDesign,
+    type Yard,
+} from "../sim/index.js";
 import { type Battle } from "./types.js";
 import { makeBattle, type BattleOptions } from "./battle.js";
 import { withFleetFighters } from "../sim/fleetHangar.js";
@@ -32,7 +42,7 @@ export function fleetBattle(
     options: FleetBattleOptions,
 ): Battle & { readonly slots: readonly (readonly number[])[] } {
     const battle = makeBattle(options, (ships, world) => {
-        const radius = options.range / 2;
+        let radius = options.range / 2;
         const closing = options.closingSpeed ?? 0;
         const crossing = options.crossingSpeed ?? 0;
         const rotation = options.rotation ?? 0;
@@ -43,6 +53,13 @@ export function fleetBattle(
                 designs.set(name, compileBlueprint(withFleetFighters(blueprint, fleet.designs)));
             return expandFleet(fleet).map((ship) => ({ ...ship, compiled: designs.get(ship.design)! }));
         });
+        // Each fleet clear of a rock in the middle, where the map puts one.
+        const rock = middleRock(options.map, options.mapSeed ?? options.seed);
+        if (rock > 0) {
+            for (const list of placed) {
+                for (const ship of list) radius = math.max(radius, rock + math.length(ship.x, ship.y) + ship.compiled.radius);
+            }
+        }
         const readies = placed.map((list, team) => {
             const yard = options.yards?.[team];
             return yard === undefined

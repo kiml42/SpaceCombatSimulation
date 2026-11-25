@@ -20,7 +20,6 @@ import {
     drawnMap,
     hasAsteroids,
     mapProblem,
-    middleRock,
     type MapSettings,
 } from "../sim/index.js";
 import type { BattleSetup } from "./customBattle.js";
@@ -392,8 +391,7 @@ export function roundBattle(
     const map = roundMap(mapSeed, settings);
     return {
         fleets: [player, enemy],
-        // Each fleet clear of a rock in the middle, where the map puts one.
-        range: math.max(MIN_RANGE, reach + math.max(0, gap), reach + 2 * middleRock(map, mapSeed)),
+        range: math.max(MIN_RANGE, reach + math.max(0, gap)),
         closingSpeed,
         crossingSpeed,
         rotation: 0,
