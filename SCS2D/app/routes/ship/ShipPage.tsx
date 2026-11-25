@@ -23,7 +23,7 @@ import { emptyBlueprint, MY_SHIPS, nextName, toFileText, unusedName } from "~/ed
 import { ANGLE_SNAP_DEGREES, type ShipCanvas as Engine } from "~/editor/shipCanvas";
 import type { KeyRow } from "~/host/keyHelp";
 import { ARC_LABELS } from "~/render/canvas2d";
-import { inSkirmish } from "~/scenarios/skirmish";
+import { inSkirmish, playerTech } from "~/scenarios/skirmish";
 import {
     fighterProblem,
     parseBlueprint,
@@ -637,6 +637,7 @@ export function ShipPage() {
                         into={target !== null && !isModuleSpec(target) ? (target as AssemblyInstance).use : null}
                         fighter={asked}
                         onAdd={add}
+                        allowed={inFleet?.skirmish === undefined ? null : playerTech(inFleet.skirmish)}
                         suggest={tourSteps === null ? (doc.blueprint.modules.length === 0 ? "core" : null) : tourSuggests}
                         {...(doc.selections.length > 0 && (target === null || isModuleSpec(target))
                             ? // Open while the tutorial asks for a module, so what it points at is there to click.

@@ -62,6 +62,7 @@ import {
     wedge,
     type Blueprint,
     type ModuleKind,
+    type ShipModuleKind,
     type ModulePath,
     type ModuleSpec,
     type Placement,
@@ -75,6 +76,7 @@ import { Figures } from "./ShipReport";
 import { Buttons, Field } from "./shipLayout";
 import { asCraft, craftChoices, CRAFT_ANGLES, MODULE_GROUPS, moduleField, numbers, type ModuleNumberField } from "./shipFields";
 import type { ShipEditing } from "./shipEditing";
+import { playerTech } from "~/scenarios/skirmish";
 
 const { abs, PI } = math;
 
@@ -297,11 +299,14 @@ export function ModulePanel({
             return (value === undefined ? rest : { ...rest, [key]: value }) as Placement;
         }, true);
 
-    const kindOption = (kind: ModuleKind) => (
-        <option key={kind} value={kind} disabled={fighter && fighterBarred(kind) !== null}>
-            {kindName(kind)}
-        </option>
-    );
+    // In a skirmish, only the kinds unlocked, and whatever this one is already.
+    const tech = inFleet?.skirmish === undefined ? null : playerTech(inFleet.skirmish);
+    const kindOption = (kind: ModuleKind) =>
+        tech !== null && kind !== spec.kind && !tech.includes(kind as ShipModuleKind) ? null : (
+            <option key={kind} value={kind} disabled={fighter && fighterBarred(kind) !== null}>
+                {kindName(kind)}
+            </option>
+        );
 
     const box = (
         key: ModuleNumberField,

@@ -58,10 +58,13 @@ export interface AddModuleProps {
     readonly suggest?: ShipModuleKind | null;
     /** Folded under its heading, as below a selected module's settings, with whether it is open. */
     readonly folded?: { readonly open: boolean; readonly onToggle: (open: boolean) => void };
+    /** The kinds that may be added, the rest hidden: a skirmish's unlocked modules. Every kind where null. */
+    readonly allowed?: readonly ShipModuleKind[] | null;
 }
 
 /** A button for each kind of module, by what it is for. */
-export function AddModule({ into, fighter, onAdd, suggest = null, folded }: AddModuleProps) {
+export function AddModule({ into, fighter, onAdd, suggest = null, folded, allowed = null }: AddModuleProps) {
+    const shown = (kind: ShipModuleKind): boolean => allowed === null || allowed.includes(kind);
     const heading = <h2 id="addHeading">{into === null ? "Add a module" : `Add a module to ${into}`}</h2>;
     const buttons = (
         <>
@@ -75,21 +78,23 @@ export function AddModule({ into, fighter, onAdd, suggest = null, folded }: AddM
                     Core
                 </Button>
             </Core>
-            {MODULE_GROUPS.map((group) => (
+            {MODULE_GROUPS.filter((group) => group.kinds.some(({ kind }) => shown(kind))).map((group) => (
                 <Group key={group.title}>
                     <h3>{group.title}</h3>
-                    {group.kinds.map(({ kind, label, title }) => (
-                        <Button
-                            key={kind}
-                            data-add={kind}
-                            title={fighter && fighterBarred(kind) !== null ? `${sentence(fighterBarred(kind)!)}.` : title}
-                            variant={kind === suggest ? "primary" : "plain"}
-                            disabled={fighter && fighterBarred(kind) !== null}
-                            onClick={() => onAdd(kind)}
-                        >
-                            {label}
-                        </Button>
-                    ))}
+                    {group.kinds
+                        .filter(({ kind }) => shown(kind))
+                        .map(({ kind, label, title }) => (
+                            <Button
+                                key={kind}
+                                data-add={kind}
+                                title={fighter && fighterBarred(kind) !== null ? `${sentence(fighterBarred(kind)!)}.` : title}
+                                variant={kind === suggest ? "primary" : "plain"}
+                                disabled={fighter && fighterBarred(kind) !== null}
+                                onClick={() => onAdd(kind)}
+                            >
+                                {label}
+                            </Button>
+                        ))}
                 </Group>
             ))}
         </>
