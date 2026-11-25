@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
     BOTH_LAYERS,
+    FRAGMENT_FADE,
+    FRAGMENT_LIFE_SPREAD,
     FRAGMENT_STAYS,
     fragmentLayer,
+    roundFade,
     HULL_LAYER,
     WEAPONS_LAYER,
     chargeShare,
@@ -156,9 +159,20 @@ describe("a fused round", () => {
             expect(Math.hypot(rounds.vx[i]! - 600, rounds.vy[i]! - 40)).toBeLessThanOrEqual(50 + 1e-9);
             expect([HULL_LAYER, WEAPONS_LAYER]).toContain(rounds.layers[i]);
             expect(rounds.fuse[i]).toBe(Infinity);
-            // Its own short life, less the step it has flown since.
-            expect(rounds.ttl[i]).toBeGreaterThan(1 - 2 * DT);
-            expect(rounds.ttl[i]).toBeLessThanOrEqual(1);
+            // Its own short life, drawn about the burst's, less the step it has flown since.
+            expect(rounds.ttl[i]).toBeGreaterThan(1 - FRAGMENT_LIFE_SPREAD - 2 * DT);
+            expect(rounds.ttl[i]).toBeLessThanOrEqual(1 + FRAGMENT_LIFE_SPREAD);
+        }
+    });
+
+    it("gives its fragments lives that differ, and fades each out at the end of its own", () => {
+        const { rounds } = burstOne(0.5, 50, 16);
+        const fragments = live(rounds);
+        expect(new Set(fragments.map((i) => rounds.ttl[i])).size).toBeGreaterThan(1);
+        for (const i of fragments) {
+            expect(roundFade(rounds, i)).toBe(1);
+            rounds.ttl[i] = (FRAGMENT_FADE * rounds.life[i]!) / 2;
+            expect(roundFade(rounds, i)).toBeCloseTo(0.5, 9);
         }
     });
 
