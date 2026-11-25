@@ -125,10 +125,11 @@ function hold(ships: Ships, bodies: Bodies, i: number, dt: number): boolean {
     const place = modulePlace(bodies, cb, host, pad);
     settled = false;
 
-    // Squared up whichever way round it fits that is nearest how it lies.
-    const box = footprintOf(design);
-    const long = box.maxX - box.minX;
-    const wide = box.maxY - box.minY;
+    // Squared up whichever way round its whole design fits that is nearest how it lies, so it is not
+    // laid across a pad it only fits that way while damage has shortened it.
+    const whole = footprintOf(ships.blueprint(i));
+    const long = whole.maxX - whole.minX;
+    const wide = whole.maxY - whole.minY;
     const heading = bodies.angle[b]!;
     const lengthwise = long <= spec.length && wide <= spec.width;
     const crosswise = long <= spec.width && wide <= spec.length;
@@ -144,6 +145,7 @@ function hold(ships: Ships, bodies: Bodies, i: number, dt: number): boolean {
         }
     }
     // Its outline, not its centre of mass, centred on the pad.
+    const box = footprintOf(design);
     const ox = (box.minX + box.maxX) / 2;
     const oy = (box.minY + box.maxY) / 2;
     const gx = place.x - (ox * cos(heading) - oy * sin(heading));
