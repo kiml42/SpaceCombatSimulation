@@ -58,8 +58,11 @@ export { SpatialGrid, IndexBuffer, RayHit, segmentCircleT, type RayNarrowPhase }
 export {
     Projectiles,
     ProjectileHits,
+    FRAGMENT_FADE,
+    FRAGMENT_LIFE_SPREAD,
     FRAGMENT_STAYS,
     fragmentLayer,
+    roundFade,
     NO_OWNER,
     NOT_INSIDE,
     SPARES_NONE,

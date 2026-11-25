@@ -795,6 +795,10 @@ export class Ships {
     readonly padReach: number[] = [];
     /** What each ship's heaviest dodge this step is from, or -1; and how far off it wants that, centre to centre, m. */
     readonly dodgingFrom: number[] = [];
+    /** The sideways speed each is jinking at, across the line of an enemy gun aimed at it, m/s; signed (`evade`). */
+    readonly jink: number[] = [];
+    /** The step each draws its next jink at. */
+    readonly jinkUntil: number[] = [];
     readonly dodgingRoom: number[] = [];
     /** Metal and fuel each ship's robots have brought in from rock and wreckage, kg, all battle: for the view, as income. */
     readonly gatheredMetal: number[] = [];
@@ -933,6 +937,9 @@ export class Ships {
     readonly dockAy: number[] = [];
     /** The heaviest dodge in the blend: how much it is wanted, and seconds until the near miss. */
     dodgeWeight = 0;
+    /** Which way across the line of fire the ship being flown jinks (`evade`). */
+    jinkUx = 0;
+    jinkUy = 0;
     dodgeWhen = 0;
     /** Whether that dodge is from a rock. */
     dodgeRock = false;
@@ -1589,6 +1596,8 @@ export class Ships {
         this.padPush.push(0);
         this.handoff.push(0);
         this.dodgingFrom.push(-1);
+        this.jink.push(0);
+        this.jinkUntil.push(0);
         this.dodgingRoom.push(0);
         this.gatheredMetal.push(0);
         this.gatheredFuel.push(0);
@@ -2297,7 +2306,7 @@ export class Ships {
             shipDecide.decide(this, world, bodies, i);
             shipForage.forage(this, world, bodies, i);
             shipAim.decideTurrets(this, world, bodies, i);
-            shipFlight.flyOne(this, dt, bodies, i, grid);
+            shipFlight.flyOne(this, dt, bodies, i, grid, world.rng);
             const easing = 1 - this.handoff[i]!;
             if (easing < 1) {
                 for (let t = 0; t < this.throttles[i]!.length; t++) this.throttles[i]![t] = this.throttles[i]![t]! * easing;
