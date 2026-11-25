@@ -105,3 +105,33 @@ export function fleetKinds(fleet: Fleet): ShipModuleKind[] {
 export function lockedIn(fleet: Fleet, unlocked: readonly ShipModuleKind[]): ShipModuleKind[] {
     return fleetKinds(fleet).filter((kind) => !unlocked.includes(kind));
 }
+
+/**
+ * `kinds` with `kind` added or taken away, kept a set the tree allows: one
+ * added brings what it needs (the first of a group where none of it is
+ * there), and one taken away takes whatever then lacks what it needs. The
+ * core is always kept.
+ */
+export function toggled(kinds: readonly ShipModuleKind[], kind: ShipModuleKind, on: boolean): ShipModuleKind[] {
+    const have = new Set<ShipModuleKind>(kinds);
+    have.add("core");
+    if (on) {
+        const add = (k: ShipModuleKind): void => {
+            if (have.has(k)) return;
+            have.add(k);
+            for (const group of PREREQUISITES[k]) if (!group.some((g) => have.has(g))) add(group[0]!);
+        };
+        add(kind);
+    } else if (kind !== "core") {
+        have.delete(kind);
+        for (let changed = true; changed;) {
+            changed = false;
+            for (const k of have) {
+                if (k === "core" || canUnlock(k, [...have])) continue;
+                have.delete(k);
+                changed = true;
+            }
+        }
+    }
+    return ALL_TECH.filter((k) => have.has(k));
+}

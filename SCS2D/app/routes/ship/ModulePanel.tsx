@@ -430,11 +430,14 @@ export function ModulePanel({
                     {MODULE_KINDS.filter((kind) => !MODULE_GROUPS.some((group) => group.kinds.some((k) => k.kind === kind))).map(
                         kindOption,
                     )}
-                    {MODULE_GROUPS.map((group) => (
-                        <optgroup key={group.title} label={group.title}>
-                            {group.kinds.map((k) => kindOption(k.kind))}
-                        </optgroup>
-                    ))}
+                    {MODULE_GROUPS.map((group) => {
+                        const options = group.kinds.map((k) => kindOption(k.kind)).filter((option) => option !== null);
+                        return options.length === 0 ? null : (
+                            <optgroup key={group.title} label={group.title}>
+                                {options}
+                            </optgroup>
+                        );
+                    })}
                 </select>
             </Field>
             <Field>

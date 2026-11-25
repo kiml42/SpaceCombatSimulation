@@ -7,7 +7,7 @@ import { kg } from "~/editor/budget";
 import { buildTime } from "~/editor/stats";
 import { DEFAULT_SKIRMISH_SETTINGS, parseSkirmishSettings, type SkirmishSettings } from "~/scenarios/skirmish";
 import { fleetHulls, type Budget, type Fleet, type ShipModuleKind } from "~/sim/index";
-import { ALL_TECH, isTech, KIND_NAMES, STARTING_TECH } from "~/skirmish/techTree";
+import { ALL_TECH, isTech, KIND_NAMES, STARTING_TECH, toggled } from "~/skirmish/techTree";
 import { Button } from "~/ui/buttons/Button";
 import { clampOnBlur } from "~/ui/fields/clamp";
 import { Figures } from "../ship/ShipReport";
@@ -302,7 +302,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
         }
     };
     const toggleTech = (kind: ShipModuleKind, on: boolean): void => {
-        const next = ALL_TECH.filter((k) => (k === kind ? on : tech.includes(k)));
+        const next = toggled(tech, kind, on);
         setTech(next);
         try {
             storage.setItem(TECH_KEY, JSON.stringify(next));

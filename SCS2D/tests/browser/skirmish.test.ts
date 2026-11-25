@@ -214,7 +214,9 @@ describe("the skirmish in a browser", () => {
             expect(await page.isChecked('[data-tech="hullGun"]')).toBe(true);
             expect(await page.isChecked('[data-tech="turret"]')).toBe(false);
             await page.check('[data-tech="turret"]');
+            // A turret needs structure, which comes with it.
             expect(await page.evaluate(() => JSON.parse(window.localStorage.getItem("scs2d.skirmish.tech")!))).toEqual([
+                "structure",
                 "core",
                 "engine",
                 "turret",
@@ -224,7 +226,9 @@ describe("the skirmish in a browser", () => {
             await page.waitForSelector("#setupScreen");
             await advanced();
             expect(await page.isChecked('[data-tech="turret"]')).toBe(true);
-            await page.uncheck('[data-tech="turret"]');
+            // Structure taken away takes the turret that needs it.
+            await page.uncheck('[data-tech="structure"]');
+            expect(await page.isChecked('[data-tech="turret"]')).toBe(false);
             expect(problems).toEqual([]);
         }));
 

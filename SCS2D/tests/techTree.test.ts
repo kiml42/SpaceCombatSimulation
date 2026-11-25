@@ -13,7 +13,7 @@ import {
     type Skirmish,
 } from "../scenarios/skirmish.js";
 import { cardById, UNLOCK_CARDS } from "../skirmish/cards.js";
-import { ALL_TECH, canUnlock, fleetKinds, lockedIn, PREREQUISITES, STARTING_TECH, unlockable } from "../skirmish/techTree.js";
+import { ALL_TECH, canUnlock, fleetKinds, lockedIn, PREREQUISITES, STARTING_TECH, toggled, unlockable } from "../skirmish/techTree.js";
 import { breeding } from "../evolution/mutationFields.js";
 import { withTech } from "../evolution/answer.js";
 
@@ -120,5 +120,17 @@ describe("the enemy's breeding under a tech tree", () => {
 
     it("has an unlock card for every kind but the core", () => {
         expect(UNLOCK_CARDS.map((card) => card.unlocks)).toEqual(ALL_TECH.filter((kind) => kind !== "core"));
+    });
+});
+
+describe("choosing starting modules", () => {
+    it("brings what a kind needs when it is ticked, and takes what needs one when it is unticked", () => {
+        const withBattery = toggled(STARTING_TECH, "battery", true);
+        expect(withBattery).toContain("generator");
+        expect(withBattery).toContain("battery");
+        expect(toggled(withBattery, "generator", false)).not.toContain("battery");
+        expect(toggled(STARTING_TECH, "core", false)).toContain("core");
+        for (const kind of toggled(STARTING_TECH, "slipway", true))
+            expect(canUnlock(kind, toggled(STARTING_TECH, "slipway", true))).toBe(true);
     });
 });
