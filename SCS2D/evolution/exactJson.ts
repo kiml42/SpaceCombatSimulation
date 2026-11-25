@@ -1,15 +1,20 @@
 /**
  * Plain data written so that reading it back gives exactly what was written:
  * JSON keeps every finite double exactly, but writes an infinity or NaN as
- * null, and a run's settings hold infinities for "no limit". Those are written
- * as `{ "$number": "Infinity" }` and the like.
+ * null, and a run's settings hold infinities for "no limit"; and it writes
+ * minus zero as zero. Those are written as `{ "$number": "Infinity" }` and the
+ * like.
  */
 
 const NUMBER = "$number";
 
 /** `value` with every non-finite number marked, ready for `JSON.stringify`. */
 export function encodeExact(value: unknown): unknown {
-    if (typeof value === "number") return Number.isFinite(value) ? value : { [NUMBER]: String(value) };
+    if (typeof value === "number") {
+        // JSON writes minus zero as 0.
+        if (Object.is(value, -0)) return { [NUMBER]: "-0" };
+        return Number.isFinite(value) ? value : { [NUMBER]: String(value) };
+    }
     if (Array.isArray(value)) return value.map(encodeExact);
     if (value !== null && typeof value === "object") {
         const out: Record<string, unknown> = {};

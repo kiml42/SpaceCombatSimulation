@@ -422,6 +422,9 @@ function parse(argv: readonly string[]): Options {
     }
     const coevolving = versusFrom.length + versusFleets.length > 0;
     const versus = coevolving ? { from: versusFrom, fleets: versusFleets, coevolution } : null;
+    if (resume !== undefined && (coevolving || saveConfig !== "")) {
+        throw new Error("--resume carries a run on as it was set: it takes no --versus or --save-config");
+    }
     out ??= resume ?? (configPath === undefined ? "runs/run.json" : runBeside(configPath));
     return { from, fleets, versus, out, saveConfig, name, config, quiet, resume };
 }

@@ -546,9 +546,20 @@ export class Run {
      */
     static resume(record: RunRecord, generations?: number, onGeneration?: OnGeneration): Run {
         if (record.rival !== undefined) throw new Error("a co-evolution run carries on with `Coevolution.resume`");
-        if (record.resume === undefined) throw new Error("the run was written before runs could be resumed");
+        if (record.resume === undefined) {
+            throw new Error("the run holds nothing to carry on from: only a run file `pnpm evolve` wrote can be resumed");
+        }
         const from = decodeExact(record.resume) as Omit<Resumed, "generations">;
-        const config = generations === undefined ? from.config : { ...from.config, generations };
+        const rng = from.rng;
+        if (!Array.isArray(rng) || rng.length !== 4 || !rng.every(Number.isFinite) || rng.every((n) => n === 0)) {
+            throw new Error("the run's checkpoint is damaged: its generator state is not four numbers");
+        }
+        if (!Array.isArray(from.individuals) || from.individuals.length === 0 || typeof from.config !== "object") {
+            throw new Error("the run's checkpoint is damaged: it holds no generation to carry on from");
+        }
+        // Never fewer than it has already fought.
+        const config =
+            generations === undefined ? from.config : { ...from.config, generations: max(generations, record.generations.length) };
         return new Run([], undefined, onGeneration, { ...from, config, generations: record.generations });
     }
 
@@ -706,7 +717,6 @@ export class Run {
         const settings = this.config;
         const record = describe(this.generation, this.matches);
         this.generations.push(record);
-        this.onGeneration?.(record);
         this.matches = [];
         // Bred even past the last, as the checkpoint a longer run carries on from: the
         // draws are the ones it would have made, and nothing here draws again after.
@@ -723,6 +733,8 @@ export class Run {
             () => this.nextId++,
         );
         this.mark(next);
+        // Told once the checkpoint is the next generation's, so a record written now carries on from there.
+        this.onGeneration?.(record);
         if (this.generations.length >= settings.generations) {
             this.over = true;
             return;

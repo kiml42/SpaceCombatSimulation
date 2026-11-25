@@ -550,12 +550,13 @@ export class Coevolution {
         own.generations.push(record);
         own.matches = [];
         own.fought = true;
-        this.onGeneration?.(record, this.side);
+        const side = this.side;
         this.generationCount++;
         this.roundGenerations++;
         if (this.generationCount >= this.config.generations) {
             this.over = true;
             this.mark();
+            this.onGeneration?.(record, side);
             return;
         }
         const ends = this.alternates && (won >= this.coevolution.phaseWin || this.roundGenerations >= this.coevolution.phaseCap);
@@ -571,7 +572,9 @@ export class Coevolution {
             own.generation = this.bred(own);
         }
         this.reset();
+        // Told once the checkpoint is the next generation's, so a record written now carries on from there.
         this.mark();
+        this.onGeneration?.(record, side);
     }
 
     private bred(s: Side): Generation {
