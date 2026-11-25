@@ -64,8 +64,8 @@ export const GOLDEN: Record<ScenarioName, string> = {
     asteroidField: "5a38c52f",
     // ships=7 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=2 bumps=2 crashes=0 severed=0 culled=0 scrap=-25.1t · 38.6 µs/step
     mining: "0095f392",
-    // ships=16 inFlight=22 p.fired=380 p.hits=979 b.fired=0 b.hits=0 contacts=1500 bumps=6 crashes=1 severed=2 culled=1 scrap=72.9t · 536.3 µs/step
-    rivalMines: "0a9ce116",
+    // ships=17 inFlight=22 p.fired=380 p.hits=979 b.fired=0 b.hits=0 contacts=1500 bumps=6 crashes=1 severed=2 culled=1 scrap=72.9t · 593.6 µs/step
+    rivalMines: "e67a15cb",
     // ships=22 inFlight=24 p.fired=92 p.hits=79 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=0.9t · 614.2 µs/step
     swarm: "d260e04c",
     // ships=302 inFlight=140 p.fired=703 p.hits=1053 b.fired=0 b.hits=0 contacts=63 bumps=1 crashes=9 severed=3 culled=3 scrap=24.9t · 20399.0 µs/step
@@ -82,8 +82,8 @@ export const GOLDEN: Record<ScenarioName, string> = {
     torpedoesWarheadGunPlatform: "0d33e54e",
     // ships=7 inFlight=0 p.fired=2 p.hits=177 b.fired=0 b.hits=0 contacts=7 bumps=0 crashes=1 severed=0 culled=0 scrap=43.9t · 159.4 µs/step
     torpedoesShapedGunPlatform: "c9a171a1",
-    // ships=6 inFlight=0 p.fired=30 p.hits=192 b.fired=0 b.hits=0 contacts=3 bumps=0 crashes=0 severed=0 culled=0 scrap=22.1t · 184.6 µs/step
-    torpedoBoatTorpedoes: "cbdaf502",
+    // ships=6 inFlight=0 p.fired=40 p.hits=186 b.fired=0 b.hits=0 contacts=7 bumps=0 crashes=0 severed=0 culled=0 scrap=22.0t · 242.7 µs/step
+    torpedoBoatTorpedoes: "3760b6b6",
     // ships=5 inFlight=12 p.fired=115 p.hits=191 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=1 culled=0 scrap=27.7t · 114.9 µs/step
     disarm: "a0717deb",
     // ships=3 inFlight=0 p.fired=47 p.hits=61 b.fired=37 b.hits=1981 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=53.1t · 93.2 µs/step
@@ -118,8 +118,8 @@ export const GOLDEN: Record<ScenarioName, string> = {
     scavenge: "df825eca",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=0.0t · 26.9 µs/step
     padRebuild: "0d31c912",
-    // ships=5 inFlight=0 p.fired=75 p.hits=71 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=1.7t · 68.5 µs/step
-    factory: "91ff31bb",
+    // ships=5 inFlight=0 p.fired=69 p.hits=74 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=1.7t · 77.4 µs/step
+    factory: "059bae4f",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=1 bumps=0 crashes=0 severed=1 culled=0 scrap=33.5t · 134.4 µs/step
     shipyard: "3a5a0509",
     // ships=5 inFlight=2 p.fired=36 p.hits=43 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=0.3t · 76.8 µs/step

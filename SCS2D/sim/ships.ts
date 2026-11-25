@@ -169,6 +169,8 @@ interface Brood {
     readonly fighters: number[][];
     /** Walls each pad has put into the next core it lays, kg. */
     readonly work: Float64Array;
+    /** The tick each pad found something over it with its next core ready to lay, or -1 while nothing is (`padCovered`). */
+    readonly coveredSince: Float64Array;
 }
 
 /** What a builder's slipways are building (`ShipDesign.yards`). */
@@ -1635,7 +1637,15 @@ export class Ships {
         this.mooredGripX.push(0);
         this.mooredGripY.push(0);
         const builds = design.builds ?? [];
-        this.broods.push(builds.length === 0 ? null : { fighters: builds.map(() => []), work: new Float64Array(builds.length) });
+        this.broods.push(
+            builds.length === 0
+                ? null
+                : {
+                      fighters: builds.map(() => []),
+                      work: new Float64Array(builds.length),
+                      coveredSince: new Float64Array(builds.length).fill(-1),
+                  },
+        );
         this.unfinished.push(0);
         this.yards.push(yardFor(design));
         this.printing.push(0);
