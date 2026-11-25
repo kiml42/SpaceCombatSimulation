@@ -20,7 +20,7 @@ import {
     warheadFragments,
     warheadSpread,
 } from "./modules.js";
-import { fragmentLayer, type Projectiles } from "./projectiles.js";
+import { fragmentLayer, fragmentLifeOf, type Projectiles } from "./projectiles.js";
 import * as shipAim from "./shipAim.js";
 import * as shipDocking from "./shipDocking.js";
 import * as shipOrders from "./shipOrders.js";
@@ -578,7 +578,7 @@ function throwOne(
         BLAST.vx + ux,
         BLAST.vy + uy,
         width,
-        life,
+        fragmentLifeOf(life, rng),
         each,
         0,
         0,
