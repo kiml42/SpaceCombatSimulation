@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CORVETTE, DINKY } from "../scenarios/blueprints.js";
 import { Run, runEvolution, type RunRecord } from "../evolution/run.js";
+import { Coevolution, runCoevolution } from "../evolution/coevolution.js";
 import { decodeExact, encodeExact } from "../evolution/exactJson.js";
 
 const settings = { seed: 5, population: 4, winners: 2, group: 2, minMatches: 1, generations: 3, match: { duration: 15 } };
@@ -60,5 +61,36 @@ describe("exact JSON", () => {
         expect(Object.is(back.c, -0)).toBe(true);
         expect(Object.is(back.d[1], -0)).toBe(true);
         expect(back.e).toBe("x");
+    });
+});
+
+describe("a resumed co-evolution run", { timeout: 120_000 }, () => {
+    const co = { hall: 2, phaseCap: 2 };
+    const config = { ...settings, generations: 5 };
+
+    it("carries on to the same run as one that never stopped", () => {
+        const whole = runCoevolution([DINKY], [CORVETTE], config, co);
+        for (const stopAt of [1, 3]) {
+            const first = new Coevolution([DINKY], [CORVETTE], config, co);
+            while (first.record().generations.length + (first.record().rival?.generations.length ?? 0) < stopAt) first.advance(500);
+            first.advance(300);
+            const resumed = Coevolution.resume(throughFile(first.record())).finish();
+            expect(written(resumed)).toEqual(written(whole));
+            expect(JSON.stringify(resumed.rival?.generations)).toEqual(JSON.stringify(whole.rival?.generations));
+            expect(resumed.resume).toBeUndefined();
+        }
+    });
+
+    it("carries on from the file as it is written when a generation closes", () => {
+        const whole = runCoevolution([DINKY], [CORVETTE], config, co);
+        let onDisk: RunRecord | null = null;
+        let closed = 0;
+        const first: Coevolution = new Coevolution([DINKY], [CORVETTE], config, co, () => {
+            if (++closed === 2) onDisk = throughFile(first.record());
+        });
+        while (onDisk === null) first.advance(500);
+        const resumed = Coevolution.resume(onDisk).finish();
+        expect(written(resumed)).toEqual(written(whole));
+        expect(JSON.stringify(resumed.rival?.generations)).toEqual(JSON.stringify(whole.rival?.generations));
     });
 });
