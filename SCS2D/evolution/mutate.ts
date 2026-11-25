@@ -232,7 +232,7 @@ export const DEFAULT_BUILD_WEIGHTS: BuildWeights = {
 
 /** Approach fields that are about covering a friend, and the targeting urge to. */
 const ESCORT_FIELDS: readonly string[] = ["escortWeight", "escortRadii", "escort", "escortInner", "escortMinRadii"];
-const AVOIDANCE_FIELDS: readonly string[] = ["separation", "separationRadii", "avoidHorizon", "rockMargin", "dodgeSpeed"];
+const AVOIDANCE_FIELDS: readonly string[] = ["separation", "separationRadii", "avoidHorizon", "rockMargin", "dodgeSpeed", "evasion"];
 
 /**
  * What the operator reaches for, unless a run says otherwise.
@@ -1263,6 +1263,7 @@ const STEP_SCALE: Readonly<Record<string, number>> = {
     tangentialMax: 20,
     escortInner: 0.5,
     spinResist: 1,
+    evasion: 10,
 };
 
 /**
