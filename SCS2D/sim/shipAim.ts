@@ -232,9 +232,11 @@ export function decideTurrets(ships: Ships, world: World, bodies: Bodies, i: num
             // A hooked target is alongside, with nothing between to look past.
             const judged =
                 !hooked && doctrine.sightWeight !== 0 ? { ...candidate, sight: visibility(bodies, gunX, gunY, b, tb) } : candidate;
+            const swarm =
+                doctrine.swarmWeight === 0 ? 0 : (doctrine.swarmWeight / 100) * swarmAround(ships, bodies, i, e, tb, gunX, gunY, mount.gun);
             (candidate.range > against ? ships.farChoice : clear ? ships.choice : ships.maskedChoice).offer(
                 judged,
-                score(doctrine, judged, against, design.mass, targets[t]!, mount.main ? focus : ownFocus),
+                score(doctrine, judged, against, design.mass, targets[t]!, mount.main ? focus : ownFocus) + swarm,
             );
         }
         // Something it can fire at first; then what is in reach but behind its
@@ -252,6 +254,32 @@ export function decideTurrets(ships: Ships, world: World, bodies: Bodies, i: num
             schedule[t] = world.tick + max(1, round(TURRET_MIN_RETHINK / world.dt));
         }
     }
+}
+
+/**
+ * What a miss at ship `e`, on body `tb`, from a gun at `(gunX, gunY)`, is
+ * likely to hit instead: each other enemy of ship `i` within a likely miss of
+ * it, by how near, less each friend. A likely miss is `e`'s own size, and how
+ * far it may jink in the flight time (`EVASION_ACCEL`). A hundred at the most
+ * for each, so `swarmWeight` is per hundred as `clusterWeight` is.
+ */
+function swarmAround(ships: Ships, bodies: Bodies, i: number, e: number, tb: number, gunX: number, gunY: number, gun: GunStats): number {
+    const range = length(bodies.x[tb]! - gunX, bodies.y[tb]! - gunY);
+    const flight = gun.type === GunType.Beam || !(gun.muzzleSpeed > 0) ? 0 : range / gun.muzzleSpeed;
+    const miss = bodies.radius[tb]! + 0.5 * EVASION_ACCEL * flight * flight;
+    let total = 0;
+    for (let o = 0; o < ships.alive.length; o++) {
+        if (o === e || o === i || ships.alive[o] !== 1 || ships.derelict[o] === 1) continue;
+        const hostile = ships.hostile(i, o);
+        if (!hostile && ships.team[o] !== ships.team[i]) continue;
+        const ob = bodies.indexOf(ships.bodyIds[o]!);
+        if (ob < 0 || ob === tb) continue;
+        const reach = miss + bodies.radius[ob]!;
+        const d = length(bodies.x[ob]! - bodies.x[tb]!, bodies.y[ob]! - bodies.y[tb]!);
+        if (!(d < reach)) continue;
+        total += (hostile ? 100 : -100) * (1 - d / reach);
+    }
+    return total;
 }
 
 /**

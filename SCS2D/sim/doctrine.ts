@@ -167,6 +167,13 @@ export interface Targeting {
      */
     readonly clusterWeight: number;
     /**
+     * How much the other enemies near a ship count towards a mount picking it,
+     * per hundred, each by how near it is within a likely miss: a round that
+     * misses one ship of a swarm may still hit the next. Friends that near
+     * count against. Zero picks by the ship alone.
+     */
+    readonly swarmWeight: number;
+    /**
      * How firmly a ship holds by something it will never shoot at.
      *
      * What a craft escorts is anything not hostile to it — one of its own, or
@@ -619,6 +626,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         gunWeight: 100,
         structureWeight: 0,
         clusterWeight: 50,
+        swarmWeight: 0,
         escortWeight: 0,
         fireRange: 1,
     },
@@ -822,6 +830,7 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
     "gunWeight",
     "structureWeight",
     "clusterWeight",
+    "swarmWeight",
     "escortWeight",
     "fireRange",
 ];
@@ -860,6 +869,7 @@ export const SHIP_TARGETING_FIELDS: readonly (keyof Targeting)[] = TARGETING_FIE
         field !== "gunWeight" &&
         field !== "structureWeight" &&
         field !== "clusterWeight" &&
+        field !== "swarmWeight" &&
         field !== "fireRange",
 );
 

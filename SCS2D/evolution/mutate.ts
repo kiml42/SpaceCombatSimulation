@@ -1263,6 +1263,7 @@ const STEP_SCALE: Readonly<Record<string, number>> = {
     escortInner: 0.5,
     spinResist: 1,
     evasion: 10,
+    swarmWeight: 10,
 };
 
 /**
