@@ -155,6 +155,14 @@ describe("the evolution route in a browser", () => {
         expect(problems).toEqual([]);
     });
 
+    it("offers the chance a lone ship's craft are mutated only where it builds craft", async () => {
+        await choose(page, "#founders", ["Beam Carrier"]);
+        expect(await page.locator("#fleetDesign").count()).toBe(1);
+        await choose(page, "#founders", ["Dinky"]);
+        expect(await page.locator("#fleetDesign").count()).toBe(0);
+        expect(problems).toEqual([]);
+    });
+
     it("previews the founders, and the first match paused at its start, before a run", async () => {
         await page.selectOption("#mode", "fleet");
         // Built once the settings have sat still a moment, not on every change.
