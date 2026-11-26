@@ -8,6 +8,8 @@ import {
     aimRadius,
     BOTH_LAYERS_CALIBRE,
     DEFAULT_FUSE,
+    isHullMount,
+    mountGeometryOf,
     firesShells,
     moduleRadius,
     slewTime,
@@ -580,6 +582,20 @@ export function aimSpot(design: ShipDesign, k: number, out: { x: number; y: numb
 }
 
 const SPOT = { x: 0, y: 0 };
+
+/**
+ * Where a ram meant for module `k` steers for, in the design's frame, into
+ * `out`: its centre, or the face of a hull weapon's block, where the barrels
+ * or lenses leave it, which is solid, unlike the gaps between them, and as
+ * far out as anything solid of it.
+ */
+export function ramSpot(design: ShipDesign, k: number, out: { x: number; y: number }): void {
+    const module = design.modules[k]!;
+    const spec = module.spec;
+    const back = isHullMount(spec.kind) ? aimOffset(spec) + 0.5 * mountGeometryOf(spec).blockLength : 0;
+    out.x = module.x + cos(module.angle) * back;
+    out.y = module.y + sin(module.angle) * back;
+}
 
 /**
  * The module of `target`, on body `tb`, that ship `i`, on body `b`, rams: by
