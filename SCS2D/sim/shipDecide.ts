@@ -195,10 +195,20 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
         // swap between two at much the same score; and loyal to the consort it has,
         // not to the enemy it chose.
         const still = { ...candidate, facing: 0, closing: 0 };
-        ships.choice.offer(still, score(doctrine, still, design.reach, design.mass, ships.consort[i]!));
+        const crowd = approach.escortCrowding > 0 ? approach.escortCrowding * escortsOf(ships, t, i) : 0;
+        ships.choice.offer(still, score(doctrine, still, design.reach, design.mass, ships.consort[i]!) - crowd);
     }
     ships.consort[i] = ships.choice.ship;
     guard(ships, bodies, i, b, wasGuarding);
+}
+
+/** How many ships other than `except` are covering `t`. */
+function escortsOf(ships: Ships, t: number, except: number): number {
+    let n = 0;
+    for (let j = 0; j < ships.alive.length; j++) {
+        if (j !== except && ships.alive[j] === 1 && ships.consort[j] === t) n++;
+    }
+    return n;
 }
 
 /**

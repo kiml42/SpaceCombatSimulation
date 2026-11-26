@@ -1,4 +1,14 @@
-import { compileBlueprint, exactTurn, expandFleet, math, schedule, type Fleet, type ShipDesign, type Yard } from "../sim/index.js";
+import {
+    compileBlueprint,
+    exactTurn,
+    expandFleet,
+    math,
+    middleRock,
+    schedule,
+    type Fleet,
+    type ShipDesign,
+    type Yard,
+} from "../sim/index.js";
 import { type Battle } from "./types.js";
 import { makeBattle, type BattleOptions } from "./battle.js";
 import { withFleetFighters } from "../sim/fleetHangar.js";
@@ -32,7 +42,7 @@ export function fleetBattle(
     options: FleetBattleOptions,
 ): Battle & { readonly slots: readonly (readonly number[])[] } {
     const battle = makeBattle(options, (ships, world) => {
-        const radius = options.range / 2;
+        let radius = options.range / 2;
         const closing = options.closingSpeed ?? 0;
         const crossing = options.crossingSpeed ?? 0;
         const rotation = options.rotation ?? 0;
@@ -43,6 +53,20 @@ export function fleetBattle(
                 designs.set(name, compileBlueprint(withFleetFighters(blueprint, fleet.designs)));
             return expandFleet(fleet).map((ship) => ({ ...ship, compiled: designs.get(ship.design)! }));
         });
+        // Each fleet clear of a rock in the middle, where the map puts one.
+        const rock = middleRock(options.map, options.mapSeed ?? options.seed);
+        if (rock !== null) {
+            placed.forEach((list, team) => {
+                // Out along the side's own heading until its furthest hull clears the rock.
+                const [c, s] = exactTurn((math.TAU * team) / fleets.length);
+                const along = -(rock.x * c + rock.y * s);
+                const across = rock.x * s - rock.y * c;
+                for (const ship of list) {
+                    const need = rock.radius + math.length(ship.x, ship.y) + ship.compiled.radius;
+                    if (need > math.abs(across)) radius = math.max(radius, along + math.sqrt(need * need - across * across));
+                }
+            });
+        }
         const readies = placed.map((list, team) => {
             const yard = options.yards?.[team];
             return yard === undefined

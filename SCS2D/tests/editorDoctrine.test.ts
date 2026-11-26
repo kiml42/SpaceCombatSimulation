@@ -64,6 +64,7 @@ describe("which numbers the panel offers", () => {
         expect(sectionEntries([section("Escorting")]).map((e) => e.field)).toEqual([
             "escortWeight",
             "escortMinRadii",
+            "escortCrowding",
             "escortRadii",
             "escort",
             "escortInner",
@@ -107,7 +108,7 @@ describe("what the panel shows of a ship’s doctrine", () => {
 
     it("hides what a setting above it has made mean nothing", () => {
         // Not escorting at all: how close, how far and who to escort are moot.
-        for (const field of ["escortMinRadii", "escortRadii", "escort", "escortInner", "guardRange"]) {
+        for (const field of ["escortMinRadii", "escortCrowding", "escortRadii", "escort", "escortInner", "guardRange"]) {
             expect(shown(field, values({}, { escortWeight: 0 }))).toBe(false);
             expect(shown(field, values({}, { escortWeight: 50 }))).toBe(true);
         }

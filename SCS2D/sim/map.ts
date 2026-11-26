@@ -33,6 +33,13 @@ export interface MapSettings {
     /** The mean share of rock that is ore, and that is ice. */
     readonly metal?: number;
     readonly fuel?: number;
+    /**
+     * Puts a lone major between the sides, which start far enough out to clear
+     * it (`middleRock`): 1 on the line between them, 0.5 with its edge on it,
+     * and nearer 0 a radius clear of it. 0, more than one major, or something
+     * starting where it would be keeps every major clear of where the sides start.
+     */
+    readonly middle?: number;
 }
 
 export type MapKey = keyof MapSettings;
@@ -49,12 +56,13 @@ export const MAP_KEYS: readonly MapKey[] = [
     "surfaceGravity",
     "metal",
     "fuel",
+    "middle",
 ];
 
 /** The counts, which are whole numbers. */
 const COUNTS: readonly MapKey[] = ["majors", "minors"];
 /** The shares, which are 0 to 1. */
-const SHARES: readonly MapKey[] = ["eccentricity", "metal", "fuel"];
+const SHARES: readonly MapKey[] = ["eccentricity", "metal", "fuel", "middle"];
 
 export const DEFAULT_MAP: Required<MapSettings> = {
     majors: 0,
@@ -67,6 +75,7 @@ export const DEFAULT_MAP: Required<MapSettings> = {
     surfaceGravity: 0.5,
     metal: 0.2,
     fuel: 0.1,
+    middle: 0,
 };
 
 /**
@@ -178,12 +187,37 @@ export function hasAsteroids(settings: MapSettings | undefined): boolean {
     return (settings?.majors ?? 0) > 0 || (settings?.minors ?? 0) > 0;
 }
 
+/** Where a map with `middle` puts its major, and how far from there whatever starts must be, metres. */
+export interface MiddleRock {
+    readonly x: number;
+    readonly y: number;
+    readonly radius: number;
+}
+
+/**
+ * The major a map with `middle` puts between the sides, or null for a map
+ * without one. Drawn as `generateMap` draws it, from the same seed. It sits
+ * across the line between two sides (the x axis) by `1 - middle` of its
+ * diameter, to one side or the other by the seed.
+ */
+export function middleRock(settings: MapSettings | undefined, seed: number): MiddleRock | null {
+    const middle = settings?.middle ?? 0;
+    if (settings === undefined || !(middle > 0) || settings.majors !== 1) return null;
+    const size = drawSize(settings.majorSize ?? DEFAULT_MAP.majorSize, settings.majorSpread ?? DEFAULT_MAP.majorSpread, mapRng(seed));
+    const across = (1 - min(middle, 1)) * 2 * size;
+    return { x: 0, y: (seed & 1) === 0 ? across : -across, radius: size + MARGIN };
+}
+
+function mapRng(seed: number): Rng {
+    return new Rng((seed ^ 0x6d617073) >>> 0);
+}
+
 /**
  * Draw a map. Its stream is the seed's own, mixed, so a battle's world draws
  * the same whether or not it has a map. Majors' wells come first in `wells`.
  */
 export function generateMap(settings: MapSettings, seed: number, clear: readonly Clearing[]): AsteroidMap {
-    const rng = new Rng((seed ^ 0x6d617073) >>> 0);
+    const rng = mapRng(seed);
     const g = settings.surfaceGravity ?? DEFAULT_MAP.surfaceGravity;
     const ore = settings.metal ?? DEFAULT_MAP.metal;
     const ice = settings.fuel ?? DEFAULT_MAP.fuel;
@@ -191,6 +225,7 @@ export function generateMap(settings: MapSettings, seed: number, clear: readonly
     const placed: Clearing[] = [];
 
     // Majors, as a system of rails: each joins the system so far as the second of a pair.
+    // The first major's size is the first draw, as `middleRock` draws it.
     const majors = settings.majors ?? 0;
     const wells: WellSpec[] = [];
     const reach: number[] = [];
@@ -214,8 +249,13 @@ export function generateMap(settings: MapSettings, seed: number, clear: readonly
             root = { pair: [root, { well: k }], orbit };
             extent = a * (1 + e) + max(extent, reach[k]!);
         }
-        // Somewhere the system's opening seconds keep clear of every clearing.
+        // Somewhere the system's opening seconds keep clear of every clearing; or, asked
+        // for one in the middle, with its first major there, whatever it starts beside.
         let found: Rails | undefined;
+        const middle = middleRock(settings, seed);
+        if (middle !== null && clear.every((c) => apart(middle, c) >= reach[0]! + c.radius + MARGIN)) {
+            found = { x: middle.x, y: middle.y, root };
+        }
         for (let t = 0; t < TRIES && found === undefined; t++) {
             const out = t === 0 ? 0 : MARGIN * 4 * t;
             const bearing = rng.nextFloat() * TAU;
