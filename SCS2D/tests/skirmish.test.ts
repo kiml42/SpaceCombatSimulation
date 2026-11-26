@@ -418,7 +418,7 @@ describe("the skirmish", () => {
     });
 
     it("draws a hand of cards after three losses in a row, each with a fleet that has not lost the round", () => {
-        const start = newSkirmish(gunship, gunship, 5);
+        const start = newSkirmish(gunship, gunship, 6);
         // The same fleet losing again does not count.
         let skirmish = lost(lost(lost(start)));
         expect(skirmish.streak).toBe(1);
@@ -442,6 +442,7 @@ describe("the skirmish", () => {
         expect(canFight(skirmish)).toBe(false);
         // One that only adds, so a fleet spending its whole budget still fits.
         const card = skirmish.hand!.find((id) => isSimple(cardById(id)!))!;
+        expect(card).toBeDefined();
         const picked = pick(skirmish, card);
         expect(picked.hand).toBeUndefined();
         expect(picked.cards).toEqual([card]);

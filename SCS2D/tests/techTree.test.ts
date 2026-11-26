@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shipFleet, type ShipModuleKind } from "../sim/index.js";
+import { Rng, shipFleet, type ShipModuleKind } from "../sim/index.js";
 import { BARE_CORE, GUNSHIP } from "../scenarios/blueprints.js";
 import {
     canFight,
@@ -12,7 +12,7 @@ import {
     serialiseSkirmish,
     type Skirmish,
 } from "../scenarios/skirmish.js";
-import { cardById, UNLOCK_CARDS } from "../skirmish/cards.js";
+import { cardById, drawHand, drawWeight, offerable, UNLOCK_CARDS, type Limits } from "../skirmish/cards.js";
 import {
     ALL_TECH,
     canUnlock,
@@ -131,6 +131,27 @@ describe("the enemy's breeding under a tech tree", () => {
 
     it("has an unlock card for every kind but the core", () => {
         expect(UNLOCK_CARDS.map((card) => card.unlocks)).toEqual(ALL_TECH.filter((kind) => kind !== "core"));
+    });
+});
+
+describe("drawing unlock cards", () => {
+    const START: Limits = { budget: { metal: 1000, fuel: 100, build: 50 }, maxShips: 4, radius: 500 };
+
+    it("draws the common modules most, by how few groups of prerequisites they have", () => {
+        const weight = (kind: ShipModuleKind): number => drawWeight(cardById(`unlock-${kind}`)!);
+        expect(weight("structure")).toBeGreaterThan(weight("turret"));
+        expect(weight("turret")).toBeGreaterThan(weight("railGun"));
+        expect(weight("railGun")).toBeGreaterThan(weight("plasmaLance"));
+        expect(weight("plasmaLance")).toBeGreaterThanOrEqual(drawWeight(cardById("fuel")!));
+    });
+
+    it("offers a new module in most hands from the starting modules", () => {
+        let withUnlock = 0;
+        for (let seed = 0; seed < 100; seed++) {
+            const hand = drawHand(new Rng(seed), START, [], (card) => offerable(card, STARTING_TECH));
+            if (hand.some((id) => cardById(id)!.unlocks !== undefined)) withUnlock++;
+        }
+        expect(withUnlock).toBeGreaterThan(75);
     });
 });
 
