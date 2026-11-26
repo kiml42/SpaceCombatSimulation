@@ -289,6 +289,9 @@ inside any one file is not contiguous.
   close it flies and for whether it is still armed. So a capital that has lost its main guns knows it, however
   much point defence it has left, and enemies weighing `armedWeight` and its own `ramArmed` see it the same
   way; a piece broken off with only secondaries is disarmed, and a carrier can have no main armament at all.
+  _Main_ only steers the ship, though: **a battle's decision counts any weapon** (`Ships.canShoot`), so a ship
+  with a secondary gun that can still fire is still in the fight, and a carrier that can build a fighter with
+  any gun is armed.
   **Running dry counts as being shot out**: a gun without a round's metal on its piece of hull, or the fuel to
   finish reloading, is not armed,
   a beam recharging is not armed unless its piece's batteries, and what its generators make in a cycle, cover
@@ -767,7 +770,7 @@ inside any one file is not contiguous.
   and kicks back harder, with the jet's thrust for as long as it burns. Its length is the field and the
   bank, so a longer lance reaches further (`LANCE_REACH_PER_METRE`, 40 m a metre) and stores more. Its
   power falls off along its reach to nothing at the end, and it never reflects, so it is worth firing only
-  well inside it (`LANCE_WORTH`, half). It draws a pulse's fuel and charge as it recharges, as any mount
+  well inside it (`LANCE_WORTH`, half). It claims a pulse's fuel as it begins to recharge and draws its charge as it recharges, as any mount
   does. **A charged lance leaks**: a fortieth of a pulse's charge and fuel a second (`LANCE_LEAK`), a third
   of what its base charges, and what its stores cannot make up it loses. So each lance is built one of two ways (`ready`): kept charged,
   ready the moment it bears and paying for it, or charged only once it is on target, setting out uncharged
@@ -1402,9 +1405,11 @@ inside any one file is not contiguous.
   by default a twentieth of a core's interior past its computing (`CORE_METAL_SHARE`), the rest of it still fuel, so
   a bare core with one gun can fire a few rounds. A gun loads each round whole from the holds and cores on its
   own piece of hull, as an engine draws fuel from its tanks, before it reloads, and waits empty, its reload not
-  begun, while they have less than a round's casing. **Fuel is a gun's propellant and a shell's bursting charge**: a gun draws its next
-  round's from the tanks on its piece of hull as it reloads, as a beam draws its charge, so it reloads only as
-  fast as they supply it, first come first served against the engines, and starts a battle as far through its
+  begun, while they have less than a round's casing. **Fuel is a gun's propellant and a shell's bursting charge**: a gun claims its next
+  round's whole from the tanks on its piece of hull as its reload begins, with the round's casing, all of it or
+  none, so it either reloads or waits empty and is never left stuck part way, and an engine cannot burn fuel a
+  reload has begun on. Its charge it draws as it reloads, so it reloads only as fast as its batteries and
+  generators supply it. It starts a battle as far through its
   first reload as the time before it allowed, the budget having paid for that round's metal and fuel. The
   propellant is the muzzle energy at `PROPELLANT_ENERGY`, 1.2 MJ/kg (the 16"/50's 297 kg charge), so it goes
   with the square of muzzle speed: about a fifth of the round's mass at 700 m/s, nearly all of it at 1500,
@@ -1532,7 +1537,11 @@ inside any one file is not contiguous.
   ramming counts as firing only while the rammer gets closer to its target than it has been, so one that
   circles goes quiet, its mark following it out after the start or a hit it lands until it turns back,
   and while it closes the side it is closing on is not quiet either, so an unarmed rammer still on its way
-  in cannot win by outlasting a ship waiting for it to come into reach;
+  in cannot win by outlasting a ship waiting for it to come into reach. The round's result says why, a ship at a
+  time (`scenarios/decision.ts`, `standings`): what put each of the losing side's ships out of the fight —
+  its core out, its guns wrecked, out of ammunition, fuel to reload or charge, and whether its engines were
+  dry or wrecked — or how long each had gone without firing and how far off the nearest enemy was, and what
+  the winners still had;
   and go
   to the fleet editor, which shows the budget, and back between tries. A ship of a fleet opens in the ship
   editor from the fleet editor's _Edit_ and goes back to the fleet, skirmish and all. A round won, the

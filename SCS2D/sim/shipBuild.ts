@@ -749,7 +749,7 @@ export function canBuildArmed(ships: Ships, i: number): boolean {
     const rebuild = shipRebuild.rebuildFor(ships, i, design);
     for (const order of yards) {
         const craft = ships.craftFor(i, order.slipway, order.design);
-        if (!(craft.turrets.some((t) => t.main) || craft.mainWeaponEngines.length > 0)) continue;
+        if (!(craft.turrets.length > 0 || craft.weaponEngines.length > 0)) continue;
         const slipway = rebuild.at[order.slipway]!;
         if (slipway < 0 || !(ships.left(i, b, slipway, DamageEffect.Grip) > 0)) continue;
         // The metal for its first slice, at least.
@@ -762,7 +762,7 @@ export function canBuildArmed(ships: Ships, i: number): boolean {
     for (const order of builds) {
         const fighter = ships.craftFor(i, order.pad, order.design);
         const core = fighter.cores[0];
-        if (core === undefined || !(fighter.turrets.some((t) => t.main) || fighter.mainWeaponEngines.length > 0)) continue;
+        if (core === undefined || !(fighter.turrets.length > 0 || fighter.weaponEngines.length > 0)) continue;
         const pad = rebuild.at[order.pad]!;
         if (pad < 0 || !(ships.left(i, b, pad, DamageEffect.Grip) > 0)) continue;
         const stats = fighter.modules[core]!.stats;
