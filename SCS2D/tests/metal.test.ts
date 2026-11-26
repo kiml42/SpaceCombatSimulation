@@ -207,6 +207,22 @@ describe("a gun firing", () => {
         expect(s.ships.canShoot(s.mine)).toBe(true);
     });
 
+    it("claims a round's fuel as its reload begins, so it finishes the reload with the tanks then drained", () => {
+        const s = firing(corvette, 20);
+        const t = corvette.turrets.findIndex((_, k) => s.ships.isReloading(s.mine, k) && s.ships.loadOf(s.mine, k) < 0.5);
+        expect(t).toBeGreaterThanOrEqual(0);
+        s.ships.fuel.drain(s.body, corvette.cores[0]!, s.ships.fuel.left(s.body));
+        for (let i = 0; i < corvette.turrets[t]!.gun.cycleTime / DT + 2; i++) s.ships.command(DT, s.world);
+        expect(s.ships.loadOf(s.mine, t)).toBe(1);
+    });
+
+    it("never begins a reload it has not the fuel for", () => {
+        const s = firing(corvette, 20, 0, true);
+        for (let t = 0; t < corvette.turrets.length; t++) {
+            if (s.ships.isReloading(s.mine, t)) expect(s.ships.loadOf(s.mine, t)).toBe(0);
+        }
+    });
+
     it("burns a round's propellant and bursting charge of fuel for each round it reloads", () => {
         const s = firing(corvette, 20);
         const gun = corvette.turrets.find((t) => t.gun.roundMass > 0)!.gun;

@@ -1271,7 +1271,8 @@ export class Ships {
         const reloading = timer > 0 && gun.cycleTime > 0;
         const rate = reloading ? this.damage.remaining(b, mount.module, DamageEffect.FireRate) : 0;
         if (!this.isLoaded(b, mount) && this.metal.pieceHeld(b, mount.module) < shotMetal(gun)) return Unarmed.NoAmmunition;
-        if (reloading && this.fuel.fed(b, mount.module, this.damage) < (shotFuel(gun) * rate * timer) / gun.cycleTime)
+        // A reload's fuel is claimed whole as it begins (`shipFire.chamber`), so only what it has not claimed counts.
+        if (reloading && this.fuel.fed(b, mount.module, this.damage) < (shotFuel(gun) * rate * timer) / gun.cycleTime - this.primed[i]![t]!)
             return Unarmed.NoFuel;
         if (gun.bankEnergy > 0) {
             const short = volleyCharge(gun) - this.bank[i]![t]!;

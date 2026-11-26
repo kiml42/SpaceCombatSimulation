@@ -770,7 +770,7 @@ inside any one file is not contiguous.
   and kicks back harder, with the jet's thrust for as long as it burns. Its length is the field and the
   bank, so a longer lance reaches further (`LANCE_REACH_PER_METRE`, 40 m a metre) and stores more. Its
   power falls off along its reach to nothing at the end, and it never reflects, so it is worth firing only
-  well inside it (`LANCE_WORTH`, half). It draws a pulse's fuel and charge as it recharges, as any mount
+  well inside it (`LANCE_WORTH`, half). It claims a pulse's fuel as it begins to recharge and draws its charge as it recharges, as any mount
   does. **A charged lance leaks**: a fortieth of a pulse's charge and fuel a second (`LANCE_LEAK`), a third
   of what its base charges, and what its stores cannot make up it loses. So each lance is built one of two ways (`ready`): kept charged,
   ready the moment it bears and paying for it, or charged only once it is on target, setting out uncharged
@@ -1405,9 +1405,11 @@ inside any one file is not contiguous.
   by default a twentieth of a core's interior past its computing (`CORE_METAL_SHARE`), the rest of it still fuel, so
   a bare core with one gun can fire a few rounds. A gun loads each round whole from the holds and cores on its
   own piece of hull, as an engine draws fuel from its tanks, before it reloads, and waits empty, its reload not
-  begun, while they have less than a round's casing. **Fuel is a gun's propellant and a shell's bursting charge**: a gun draws its next
-  round's from the tanks on its piece of hull as it reloads, as a beam draws its charge, so it reloads only as
-  fast as they supply it, first come first served against the engines, and starts a battle as far through its
+  begun, while they have less than a round's casing. **Fuel is a gun's propellant and a shell's bursting charge**: a gun claims its next
+  round's whole from the tanks on its piece of hull as its reload begins, with the round's casing, all of it or
+  none, so it either reloads or waits empty and is never left stuck part way, and an engine cannot burn fuel a
+  reload has begun on. Its charge it draws as it reloads, so it reloads only as fast as its batteries and
+  generators supply it. It starts a battle as far through its
   first reload as the time before it allowed, the budget having paid for that round's metal and fuel. The
   propellant is the muzzle energy at `PROPELLANT_ENERGY`, 1.2 MJ/kg (the 16"/50's 297 kg charge), so it goes
   with the square of muzzle speed: about a fifth of the round's mass at 700 m/s, nearly all of it at 1500,

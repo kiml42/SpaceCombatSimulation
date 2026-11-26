@@ -345,10 +345,11 @@ export function scorch(ships: Ships, world: World, grid: SpatialGrid, dt: number
 
 /**
  * How much of a step's reload a gun gets through, 0 to 1: the share of the
- * step's draw its piece of hull could supply. A beam or a rail gun refills
- * from power over its reload; a powder gun draws its next round's fuel from
- * the tanks. How far through its first reload a gun sets out is what it
- * readied before the battle (`readying.ts`).
+ * step's charge its piece of hull could supply. A beam or a rail gun refills
+ * from power over its reload; a powder gun's fuel was claimed whole when the
+ * reload began (`chamber`), so it never holds one back. How far through its
+ * first reload a gun sets out is what it readied before the battle
+ * (`readying.ts`).
  */
 export function recharged(ships: Ships, b: number, i: number, t: number, dt: number): number {
     if (ships.turretStates[i]![t] !== TurretState.Reloading) return 1;
@@ -365,20 +366,20 @@ export function recharged(ships: Ships, b: number, i: number, t: number, dt: num
 
 /**
  * Draw `scale` of a shot's fuel and charge for the mount at `module`, and say
- * what share of it there was; fuel from what mount `t` has `primed` first.
+ * what share of it there was. With `primed`, the fuel is what mount `t`
+ * claimed for its round, and never short.
  */
 function drawShare(ships: Ships, b: number, module: number, gun: GunStats, scale: number, primed?: Float64Array, t = -1): number {
     let share = 1;
     const want = shotFuel(gun) * scale;
-    const paid = primed === undefined || t < 0 ? 0 : primed[t]!;
-    const used = paid < want ? paid : want;
-    if (used > 0) primed![t] = paid - used;
-    const fuel = want - used;
-    if (fuel > 0) {
-        const allowed = shipSupply.allowed(ships, Resource.Fuel, b, module, Claim.Fire, fuel);
-        const got = ships.fuel.feed(b, module, fuel < allowed ? fuel : allowed, ships.damage);
+    if (primed !== undefined) {
+        const paid = primed[t]!;
+        primed[t] = paid > want ? paid - want : 0;
+    } else if (want > 0) {
+        const allowed = shipSupply.allowed(ships, Resource.Fuel, b, module, Claim.Fire, want);
+        const got = ships.fuel.feed(b, module, want < allowed ? want : allowed, ships.damage);
         shipSupply.took(ships, Resource.Fuel, b, module, Claim.Fire, got);
-        share = (used + got) / want;
+        share = got / want;
     }
     const charge = shotCharge(gun) * scale;
     if (charge > 0) {
@@ -433,18 +434,56 @@ function leak(ships: Ships, b: number, i: number, t: number, dt: number): void {
 }
 
 /**
- * Take gun `t`'s next shot's metal from the holds on its piece of hull, if it
- * has not got it, and say whether it has. A gun reloads only once it has, so a
- * gun with nothing to load waits empty.
+ * Claim what gun `t` lacks of its next shot's metal and the rest of its
+ * reload's fuel from its piece of hull, all of it or none, and say whether it
+ * has it all. A gun reloads only once it has, so one short of either waits
+ * empty rather than stopping part way through, and an engine cannot burn the
+ * fuel a reload has begun on.
  */
 function chamber(ships: Ships, b: number, i: number, t: number): boolean {
     const mount = ships.designs[i]!.turrets[t]!;
-    if (ships.isLoaded(b, mount)) return true;
-    const metal = shotMetal(mount.gun);
-    if (shipSupply.allowed(ships, Resource.Metal, b, mount.module, Claim.Fire, metal) < metal) return false;
-    if (!ships.metal.load(b, mount.module, metal)) return false;
-    shipSupply.took(ships, Resource.Metal, b, mount.module, Claim.Fire, metal);
+    const metal = ships.isLoaded(b, mount) ? 0 : shotMetal(mount.gun);
+    const fuel = fuelOwed(ships, b, i, t);
+    if (metal > 0) {
+        if (shipSupply.allowed(ships, Resource.Metal, b, mount.module, Claim.Fire, metal) < metal) return false;
+        if (ships.metal.pieceHeld(b, mount.module) < metal) return false;
+    }
+    if (fuel > 0) {
+        if (shipSupply.allowed(ships, Resource.Fuel, b, mount.module, Claim.Fire, fuel) < fuel) return false;
+        if (ships.fuel.fed(b, mount.module, ships.damage) < fuel) return false;
+    }
+    if (metal > 0) {
+        if (!ships.metal.load(b, mount.module, metal)) return false;
+        shipSupply.took(ships, Resource.Metal, b, mount.module, Claim.Fire, metal);
+    }
+    if (fuel > 0) {
+        const got = ships.fuel.feed(b, mount.module, fuel, ships.damage);
+        shipSupply.took(ships, Resource.Fuel, b, mount.module, Claim.Fire, got);
+        ships.primed[i]![t] = ships.primed[i]![t]! + got;
+    }
     return true;
+}
+
+/** Below this share of a round's fuel, a claim is rounding error and not worth stopping for. */
+const FUEL_SETTLE = 1e-9;
+
+/**
+ * Fuel gun `t` still lacks for the rest of its reload, kg: what is left of the
+ * round's at the rate it reloads now, less what it has claimed. None for a
+ * gun that is not reloading, that loads no fuel as it does, or a lance waiting for a target.
+ */
+function fuelOwed(ships: Ships, b: number, i: number, t: number): number {
+    if (ships.turretStates[i]![t] !== TurretState.Reloading) return 0;
+    const timer = ships.cooldown[i]![t]!;
+    const mount = ships.designs[i]!.turrets[t]!;
+    const gun = mount.gun;
+    if (!(timer > 0) || !(gun.cycleTime > 0) || gun.bankEnergy > 0) return 0;
+    // A lance that charges only on target claims nothing until it begins to.
+    if (waitsForTarget(ships, i, t) && !onTarget(ships, i, t)) return 0;
+    const whole = shotFuel(gun);
+    const rate = ships.damage.remaining(b, mount.module, DamageEffect.FireRate);
+    const owed = (whole * rate * timer) / gun.cycleTime - ships.primed[i]![t]!;
+    return owed > whole * FUEL_SETTLE ? owed : 0;
 }
 
 /** Run down each of ship `i`'s mounts' reload, as far as its metal, power and fuel allow. */
