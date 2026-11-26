@@ -34,10 +34,10 @@ export interface MapSettings {
     readonly metal?: number;
     readonly fuel?: number;
     /**
-     * 1 puts a lone major at the middle of the field, between the sides,
-     * which start far enough out to clear it (`middleRock`); 0, or more than
-     * one major, or something starting where it would be, keeps every major
-     * clear of where the sides start.
+     * Puts a lone major between the sides, which start far enough out to clear
+     * it (`middleRock`): 1 on the line between them, 0.5 with its edge on it,
+     * and nearer 0 a radius clear of it. 0, more than one major, or something
+     * starting where it would be keeps every major clear of where the sides start.
      */
     readonly middle?: number;
 }
@@ -60,9 +60,9 @@ export const MAP_KEYS: readonly MapKey[] = [
 ];
 
 /** The counts, which are whole numbers. */
-const COUNTS: readonly MapKey[] = ["majors", "minors", "middle"];
+const COUNTS: readonly MapKey[] = ["majors", "minors"];
 /** The shares, which are 0 to 1. */
-const SHARES: readonly MapKey[] = ["eccentricity", "metal", "fuel"];
+const SHARES: readonly MapKey[] = ["eccentricity", "metal", "fuel", "middle"];
 
 export const DEFAULT_MAP: Required<MapSettings> = {
     majors: 0,
@@ -187,15 +187,25 @@ export function hasAsteroids(settings: MapSettings | undefined): boolean {
     return (settings?.majors ?? 0) > 0 || (settings?.minors ?? 0) > 0;
 }
 
+/** Where a map with `middle` puts its major, and how far from there whatever starts must be, metres. */
+export interface MiddleRock {
+    readonly x: number;
+    readonly y: number;
+    readonly radius: number;
+}
+
 /**
- * The radius of the major a map with `middle` puts at the middle of the field,
- * metres, which whatever starts there must clear; zero for a map without one.
- * Drawn as `generateMap` draws it, from the same seed.
+ * The major a map with `middle` puts between the sides, or null for a map
+ * without one. Drawn as `generateMap` draws it, from the same seed. It sits
+ * across the line between two sides (the x axis) by `1 - middle` of its
+ * diameter, to one side or the other by the seed.
  */
-export function middleRock(settings: MapSettings | undefined, seed: number): number {
-    if (settings === undefined || !((settings.middle ?? 0) >= 1) || settings.majors !== 1) return 0;
-    const rng = mapRng(seed);
-    return drawSize(settings.majorSize ?? DEFAULT_MAP.majorSize, settings.majorSpread ?? DEFAULT_MAP.majorSpread, rng) + MARGIN;
+export function middleRock(settings: MapSettings | undefined, seed: number): MiddleRock | null {
+    const middle = settings?.middle ?? 0;
+    if (settings === undefined || !(middle > 0) || settings.majors !== 1) return null;
+    const size = drawSize(settings.majorSize ?? DEFAULT_MAP.majorSize, settings.majorSpread ?? DEFAULT_MAP.majorSpread, mapRng(seed));
+    const across = (1 - min(middle, 1)) * 2 * size;
+    return { x: 0, y: (seed & 1) === 0 ? across : -across, radius: size + MARGIN };
 }
 
 function mapRng(seed: number): Rng {
@@ -242,8 +252,9 @@ export function generateMap(settings: MapSettings, seed: number, clear: readonly
         // Somewhere the system's opening seconds keep clear of every clearing; or, asked
         // for one in the middle, with its first major there, whatever it starts beside.
         let found: Rails | undefined;
-        if ((settings.middle ?? 0) >= 1 && majors === 1 && clear.every((c) => apart({ x: 0, y: 0 }, c) >= reach[0]! + c.radius + MARGIN)) {
-            found = { x: 0, y: 0, root };
+        const middle = middleRock(settings, seed);
+        if (middle !== null && clear.every((c) => apart(middle, c) >= reach[0]! + c.radius + MARGIN)) {
+            found = { x: middle.x, y: middle.y, root };
         }
         for (let t = 0; t < TRIES && found === undefined; t++) {
             const out = t === 0 ? 0 : MARGIN * 4 * t;

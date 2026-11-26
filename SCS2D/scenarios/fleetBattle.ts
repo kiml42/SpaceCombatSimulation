@@ -55,10 +55,17 @@ export function fleetBattle(
         });
         // Each fleet clear of a rock in the middle, where the map puts one.
         const rock = middleRock(options.map, options.mapSeed ?? options.seed);
-        if (rock > 0) {
-            for (const list of placed) {
-                for (const ship of list) radius = math.max(radius, rock + math.length(ship.x, ship.y) + ship.compiled.radius);
-            }
+        if (rock !== null) {
+            placed.forEach((list, team) => {
+                // Out along the side's own heading until its furthest hull clears the rock.
+                const [c, s] = exactTurn((math.TAU * team) / fleets.length);
+                const along = -(rock.x * c + rock.y * s);
+                const across = rock.x * s - rock.y * c;
+                for (const ship of list) {
+                    const need = rock.radius + math.length(ship.x, ship.y) + ship.compiled.radius;
+                    if (need > math.abs(across)) radius = math.max(radius, along + math.sqrt(need * need - across * across));
+                }
+            });
         }
         const readies = placed.map((list, team) => {
             const yard = options.yards?.[team];

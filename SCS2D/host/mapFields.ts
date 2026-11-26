@@ -21,8 +21,8 @@ const LABELS: Record<MapKey, { label: string; title: string; step: number; max?:
     fuel: { label: "fuel", title: "The share of rock that is ice, on average", step: 0.05, max: 1 },
     middle: {
         label: "in the middle",
-        title: "1 puts the first major between the sides, which start far enough out to clear it; 0 keeps every major clear of where they start",
-        step: 1,
+        title: "Puts a lone major between the sides, which start far enough out to clear it: 1 on the line between them, 0.5 with its edge on it, near 0 a radius off it; 0 keeps every major clear of where they start",
+        step: 0.1,
         max: 1,
     },
 };
