@@ -138,7 +138,8 @@ export interface SkirmishSettings {
     readonly maxShips: number;
     /**
      * The most cores any ship of either side may have, unless the enemy's
-     * already have more; none for no limit. A ship with one core breaks into
+     * already have more; 0, which only a skirmish saved before the limit has,
+     * for none. A ship with one core breaks into
      * pieces that drift, so a limit stops a fleet winning by pieces of its
      * ships that each fly on and fight without having paid for a ship each.
      */

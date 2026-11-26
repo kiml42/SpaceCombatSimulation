@@ -25,9 +25,9 @@ export const SKIRMISH_FIELDS: readonly SettingField[] = [
         group: "limits",
         label: "most cores a ship",
         step: 1,
-        min: 0,
+        min: 1,
         value: D.maxCores,
-        title: "The most cores any one ship may have, unless the enemy's already have more; 0 for no limit. A ship with one core breaks into pieces that drift; with more, its pieces may fly on and fight.",
+        title: "The most cores any one ship may have, unless the enemy's already have more. A ship with one core breaks into pieces that drift; with more, its pieces may fly on and fight.",
     },
     {
         name: "radius",
