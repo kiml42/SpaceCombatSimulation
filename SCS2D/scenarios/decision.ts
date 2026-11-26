@@ -1,4 +1,4 @@
-import { NEUTRAL_TEAM, type Credit, type Ships } from "../sim/index.js";
+import { NEUTRAL_TEAM, Unarmed, type Credit, type Ships } from "../sim/index.js";
 import * as math from "../sim/math.js";
 
 /**
@@ -44,7 +44,7 @@ export interface Watched {
         | "hasControl"
         | "isRamming"
         | "hasNoEngines"
-        | "isDisarmed"
+        | "canShoot"
         | "lastFired"
         | "pilotAt"
         | "attackerOf"
@@ -230,7 +230,7 @@ export class Activity {
             const team = ships.teamOf(i);
             if (team === NEUTRAL_TEAM || team >= this.sides) continue;
             const ramming = ships.hasControl(i) && ships.isRamming(i) && !ships.hasNoEngines(i);
-            if (ramming || !ships.isDisarmed(i) || ships.canBuildArmed(i)) this.able[team] = 1;
+            if (ramming || ships.canShoot(i) || ships.canBuildArmed(i)) this.able[team] = 1;
             if (ships.lastFired(i) === tick) {
                 this.lastActive[team] = now;
                 this.fired[team] = 1;
@@ -263,4 +263,48 @@ export class Activity {
     hasStruck(side: number): boolean {
         return this.struck[side] === 1;
     }
+}
+
+/** How one ship stood when a battle was decided: what a defeat or a victory is explained by. */
+export interface ShipStanding {
+    readonly team: number;
+    /** Which ship it is after its side's name (`Ships.nameOf`). */
+    readonly name: string;
+    /** Its design's name. */
+    readonly design: string;
+    /** Why it could not shoot, or `Unarmed.None` if it could. */
+    readonly unarmed: Unarmed;
+    /** Why it could not push, or `Unarmed.None` if it could. */
+    readonly immobile: Unarmed;
+    /** Rounds it has the casings for, for the mount with most. */
+    readonly rounds: number;
+    /** Seconds since it last fired; null if it never did. */
+    readonly quietFor: number | null;
+    /** Metres to the nearest enemy under control; Infinity if none. */
+    readonly nearest: number;
+}
+
+/** Every ship of the first `sides` sides still in the battle, as it stands now: broken-off pieces left out. */
+export function standings(
+    battle: { readonly ships: Ships; readonly world: { readonly tick: number; readonly dt: number } },
+    sides: number,
+): ShipStanding[] {
+    const { ships, world } = battle;
+    const out: ShipStanding[] = [];
+    for (let i = 0; i < ships.highWater; i++) {
+        const team = ships.teamOf(i);
+        if (team === NEUTRAL_TEAM || team >= sides || ships.isDerelict(i)) continue;
+        const fired = ships.lastFired(i);
+        out.push({
+            team,
+            name: ships.nameOf(i),
+            design: ships.designs[i]!.name,
+            unarmed: ships.whyUnarmed(i),
+            immobile: ships.whyImmobile(i),
+            rounds: ships.roundsAboard(i),
+            quietFor: fired < 0 ? null : (world.tick - fired) * world.dt,
+            nearest: ships.isAlive(i) ? ships.nearestEnemy(i) : Infinity,
+        });
+    }
+    return out;
 }

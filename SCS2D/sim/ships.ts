@@ -328,6 +328,29 @@ export type Errand = "dock" | "scavenge" | "deliver";
  * target that no longer exists cannot be fought, whatever finishing it would
  * have meant.
  */
+/**
+ * Why a ship cannot shoot or push, in order from furthest to nearest to doing
+ * it again, so the nearest of several is the larger.
+ */
+export enum Unarmed {
+    /** It can. */
+    None = 0,
+    /** Destroyed, or a piece broken off with nothing flying it. */
+    Gone = 1,
+    /** Its cores are shot out: nothing lays a gun or throttles an engine. */
+    NoCore = 2,
+    /** Built with none. */
+    Unfitted = 3,
+    /** Every one of them wrecked. */
+    Wrecked = 4,
+    /** No casing to load. */
+    NoAmmunition = 5,
+    /** No charge stored or made. */
+    NoCharge = 6,
+    /** No fuel to reload or burn. */
+    NoFuel = 7,
+}
+
 export enum OrderCancelCondition {
     /** Never dropped, not even when the target is gone. Station-keeping. */
     None = 0,
@@ -1236,28 +1259,106 @@ export class Ships {
      * however long they take.
      */
     canFire(i: number, b: number, t: number): boolean {
-        if (this.isTurretDisabled(i, t)) return false;
+        return this.mountBlocked(i, b, t) === Unarmed.None;
+    }
+
+    /** What stops mount `t` shooting once more (`canFire`), or `Unarmed.None` if nothing. */
+    private mountBlocked(i: number, b: number, t: number): Unarmed {
+        if (this.isTurretDisabled(i, t)) return Unarmed.Wrecked;
         const mount = this.designs[i]!.turrets[t]!;
         const gun = mount.gun;
         const timer = this.cooldown[i]![t]!;
         const reloading = timer > 0 && gun.cycleTime > 0;
         const rate = reloading ? this.damage.remaining(b, mount.module, DamageEffect.FireRate) : 0;
-        if (!this.isLoaded(b, mount) && this.metal.pieceHeld(b, mount.module) < shotMetal(gun)) return false;
+        if (!this.isLoaded(b, mount) && this.metal.pieceHeld(b, mount.module) < shotMetal(gun)) return Unarmed.NoAmmunition;
         // A reload's fuel is claimed whole as it begins (`shipFire.chamber`), so only what it has not claimed counts.
         if (reloading && this.fuel.fed(b, mount.module, this.damage) < (shotFuel(gun) * rate * timer) / gun.cycleTime - this.primed[i]![t]!)
-            return false;
+            return Unarmed.NoFuel;
         if (gun.bankEnergy > 0) {
             const short = volleyCharge(gun) - this.bank[i]![t]!;
-            if (!(short > 0)) return true;
-            return this.power.pieceHeld(b, mount.module) >= short || this.power.pieceGeneration(b, mount.module, this.damage) > 0;
+            if (!(short > 0)) return Unarmed.None;
+            const charged = this.power.pieceHeld(b, mount.module) >= short || this.power.pieceGeneration(b, mount.module, this.damage) > 0;
+            return charged ? Unarmed.None : Unarmed.NoCharge;
         }
-        if (!reloading) return true;
+        if (!reloading) return Unarmed.None;
         const need = (shotCharge(gun) * rate * timer) / gun.cycleTime;
-        if (!(need > 0)) return true;
+        if (!(need > 0)) return Unarmed.None;
         const made = this.power.pieceGeneration(b, mount.module, this.damage) * gun.cycleTime;
         const held = this.power.pieceHeld(b, mount.module);
-        if (!(made > 0)) return held >= need;
-        return held + this.power.pieceRoom(b, mount.module) + made >= need;
+        const enough = made > 0 ? held + this.power.pieceRoom(b, mount.module) + made >= need : held >= need;
+        return enough ? Unarmed.None : Unarmed.NoCharge;
+    }
+
+    /**
+     * Why ship `i` can shoot with nothing at all, main battery or not, or
+     * `Unarmed.None` while it can: what a battle's decision counts. Of its
+     * mounts and weapon engines, the reason nearest to firing again is given,
+     * so one gun only short of fuel outranks another that is wrecked.
+     */
+    whyUnarmed(i: number): Unarmed {
+        if (this.alive[i] === 0 || this.derelict[i] === 1) return Unarmed.Gone;
+        if (!this.hasControl(i)) return Unarmed.NoCore;
+        const bodies = this.bodyStore;
+        const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+        if (b < 0) return Unarmed.Gone;
+        const design = this.designs[i]!;
+        let why = Unarmed.Unfitted;
+        for (let t = 0; t < design.turrets.length; t++) {
+            const blocked = this.mountBlocked(i, b, t);
+            if (blocked === Unarmed.None) return Unarmed.None;
+            if (blocked > why) why = blocked;
+        }
+        for (const t of design.weaponEngines) {
+            const blocked = this.engineBlocked(i, b, t);
+            if (blocked === Unarmed.None) return Unarmed.None;
+            if (blocked > why) why = blocked;
+        }
+        return why;
+    }
+
+    /** Whether ship `i` can still shoot with anything: what a battle's decision counts as armed. */
+    canShoot(i: number): boolean {
+        return this.whyUnarmed(i) === Unarmed.None;
+    }
+
+    /** Why none of ship `i`'s engines can push, or `Unarmed.None` while one can: `Wrecked`, `NoFuel` or `Unfitted` for none built. */
+    whyImmobile(i: number): Unarmed {
+        if (this.alive[i] === 0 || this.derelict[i] === 1) return Unarmed.Gone;
+        if (!this.hasControl(i)) return Unarmed.NoCore;
+        const bodies = this.bodyStore;
+        const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+        if (b < 0) return Unarmed.Gone;
+        let why = Unarmed.Unfitted;
+        for (let t = 0; t < this.designs[i]!.engines.length; t++) {
+            const blocked = this.engineBlocked(i, b, t);
+            if (blocked === Unarmed.None) return Unarmed.None;
+            if (blocked > why) why = blocked;
+        }
+        return why;
+    }
+
+    /**
+     * Rounds ship `i` has the casings for, loaded or aboard, for the mount
+     * that has most: what is left of its ammunition, whatever else it lacks.
+     */
+    roundsAboard(i: number): number {
+        const bodies = this.bodyStore;
+        const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+        if (b < 0) return 0;
+        let most = 0;
+        for (const mount of this.designs[i]!.turrets) {
+            const casing = shotMetal(mount.gun);
+            if (!(casing > 0)) continue;
+            const rounds = floor((this.metal.pieceHeld(b, mount.module) + this.metal.loadedAt(b, mount.module)) / casing);
+            if (rounds > most) most = rounds;
+        }
+        return most;
+    }
+
+    private engineBlocked(i: number, b: number, t: number): Unarmed {
+        const module = this.designs[i]!.engines[t]?.module ?? -1;
+        if (!(this.left(i, b, module, DamageEffect.Thrust) > 0)) return Unarmed.Wrecked;
+        return this.canBurn(i, b, t) ? Unarmed.None : Unarmed.NoFuel;
     }
 
     /** Whether engine `t` is sound and has fuel on its piece of hull to burn. */

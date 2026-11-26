@@ -261,7 +261,7 @@ export function tally(battle: Battle, sides: number): SideTally[] {
         if (team === NEUTRAL_TEAM || out[team] === undefined) continue;
         const body = world.bodies.indexOf(ships.body(i));
         out[team]!.ships++;
-        if (!ships.isDisarmed(i)) out[team]!.armed++;
+        if (ships.canShoot(i)) out[team]!.armed++;
         if (!ships.hasNoEngines(i)) out[team]!.mobile++;
         if (body < 0 || counted[team]!.has(body)) continue;
         counted[team]!.add(body);

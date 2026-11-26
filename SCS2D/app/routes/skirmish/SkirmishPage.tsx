@@ -31,12 +31,14 @@ import type { AnswerProgress } from "~/host/answer";
 import type { BattleView, Watcher } from "~/host/battleView";
 import { BATTLE_KEYS, ORDER_KEYS } from "~/host/keyHelp";
 import type { ViewSettings } from "~/host/viewSettings";
-import { sidesOf, teamColour } from "~/render/teams";
+import { sidesOf, teamColour, teamName } from "~/render/teams";
 import { CommitText } from "~/ui/fields/CommitText";
 import { readLog, writeLog, type Logged } from "~/scenarios/commands";
 import { customBattle, DEFAULT_SETUP, tally, type BattleSetup, type CustomBattle } from "~/scenarios/customBattle";
 import { lit, roundLight } from "~/scenarios/lights";
-import { Activity, type Decision } from "~/scenarios/decision";
+import { Activity, standings, type Decision, type ShipStanding } from "~/scenarios/decision";
+import { ableLine, outLine, quietLine } from "./standingText";
+import { Unarmed } from "~/sim/index";
 import { EMPTY_HISTORY, parseHistory, type History, type WrittenLog } from "~/scenarios/history";
 import {
     billOfFleet,
@@ -142,7 +144,9 @@ const Body = styled.div`
 const Decided = styled.div`
     position: absolute;
     top: 0.7rem;
-    left: 0.7rem;
+
+    /* Clear of the fleet strip down the view's left edge, when it is shown. */
+    left: calc(0.7rem + var(--strips-left, 0px));
     max-width: 22rem;
     padding: 0.45rem 0.7rem;
     border: 1px solid var(--colour-control-border);
@@ -171,6 +175,17 @@ const Decided = styled.div`
 
     span {
         color: var(--colour-muted);
+    }
+
+    ul {
+        margin: 0.3rem 0 0;
+        padding-left: 1.1rem;
+        color: var(--colour-muted);
+    }
+
+    b {
+        color: var(--colour-text);
+        font-weight: 600;
     }
 `;
 
@@ -446,6 +461,8 @@ export function SkirmishPage() {
 
     // What the panel shows of it.
     const [decided, setDecided] = useState<Decision | null>(null);
+    // Every ship as it stood when the battle was decided, to say why.
+    const [stood, setStood] = useState<readonly ShipStanding[]>([]);
     const [outcome, setOutcome] = useState<{ text: string; kind: "" | "won" | "lost" }>({ text: "", kind: "" });
     const [enemyLine, setEnemyLine] = useState<string | null>(null);
     const [fightable, setFightable] = useState(false);
@@ -687,6 +704,7 @@ export function SkirmishPage() {
         if (result === null) return;
         decision.current = result;
         setDecided(result);
+        setStood(standings(steppedBattle, 2));
         if (mode.current === "round") roundDecided(result);
         else if (mode.current === "replay")
             setOutcome({
@@ -1097,6 +1115,7 @@ export function SkirmishPage() {
                                           : `${decided.winner === 0 ? "The enemy" : "Your fleet"} has nothing left to fight with.`
                                       : `${decided.winner === 0 ? "The enemy" : "Your fleet"} went ${(skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish)).quietTime} s without firing.`}
                             </span>
+                            <Standings decided={decided} stood={stood} />
                             {hand !== undefined && decided.winner !== 0 && pickButton("pickFromDecided")}
                             {ways !== undefined && decided.winner === 0 && pickButton("pickWayFromDecided", "way")}
                             {hand === undefined && decided.winner !== 0 && !replaying && !answeringNow && (
@@ -1334,4 +1353,47 @@ export function SkirmishRoute() {
     const { pathname } = useLocation();
     // Only its own address: leaving for the fleet editor carries a skirmish too, which is the editor's to take up.
     return <SkirmishPage key={pathname === "/skirmish" ? (search.get("skirmish") ?? "") : ""} />;
+}
+
+/**
+ * Why the battle went as it did, a ship at a time: what put each of the losing
+ * side's ships out of the fight, or what each was doing while it went quiet,
+ * and what the winners still had.
+ */
+function Standings({ decided, stood }: { readonly decided: Decision; readonly stood: readonly ShipStanding[] }) {
+    if (decided.reason === "time") return null;
+    // As its cores are labelled in the picture, so it can be found there.
+    const label = (standing: ShipStanding): string => `${teamName(standing.team)} ${standing.name} (${standing.design})`;
+    const losers = decided.winner < 0 ? [0, 1] : [1 - decided.winner];
+    const lines = (team: number) =>
+        stood
+            .filter((standing) => standing.team === team && standing.unarmed !== Unarmed.Gone)
+            .map((standing, k) => (
+                <li key={k}>
+                    <b>{label(standing)}</b>: {standing.unarmed === Unarmed.None ? quietLine(standing) : outLine(standing)}
+                </li>
+            ));
+    const able =
+        decided.winner < 0 ? [] : stood.filter((standing) => standing.team === decided.winner && standing.unarmed === Unarmed.None);
+    return (
+        <>
+            {losers.map((team) => (
+                <ul key={team} id={team === 0 ? "yourStanding" : "enemyStanding"}>
+                    {lines(team)}
+                </ul>
+            ))}
+            {able.length > 0 && (
+                <>
+                    <span>{decided.winner === 0 ? "You still had:" : "The enemy still had:"}</span>
+                    <ul id="stillAble">
+                        {able.map((standing, k) => (
+                            <li key={k}>
+                                <b>{label(standing)}</b>: {ableLine(standing)}
+                            </li>
+                        ))}
+                    </ul>
+                </>
+            )}
+        </>
+    );
 }

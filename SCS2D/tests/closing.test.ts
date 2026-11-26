@@ -51,7 +51,7 @@ function ram(distance: (time: number) => number, until: number, dry = Infinity):
         hasControl: () => true,
         isRamming: (i: number) => i === 0,
         hasNoEngines: (i: number) => i === 0 && world.tick * dt >= dry,
-        isDisarmed: (i: number) => i === 0,
+        canShoot: (i: number) => i !== 0,
         lastFired: () => 1,
         pilotAt: (body: number) => body,
         canBuildArmed: () => false,

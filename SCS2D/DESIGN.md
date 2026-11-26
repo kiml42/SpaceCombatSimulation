@@ -289,6 +289,9 @@ inside any one file is not contiguous.
   close it flies and for whether it is still armed. So a capital that has lost its main guns knows it, however
   much point defence it has left, and enemies weighing `armedWeight` and its own `ramArmed` see it the same
   way; a piece broken off with only secondaries is disarmed, and a carrier can have no main armament at all.
+  _Main_ only steers the ship, though: **a battle's decision counts any weapon** (`Ships.canShoot`), so a ship
+  with a secondary gun that can still fire is still in the fight, and a carrier that can build a fighter with
+  any gun is armed.
   **Running dry counts as being shot out**: a gun without a round's metal on its piece of hull, or the fuel to
   finish reloading, is not armed,
   a beam recharging is not armed unless its piece's batteries, and what its generators make in a cycle, cover
@@ -1534,7 +1537,11 @@ inside any one file is not contiguous.
   ramming counts as firing only while the rammer gets closer to its target than it has been, so one that
   circles goes quiet, its mark following it out after the start or a hit it lands until it turns back,
   and while it closes the side it is closing on is not quiet either, so an unarmed rammer still on its way
-  in cannot win by outlasting a ship waiting for it to come into reach;
+  in cannot win by outlasting a ship waiting for it to come into reach. The round's result says why, a ship at a
+  time (`scenarios/decision.ts`, `standings`): what put each of the losing side's ships out of the fight —
+  its core out, its guns wrecked, out of ammunition, fuel to reload or charge, and whether its engines were
+  dry or wrecked — or how long each had gone without firing and how far off the nearest enemy was, and what
+  the winners still had;
   and go
   to the fleet editor, which shows the budget, and back between tries. A ship of a fleet opens in the ship
   editor from the fleet editor's _Edit_ and goes back to the fleet, skirmish and all. A round won, the
