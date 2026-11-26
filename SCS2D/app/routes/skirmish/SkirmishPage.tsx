@@ -35,7 +35,7 @@ import { sidesOf, teamColour, teamName } from "~/render/teams";
 import { CommitText } from "~/ui/fields/CommitText";
 import { readLog, writeLog, type Logged } from "~/scenarios/commands";
 import { customBattle, DEFAULT_SETUP, tally, type BattleSetup, type CustomBattle } from "~/scenarios/customBattle";
-import { lit, roundLight } from "~/scenarios/lights";
+import { lightOf, lit, roundLight } from "~/scenarios/lights";
 import { Activity, standings, type Decision, type ShipStanding } from "~/scenarios/decision";
 import { ableLine, outLine, quietLine } from "./standingText";
 import { Unarmed } from "~/sim/index";
@@ -421,9 +421,10 @@ function enemyAlone(enemy: Fleet): CustomBattle {
     return customBattle({ ...DEFAULT_SETUP, fleets: [{ name: "", designs: {}, ships: [] }, enemy] });
 }
 
-/** A round's battle, seen in the light its seed draws, as bright as the skirmish says. */
-function roundOn(setup: BattleSetup, light: number): CustomBattle {
-    return lit(customBattle(setup), roundLight(setup.seed, light));
+/** A round's battle, seen in the light its settings have wandered to, or else the one its seed draws, as bright as they say. */
+function roundOn(setup: BattleSetup, settings: SkirmishSettings): CustomBattle {
+    const light = settings.lighting === undefined ? roundLight(setup.seed, settings.light) : lightOf(settings.lighting, settings.light);
+    return lit(customBattle(setup), light);
 }
 
 /**
@@ -538,7 +539,7 @@ export function SkirmishPage() {
         const fits = canFight(current);
         setFightable(fits);
         if (fits) {
-            battle.current = roundOn(roundSetup(current), settingsOf(current).light);
+            battle.current = roundOn(roundSetup(current), settingsOf(current));
             // Your round alone takes orders, and can be wound back.
             on.allowOrders(0);
             on.show(battle.current, false, true);
@@ -547,7 +548,7 @@ export function SkirmishPage() {
             battle.current = null;
             let preview: Battle;
             try {
-                preview = roundOn(roundSetup(current), settingsOf(current).light);
+                preview = roundOn(roundSetup(current), settingsOf(current));
             } catch {
                 preview = enemyAlone(current.enemy);
             }
@@ -569,7 +570,7 @@ export function SkirmishPage() {
         activity.current = newActivity();
         battle.current = roundOn(
             roundBattle(current.player, current.enemy, current.won, settingsOf(current), current.won, roundYards(current)),
-            settingsOf(current).light,
+            settingsOf(current),
         );
         if (current.ways !== undefined) {
             setOutcome({ text: "Round won. Pick where the next round is fought.", kind: "won" });
@@ -590,7 +591,7 @@ export function SkirmishPage() {
         activity.current = newActivity();
         battle.current = roundOn(
             roundBattle(current.player, now.best, current.won, settingsOf(current), current.won, roundYards(current, now.best, now.cards)),
-            settingsOf(current).light,
+            settingsOf(current),
         );
         setOutcome({ text: `Generation ${now.generation}'s best enemy against your fleet.`, kind: "" });
         setEnemyLine(`${now.best.name}, evolving`);
@@ -605,7 +606,7 @@ export function SkirmishPage() {
         activity.current = newActivity();
         battle.current = roundOn(
             roundBattle(current.player, enemy, current.won, settingsOf(current), current.won, roundYards(current, enemy)),
-            settingsOf(current).light,
+            settingsOf(current),
         );
         setOutcome({ text: "The enemy's answer.", kind: "lost" });
         setEnemyLine(`${enemy.name}, the answer`);
@@ -635,7 +636,7 @@ export function SkirmishPage() {
         const settings = skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish);
         battle.current = roundOn(
             roundBattle(player, enemy, seed, settings, seed, skirmish === null ? undefined : roundYards(skirmish, enemy)),
-            settings.light,
+            settings,
         );
         setOutcome({ text: `Round ${round}, again.`, kind: "" });
         setFightable(true);
@@ -1148,11 +1149,10 @@ export function SkirmishPage() {
                             }}
                         />
                     )}
-                    {ways !== undefined && skirmish !== null && skirmish.won !== undefined && picking === "way" && (
+                    {ways !== undefined && skirmish !== null && picking === "way" && (
                         <DestinationPick
                             ways={ways}
                             settings={settingsOf(skirmish)}
-                            seed={skirmish.won}
                             onLater={closePicker}
                             onPick={(id) => {
                                 const going = goTo(skirmish, id);

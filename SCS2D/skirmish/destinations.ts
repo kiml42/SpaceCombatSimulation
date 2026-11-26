@@ -1,5 +1,6 @@
 import { DEFAULT_MAP, math, Rng } from "../sim/index.js";
 import type { SkirmishSettings } from "../scenarios/skirmish.js";
+import { startLighting, wander } from "../scenarios/lights.js";
 
 /**
  * Where the next round is fought, offered to the player once they win one: a
@@ -29,8 +30,6 @@ const SPEED_STEP = 40;
 const MOST_MAJORS = 2;
 /** The most minors a step brings a round up to. */
 const MOST_MINORS = 30;
-/** The dimmest sunlight a way is drawn with. */
-const DARKEST = 0.2;
 
 const majors = (s: SkirmishSettings): number => s.map.majors ?? DEFAULT_MAP.majors;
 const minors = (s: SkirmishSettings): number => s.map.minors ?? DEFAULT_MAP.minors;
@@ -113,31 +112,20 @@ export const DESTINATIONS: readonly Destination[] = [
 const metres = (m: number): string => `${math.round(m).toLocaleString("en-GB")} m`;
 const percent = (share: number): string => `${math.round(share * 100)}%`;
 
-/** To two places, as the light is shown. */
-const tidy = (n: number): number => math.round(n * 100) / 100;
-
 /**
- * The sunlight `id` is offered with after the round won on `seed`, from
- * `DARKEST` to full: each way a light of its own, which changes how the round
- * looks and nothing about how it is fought. Drawn from the seed and the way,
- * so a reload offers the same.
+ * The settings of the round fought where `id` leads, after the round won on
+ * `seed`, `from` the round won's: its change, and the light wandered a step
+ * from the one that round was seen in. The step is drawn from the seed and the
+ * way, so a reload goes the same way, and is not shown: it changes how the
+ * round looks and nothing about how it is fought.
  */
-export function wayLight(seed: number, id: string): number {
+export function arriveAt(settings: SkirmishSettings, seed: number, id: string, from: number): SkirmishSettings | null {
+    const destination = destinationById(id);
+    if (destination === null) return null;
     let hash = seed ^ 0x6c696768;
     for (let k = 0; k < id.length; k++) hash = math.imul(hash ^ id.charCodeAt(k), 0x01000193) >>> 0;
-    return tidy(new Rng(hash >>> 0).nextRange(DARKEST, 1));
-}
-
-/** What the light does on the way to `id`, as its card says it; empty if it shows no change. */
-export function lightChange(settings: SkirmishSettings, seed: number, id: string): string {
-    const to = wayLight(seed, id);
-    return percent(settings.light) === percent(to) ? "" : `Sunlight ${percent(settings.light)} → ${percent(to)}`;
-}
-
-/** The settings of the round fought where `id` leads, after the round won on `seed`: its change, and its light. */
-export function arriveAt(settings: SkirmishSettings, seed: number, id: string): SkirmishSettings | null {
-    const destination = destinationById(id);
-    return destination === null ? null : { ...destination.apply(settings), light: wayLight(seed, id) };
+    const lighting = wander(settings.lighting ?? startLighting(from), new Rng(hash >>> 0));
+    return { ...destination.apply(settings), lighting };
 }
 
 /** A round as its settings set it out, in a few words: "1 major and 6 minor asteroids, 1,500 m apart, closing at 40 m/s". */

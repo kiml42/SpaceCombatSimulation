@@ -7,8 +7,10 @@ export interface Light {
     readonly from: number;
     /** Its colour, as CSS hex. */
     readonly colour: string;
-    /** How much of it reaches a surface in shadow, from 0 to 1. */
+    /** How much light reaches a surface in shadow, from 0 to 1. */
     readonly ambient: number;
+    /** The colour of that light, as CSS hex at its full strength; the sun's `colour` where left out. */
+    readonly ambientColour?: string;
     /**
      * How far shadows fall, as a share of their full length: 1, or left out, for
      * a light low in the sky; nearer 0 as it comes from overhead.
@@ -59,4 +61,25 @@ export const LANDED_SHADOW_M = 0.3;
 export function fighterHeight(riding: boolean | undefined, lowered: number | undefined): number {
     if (riding === true) return LANDED_SHADOW_M;
     return FIGHTER_SHADOW_M + (LANDED_SHADOW_M - FIGHTER_SHADOW_M) * (lowered ?? 0);
+}
+
+/**
+ * What a lit surface is multiplied by where it is in shadow, each channel 0
+ * to 1: the ambient light over the sun's, so what the sun lit as its colour
+ * shows the ambient light's instead. A shadow never comes out brighter than
+ * the light beside it.
+ */
+export function shadowTint(light: Light): [number, number, number] {
+    const sun = channels(light.colour);
+    if (light.ambientColour === undefined) return [light.ambient, light.ambient, light.ambient];
+    const ambient = channels(light.ambientColour);
+    return [0, 1, 2].map((k) => {
+        const lit = sun[k]!;
+        return lit > 0 ? Math.min(1, (ambient[k]! * light.ambient) / lit) : 0;
+    }) as [number, number, number];
+}
+
+function channels(hex: string): [number, number, number] {
+    const n = Number.parseInt(hex.slice(1, 7), 16);
+    return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }

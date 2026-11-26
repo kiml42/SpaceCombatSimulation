@@ -14,7 +14,6 @@ import { BARE_CORE, CORVETTE, GUNSHIP } from "../../scenarios/blueprints.js";
 import { HISTORY_STORAGE_KEY } from "../../scenarios/history.js";
 import { DEFAULT_SKIRMISH_SETTINGS, newSkirmish, parseSkirmish, won, type Skirmish } from "../../scenarios/skirmish.js";
 import { DEFAULT_KINDS } from "../../evolution/mutate.js";
-import { describeArena, lightChange, wayLight } from "../../skirmish/destinations.js";
 import { designRoute, fleetRoute, skirmishRoute } from "../../editor/handoff.js";
 
 /**
@@ -519,8 +518,6 @@ describe("the skirmish in a browser", () => {
         expect(await page.locator("#wayPick").count()).toBe(0);
         await page.click("#pickWay");
         expect(await page.textContent('[data-way="further"]')).toContain("Fleets start 1,500 m → 3,000 m apart");
-        // Each with a light of its own, drawn from the round's seed.
-        expect(await page.textContent('[data-way="further"]')).toContain(lightChange(DEFAULT_SKIRMISH_SETTINGS, skirmish.won!, "further"));
         // Put off, and taken up again.
         await page.click("#wayPickLater");
         expect(await page.locator("#wayPick").count()).toBe(0);
@@ -529,11 +526,9 @@ describe("the skirmish in a browser", () => {
         expect(await page.locator("#wayPick").count()).toBe(0);
         // Straight to its evolving, saying where.
         await page.waitForSelector("#evolving");
-        const light = wayLight(skirmish.won!, "rocks");
         expect(await page.textContent("#headedTo")).toBe(
-            `Next round: Asteroid field. ${describeArena({ ...DEFAULT_SKIRMISH_SETTINGS, map: { majors: 1, minors: 6 }, light })}.`,
+            "Next round: Asteroid field. 1 major and 6 minor asteroids, 1,500 m apart, from rest.",
         );
-        expect(await page.textContent("#headedTo")).toContain("1 major and 6 minor asteroids, 1,500 m apart, from rest");
         // And a still of it, as it will be set out.
         expect(await page.isVisible("#evolving #arenaPicture")).toBe(true);
         await giveUp();

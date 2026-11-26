@@ -11,16 +11,8 @@ import {
     settingsOf,
     won,
 } from "../scenarios/skirmish.js";
-import {
-    arriveAt,
-    describeArena,
-    DESTINATIONS,
-    destinationById,
-    lightChange,
-    OFFERED,
-    offerDestinations,
-    wayLight,
-} from "../skirmish/destinations.js";
+import { arriveAt, describeArena, DESTINATIONS, destinationById, OFFERED, offerDestinations } from "../skirmish/destinations.js";
+import { startLighting } from "../scenarios/lights.js";
 
 const gunship = shipFleet(GUNSHIP);
 
@@ -86,7 +78,7 @@ describe("where the next round is fought", () => {
         const going = goTo(skirmish, id);
         expect(going.ways).toBeUndefined();
         expect(going.won).toBe(skirmish.won);
-        expect(settingsOf(going)).toEqual({ ...destinationById(id)!.apply(DEFAULT_SKIRMISH_SETTINGS), light: wayLight(skirmish.won!, id) });
+        expect(settingsOf(going)).toEqual(arriveAt(DEFAULT_SKIRMISH_SETTINGS, skirmish.won!, id, skirmish.seed));
         expect(settingsOf(nextRound(going, gunship))).toEqual(settingsOf(going));
         // Where it is headed is kept while the enemy answers, and gone once the next round starts.
         expect(going.headed).toBe(id);
@@ -94,28 +86,24 @@ describe("where the next round is fought", () => {
         expect(nextRound(going, gunship).headed).toBeUndefined();
     });
 
-    it("draws each way a light of its own, the same for the same round, that changes only how it looks", () => {
-        const lights = new Set<number>();
-        for (let seed = 0; seed < 40; seed++) {
+    it("wanders the light a step on each way picked, the same for the same round, changing nothing else", () => {
+        const start = startLighting(9);
+        for (let seed = 0; seed < 20; seed++) {
             for (const { id } of DESTINATIONS) {
-                const light = wayLight(seed, id);
-                expect(light).toBeGreaterThanOrEqual(0.2);
-                expect(light).toBeLessThanOrEqual(1);
-                expect(wayLight(seed, id)).toBe(light);
-                lights.add(light);
-                const there = arriveAt(DEFAULT_SKIRMISH_SETTINGS, seed, id)!;
-                expect({ ...there, light: DEFAULT_SKIRMISH_SETTINGS.light }).toEqual(destinationById(id)!.apply(DEFAULT_SKIRMISH_SETTINGS));
-                expect(there.light).toBe(light);
+                const there = arriveAt(DEFAULT_SKIRMISH_SETTINGS, seed, id, 9)!;
+                const { lighting, ...rest } = there;
+                expect(rest).toEqual(destinationById(id)!.apply(DEFAULT_SKIRMISH_SETTINGS));
+                expect(arriveAt(DEFAULT_SKIRMISH_SETTINGS, seed, id, 9)).toEqual(there);
+                // A step from the light the round won was seen in, not a jump.
+                expect(Math.abs(lighting!.brightness - start.brightness)).toBeLessThanOrEqual(0.15 + 1e-9);
+                expect(Math.abs(lighting!.ambient - start.ambient)).toBeLessThanOrEqual(0.1 + 1e-9);
             }
         }
-        expect(lights.size).toBeGreaterThan(20);
-        // Said on its card only where it shows.
-        const seed = 3;
-        const light = wayLight(seed, "further");
-        expect(lightChange({ ...DEFAULT_SKIRMISH_SETTINGS, light }, seed, "further")).toBe("");
-        expect(lightChange({ ...DEFAULT_SKIRMISH_SETTINGS, light: light > 0.5 ? 0.2 : 1 }, seed, "further")).toMatch(
-            /^Sunlight \d+% → \d+%$/,
-        );
+        // And on from wherever it has got to.
+        const once = arriveAt(DEFAULT_SKIRMISH_SETTINGS, 1, "further", 9)!;
+        const twice = arriveAt(once, 2, "closer", 1)!;
+        expect(twice.lighting).not.toEqual(once.lighting);
+        expect(Math.abs(twice.lighting!.brightness - once.lighting!.brightness)).toBeLessThanOrEqual(0.15 + 1e-9);
     });
 
     it("opens a skirmish saved when the light was a way of its own, dropping the ways no longer offered", () => {

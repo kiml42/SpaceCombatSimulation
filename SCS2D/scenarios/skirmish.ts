@@ -32,6 +32,7 @@ import { cardById, drawHand, offerable, unlockedBy, withCards, type Limits } fro
 import { fleetKinds, isTech, joined, KIND_NAMES, lockedIn } from "../skirmish/techTree.js";
 import { fleetId } from "./history.js";
 import { arriveAt, destinationById, offerDestinations } from "../skirmish/destinations.js";
+import type { Lighting } from "./lights.js";
 
 /**
  * A skirmish: the player's fleet against an enemy, a round at a time
@@ -139,6 +140,11 @@ export interface SkirmishSettings {
     readonly radius: number;
     /** How bright each round's drawn light is, sun and shadows alike, as a multiple of what its seed draws: only seen, never fought. */
     readonly light: number;
+    /**
+     * The light the round is seen in, where it has wandered from the one its
+     * seed draws: each way picked after a win moves it a step (`skirmish/destinations.ts`).
+     */
+    readonly lighting?: Lighting;
     /**
      * How the enemy is bred: the mutation odds by the names the settings pages
      * give them (`evolution/mutationFields.ts`), each missing one its default.
@@ -445,7 +451,7 @@ export function won(skirmish: Skirmish): Skirmish {
 /** The next round to be fought where `id` says, one of those offered; the enemy's answer can then start. */
 export function goTo(skirmish: Skirmish, id: string): Skirmish {
     const { ways, ...rest } = skirmish;
-    const settings = skirmish.won === undefined ? null : arriveAt(settingsOf(skirmish), skirmish.won, id);
+    const settings = skirmish.won === undefined ? null : arriveAt(settingsOf(skirmish), skirmish.won, id, skirmish.seed);
     if (ways === undefined || !ways.includes(id) || settings === null) return skirmish;
     return { ...rest, settings, headed: id };
 }
@@ -549,6 +555,17 @@ export function parseSkirmishSettings(value: unknown): SkirmishSettings {
             if (typeof n !== "number" || !Number.isFinite(n) || n < 0) fail(`breeding.${name} must be a number of at least zero`);
             breeding[name] = n as number;
         }
+    }
+    const lighting = file["lighting"];
+    if (lighting !== undefined) {
+        const keys: (keyof Lighting)[] = ["from", "slant", "hue", "tint", "brightness", "ambient", "ambientHue", "ambientTint"];
+        if (typeof lighting !== "object" || lighting === null || Array.isArray(lighting)) fail("lighting must be an object");
+        const raw = lighting as Record<string, unknown>;
+        for (const key of keys) {
+            const n = raw[key];
+            if (typeof n !== "number" || !Number.isFinite(n)) fail(`lighting.${key} must be a number`);
+        }
+        out["lighting"] = Object.fromEntries(keys.map((key) => [key, raw[key]]));
     }
     const map: Record<string, MapSettings> = {};
     for (const key of ["map", "mapSpread"] as const) {

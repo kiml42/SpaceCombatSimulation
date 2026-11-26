@@ -1546,9 +1546,11 @@ inside any one file is not contiguous.
   to the fleet editor, which shows the budget, and back between tries. A ship of a fleet opens in the ship
   editor from the fleet editor's _Edit_ and goes back to the fleet, skirmish and all. A round won, the
   player picks where the next is fought from three changes drawn from its seed (`skirmish/destinations.ts`:
-  further apart or closer, more asteroids (no more than two majors, which orbit truly, unless the setup asked for more) or none, closing, crossing or from rest; each
-  also under a sunlight of its own, drawn from the seed and shown on its card, which changes how the round looks
-  and nothing about how it is fought), kept in the skirmish's
+  further apart or closer, more asteroids (no more than two majors, which orbit truly, unless the setup asked for more) or none, closing, crossing or from rest; and
+  whichever is picked, the light wanders a random step from the one the round won was seen in, unannounced:
+  the sun's strength (never below a tenth), colour, bearing and height (never overhead nor on the horizon), and
+  the ambient light's strength (down to none) and colour, which tints what is in shadow. It changes how a round
+  looks and nothing about how it is fought), kept in the skirmish's
   settings from then on; then the enemy evolves an answer in a worker (`evolution/answer.ts`), which deals each generation's matches out to a
   job worker a spare core, coming out the same as fought in one, watched as each generation's best fights the
   round, and the answer — the best of the first generation with a mutant that beats the player's fleet on a
