@@ -1148,10 +1148,11 @@ export function SkirmishPage() {
                             }}
                         />
                     )}
-                    {ways !== undefined && skirmish !== null && picking === "way" && (
+                    {ways !== undefined && skirmish !== null && skirmish.won !== undefined && picking === "way" && (
                         <DestinationPick
                             ways={ways}
                             settings={settingsOf(skirmish)}
+                            seed={skirmish.won}
                             onLater={closePicker}
                             onPick={(id) => {
                                 const going = goTo(skirmish, id);

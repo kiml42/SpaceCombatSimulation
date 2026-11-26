@@ -11,7 +11,16 @@ import {
     settingsOf,
     won,
 } from "../scenarios/skirmish.js";
-import { describeArena, DESTINATIONS, destinationById, OFFERED, offerDestinations } from "../skirmish/destinations.js";
+import {
+    arriveAt,
+    describeArena,
+    DESTINATIONS,
+    destinationById,
+    lightChange,
+    OFFERED,
+    offerDestinations,
+    wayLight,
+} from "../skirmish/destinations.js";
 
 const gunship = shipFleet(GUNSHIP);
 
@@ -31,7 +40,10 @@ describe("where the next round is fought", () => {
 
     it("says what a round is like as its settings set it out", () => {
         expect(describeArena(DEFAULT_SKIRMISH_SETTINGS)).toBe("Open space, 1,500 m apart, from rest");
-        const busy = ["rocks", "rocks", "headOn", "dark"].reduce((s, id) => destinationById(id)!.apply(s), DEFAULT_SKIRMISH_SETTINGS);
+        const busy = ["rocks", "rocks", "headOn"].reduce((s, id) => destinationById(id)!.apply(s), {
+            ...DEFAULT_SKIRMISH_SETTINGS,
+            light: 0.6,
+        });
         expect(describeArena(busy)).toBe("2 major and 12 minor asteroids, 1,500 m apart, closing at 40 m/s, 60% sunlight");
     });
 
@@ -39,15 +51,14 @@ describe("where the next round is fought", () => {
         expect(destinationById("further")!.change(DEFAULT_SKIRMISH_SETTINGS)).toBe("Fleets start 1,500 m → 3,000 m apart");
         expect(destinationById("closer")!.change(DEFAULT_SKIRMISH_SETTINGS)).toBe("Fleets start 1,500 m → 0 m apart");
         expect(destinationById("rocks")!.change(DEFAULT_SKIRMISH_SETTINGS)).toBe("Major asteroids 0 → 1, minor 0 → 6");
-        expect(destinationById("dark")!.change(DEFAULT_SKIRMISH_SETTINGS)).toBe("Sunlight 100% → 60%");
         // Only the speeds it stops.
         expect(destinationById("still")!.change({ ...DEFAULT_SKIRMISH_SETTINGS, crossingSpeed: 40 })).toBe("Crossing 40 → 0 m/s");
         for (const destination of DESTINATIONS) expect(destination.means.length).toBeGreaterThan(0);
     });
 
     it("each changes the settings it says it does", () => {
-        // Rock, speed and a dim light: somewhere every one of them is open.
-        const busy = ["rocks", "headOn", "dark"].reduce((s, id) => destinationById(id)!.apply(s), DEFAULT_SKIRMISH_SETTINGS);
+        // Rock and speed: somewhere every one of them is open.
+        const busy = ["rocks", "headOn"].reduce((s, id) => destinationById(id)!.apply(s), DEFAULT_SKIRMISH_SETTINGS);
         for (const destination of DESTINATIONS) {
             const from = destination.open(DEFAULT_SKIRMISH_SETTINGS) ? DEFAULT_SKIRMISH_SETTINGS : busy;
             expect(destination.open(from)).toBe(true);
@@ -61,10 +72,6 @@ describe("where the next round is fought", () => {
         expect(rocks.apply(two).map).toMatchObject({ majors: 2, minors: 18 });
         const three = { ...DEFAULT_SKIRMISH_SETTINGS, map: { majors: 3 } };
         expect(rocks.apply(three).map.majors).toBe(3);
-        // Dimmed and brightened again, the light is back where it was.
-        const dim = destinationById("dark")!.apply(DEFAULT_SKIRMISH_SETTINGS);
-        expect(dim.light).toBe(0.6);
-        expect(destinationById("bright")!.apply(dim).light).toBe(1);
     });
 
     it("waits on a round won until one is picked, which then decides how the next is fought", () => {
@@ -79,11 +86,44 @@ describe("where the next round is fought", () => {
         const going = goTo(skirmish, id);
         expect(going.ways).toBeUndefined();
         expect(going.won).toBe(skirmish.won);
-        expect(settingsOf(going)).toEqual(destinationById(id)!.apply(DEFAULT_SKIRMISH_SETTINGS));
+        expect(settingsOf(going)).toEqual({ ...destinationById(id)!.apply(DEFAULT_SKIRMISH_SETTINGS), light: wayLight(skirmish.won!, id) });
         expect(settingsOf(nextRound(going, gunship))).toEqual(settingsOf(going));
         // Where it is headed is kept while the enemy answers, and gone once the next round starts.
         expect(going.headed).toBe(id);
         expect(parseSkirmish(JSON.parse(JSON.stringify(serialiseSkirmish(going)))).headed).toEqual(going.headed);
         expect(nextRound(going, gunship).headed).toBeUndefined();
+    });
+
+    it("draws each way a light of its own, the same for the same round, that changes only how it looks", () => {
+        const lights = new Set<number>();
+        for (let seed = 0; seed < 40; seed++) {
+            for (const { id } of DESTINATIONS) {
+                const light = wayLight(seed, id);
+                expect(light).toBeGreaterThanOrEqual(0.2);
+                expect(light).toBeLessThanOrEqual(1);
+                expect(wayLight(seed, id)).toBe(light);
+                lights.add(light);
+                const there = arriveAt(DEFAULT_SKIRMISH_SETTINGS, seed, id)!;
+                expect({ ...there, light: DEFAULT_SKIRMISH_SETTINGS.light }).toEqual(destinationById(id)!.apply(DEFAULT_SKIRMISH_SETTINGS));
+                expect(there.light).toBe(light);
+            }
+        }
+        expect(lights.size).toBeGreaterThan(20);
+        // Said on its card only where it shows.
+        const seed = 3;
+        const light = wayLight(seed, "further");
+        expect(lightChange({ ...DEFAULT_SKIRMISH_SETTINGS, light }, seed, "further")).toBe("");
+        expect(lightChange({ ...DEFAULT_SKIRMISH_SETTINGS, light: light > 0.5 ? 0.2 : 1 }, seed, "further")).toMatch(
+            /^Sunlight \d+% → \d+%$/,
+        );
+    });
+
+    it("opens a skirmish saved when the light was a way of its own, dropping the ways no longer offered", () => {
+        const skirmish = won(newSkirmish(gunship, gunship, 5));
+        const file = { ...serialiseSkirmish(skirmish), ways: ["dark", "further", "bright"], headed: "dark" };
+        const back = parseSkirmish(JSON.parse(JSON.stringify(file)));
+        expect(back.ways).toEqual(["further"]);
+        expect(back.headed).toBeUndefined();
+        expect(parseSkirmish({ ...file, ways: ["dark"] }).ways).toBeUndefined();
     });
 });

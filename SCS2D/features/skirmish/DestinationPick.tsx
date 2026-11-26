@@ -1,6 +1,6 @@
 import { styled } from "@linaria/react";
 import type { SkirmishSettings } from "~/scenarios/skirmish";
-import { destinationById } from "~/skirmish/destinations";
+import { destinationById, lightChange } from "~/skirmish/destinations";
 import { PickOverlay } from "./PickOverlay";
 
 const Row = styled.div`
@@ -59,12 +59,15 @@ const Way = styled.button`
 export function DestinationPick({
     ways,
     settings,
+    seed,
     onPick,
     onLater,
 }: {
     readonly ways: readonly string[];
     /** The round's settings as they stand, which each way changes. */
     readonly settings: SkirmishSettings;
+    /** The next round's seed, which draws each way's light. */
+    readonly seed: number;
     readonly onPick: (id: string) => void;
     readonly onLater: () => void;
 }) {
@@ -78,11 +81,13 @@ export function DestinationPick({
             <Row role="group" aria-label="Pick where the next round is fought">
                 {ways.map((id) => {
                     const way = destinationById(id);
+                    const light = lightChange(settings, seed, id);
                     return (
                         way !== null && (
                             <Way key={id} type="button" data-way={id} onClick={() => onPick(id)}>
                                 <strong>{way.name}</strong>
                                 <span className="change">{way.change(settings)}</span>
+                                {light !== "" && <span className="change">{light}</span>}
                                 <span className="means">{way.means}</span>
                             </Way>
                         )

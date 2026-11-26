@@ -31,7 +31,7 @@ import { firstLivery, liveryRng, STOCK_BASES } from "../sim/liveryDrift.js";
 import { cardById, drawHand, offerable, unlockedBy, withCards, type Limits } from "../skirmish/cards.js";
 import { fleetKinds, isTech, joined, KIND_NAMES, lockedIn } from "../skirmish/techTree.js";
 import { fleetId } from "./history.js";
-import { destinationById, offerDestinations } from "../skirmish/destinations.js";
+import { arriveAt, destinationById, offerDestinations } from "../skirmish/destinations.js";
 
 /**
  * A skirmish: the player's fleet against an enemy, a round at a time
@@ -445,9 +445,9 @@ export function won(skirmish: Skirmish): Skirmish {
 /** The next round to be fought where `id` says, one of those offered; the enemy's answer can then start. */
 export function goTo(skirmish: Skirmish, id: string): Skirmish {
     const { ways, ...rest } = skirmish;
-    const destination = destinationById(id);
-    if (ways === undefined || !ways.includes(id) || destination === null) return skirmish;
-    return { ...rest, settings: destination.apply(settingsOf(skirmish)), headed: id };
+    const settings = skirmish.won === undefined ? null : arriveAt(settingsOf(skirmish), skirmish.won, id);
+    if (ways === undefined || !ways.includes(id) || settings === null) return skirmish;
+    return { ...rest, settings, headed: id };
 }
 
 /**
@@ -610,10 +610,12 @@ export function parseSkirmish(value: unknown): Skirmish {
     const enemyCards = ids("enemyCards", true);
     const hand = ids("hand", true);
     const losing = ids("losing", false);
-    const ways = ids("ways", false);
-    if (ways?.some((id) => destinationById(id) === null)) fail("ways must be a list of destinations");
-    const headed = file["headed"];
-    if (headed !== undefined && (typeof headed !== "string" || destinationById(headed) === null)) fail("headed must be a destination");
+    // Ways since retired ("dark", "bright") are dropped rather than refused, so a skirmish saved with one still opens.
+    const offered = ids("ways", false)?.filter((id) => destinationById(id) !== null);
+    const ways = offered === undefined || offered.length === 0 ? undefined : offered;
+    const raw = file["headed"];
+    if (raw !== undefined && typeof raw !== "string") fail("headed must be a destination");
+    const headed = typeof raw === "string" && destinationById(raw) !== null ? raw : undefined;
     const streak = file["streak"] === undefined ? undefined : whole("streak", 0);
     const picked = file["picked"];
     if (picked !== undefined && (typeof picked !== "string" || cardById(picked) === null)) fail("picked must be a card the deck has");
