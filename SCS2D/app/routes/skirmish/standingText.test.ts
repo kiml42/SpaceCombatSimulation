@@ -18,7 +18,7 @@ const ship = (over: Partial<ShipStanding>): ShipStanding => ({
 describe("why a ship is out of the fight", () => {
     it("names fuel, the casings it could not fire, and dry engines", () => {
         expect(outLine(ship({ unarmed: Unarmed.NoFuel, immobile: Unarmed.NoFuel, rounds: 4 }))).toBe(
-            "out of fuel to reload; casings for 4 rounds aboard; its engines are dry",
+            "out of fuel; casings for 4 rounds aboard, but no fuel for charges; its engines are dry",
         );
     });
 

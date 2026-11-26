@@ -10,7 +10,7 @@ const UNARMED: Record<Unarmed, string> = {
     [Unarmed.Wrecked]: "its guns are wrecked",
     [Unarmed.NoAmmunition]: "out of ammunition",
     [Unarmed.NoCharge]: "out of charge",
-    [Unarmed.NoFuel]: "out of fuel to reload",
+    [Unarmed.NoFuel]: "out of fuel",
 };
 
 /** What stopped it moving, after what stopped it shooting; empty where that says it already. */
@@ -39,7 +39,11 @@ export function outLine(standing: ShipStanding): string {
     if (standing.unarmed === Unarmed.Gone || standing.unarmed === Unarmed.NoCore) return why;
     const parts = [why];
     // Casings with nothing to fire them is the case worth spelling out.
-    if (standing.unarmed !== Unarmed.NoAmmunition && standing.rounds > 0) parts.push(`casings for ${rounds(standing.rounds)} aboard`);
+    if (standing.unarmed !== Unarmed.NoAmmunition && standing.rounds > 0) {
+        const aboard = `casings for ${rounds(standing.rounds)} aboard`;
+        // Fuel is a round's propellant and bursting charge, which is why a gun needs it at all.
+        parts.push(standing.unarmed === Unarmed.NoFuel ? `${aboard}, but no fuel for charges` : aboard);
+    }
     const moving = engines(standing);
     if (moving !== "") parts.push(moving);
     return parts.join("; ");

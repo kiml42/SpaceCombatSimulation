@@ -305,6 +305,8 @@ export function battleView(
     let strips = true;
     /** What was last drawn over the view, for a tap to find. */
     let shownStrips: Strips | null = null;
+    /** How wide the left strip was last drawn, CSS px. */
+    let leftStrip = 0;
     let shownInsets: Inset[] = [];
     /** Where the view's settings are kept, once a page has asked for them to be. */
     let kept: { page: string; settings: ViewSettings } | null = null;
@@ -751,6 +753,12 @@ export function battleView(
         }
         shownStrips = tiles;
         shownInsets = insets;
+        // So what the page lays over the view's left edge can keep clear of the strip down it.
+        const stripsLeft = tiles === null ? 0 : tiles.left.width / ratio;
+        if (stripsLeft !== leftStrip) {
+            leftStrip = stripsLeft;
+            canvas.parentElement?.style.setProperty("--strips-left", `${stripsLeft}px`);
+        }
         if (box !== null) {
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.strokeStyle = BOX_COLOUR;
