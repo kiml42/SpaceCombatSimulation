@@ -259,6 +259,12 @@ export interface Approach {
      */
     readonly escortMinRadii: number;
     /**
+     * What each other ship already covering a friend takes off its score as a
+     * consort, so escorts spread over several friends rather than all piling
+     * onto the nearest. Zero ignores them.
+     */
+    readonly escortCrowding: number;
+    /**
      * How far from its charge an enemy has to be, as a share of its own reach
      * from there, for it to fight first rather than cover first. Covering
      * first, it stations on its band where it would fight from, as a screen;
@@ -629,6 +635,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         escort: 0.15,
         escortInner: 0.5,
         escortMinRadii: 1,
+        escortCrowding: 100,
         guardRange: 1,
         separation: 300,
         separationRadii: 3,
@@ -870,6 +877,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "escort",
     "escortInner",
     "escortMinRadii",
+    "escortCrowding",
     "guardRange",
     "separation",
     "separationRadii",
@@ -924,6 +932,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
 export const NON_NEGATIVE_FIELDS: readonly string[] = [
+    "escortCrowding",
     "guardRange",
     "evasion",
     "ramSelectiveFuel",
