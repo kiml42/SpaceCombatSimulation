@@ -2,7 +2,15 @@ import { createContext, use, useEffect, useRef, useState, type ReactNode } from 
 import { useStorage } from "~/features/storage/StorageContext";
 import type { AnswerProgress } from "~/host/answer";
 import { dropOldest, EMPTY_HISTORY, HISTORY_STORAGE_KEY, parseHistory, record, type History, type Played } from "~/scenarios/history";
-import { parseSkirmish, roundYards, serialiseSkirmish, settingsOf, SKIRMISH_STORAGE_KEY, type Skirmish } from "~/scenarios/skirmish";
+import {
+    enemyTech,
+    parseSkirmish,
+    roundYards,
+    serialiseSkirmish,
+    settingsOf,
+    SKIRMISH_STORAGE_KEY,
+    type Skirmish,
+} from "~/scenarios/skirmish";
 import { startSkirmishAnswer } from "./answerSearch";
 
 /** What the enemy's search has come to, as the skirmish route shows it. */
@@ -170,6 +178,7 @@ export function SkirmishProvider({ children }: { readonly children: ReactNode })
                 budget: current.budget,
                 cards: current.enemyCards ?? [],
                 playerYard: roundYards(current)[0],
+                tech: enemyTech(current),
             },
             progressed,
         );

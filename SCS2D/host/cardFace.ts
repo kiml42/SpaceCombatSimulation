@@ -88,8 +88,15 @@ function face(card: Card): HTMLElement {
         line.append(`${amount} `, named);
         effects.append(line);
     }
+    if (card.unlocks !== undefined) {
+        const line = document.createElement("div");
+        line.className = "card-effect";
+        line.textContent = "unlocks this module";
+        effects.append(line);
+    }
     const kind = document.createElement("div");
-    kind.textContent = isSimple(card) ? "upgrade" : "trade-off";
+    // A card the deck no longer has moves nothing, so is no trade-off.
+    kind.textContent = card.unlocks !== undefined ? "unlock" : isSimple(card) || card.effects.length === 0 ? "upgrade" : "trade-off";
     Object.assign(kind.style, { color: "var(--colour-muted)", fontSize: "0.75em", letterSpacing: "0.1em" });
     out.append(name, effects, kind);
     return out;
