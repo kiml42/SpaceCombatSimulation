@@ -105,3 +105,38 @@ export function fleetKinds(fleet: Fleet): ShipModuleKind[] {
 export function lockedIn(fleet: Fleet, unlocked: readonly ShipModuleKind[]): ShipModuleKind[] {
     return fleetKinds(fleet).filter((kind) => !unlocked.includes(kind));
 }
+
+/**
+ * Steps between two kinds on the tree, either way along a prerequisite: a
+ * kind and what it needs, or what needs it, are one apart.
+ */
+export const TECH_STEPS: Readonly<Record<ShipModuleKind, Readonly<Record<ShipModuleKind, number>>>> = (() => {
+    const near = new Map<ShipModuleKind, Set<ShipModuleKind>>(ALL_TECH.map((kind) => [kind, new Set()]));
+    for (const kind of ALL_TECH) {
+        for (const group of PREREQUISITES[kind]) {
+            for (const needed of group) {
+                near.get(kind)!.add(needed);
+                near.get(needed)!.add(kind);
+            }
+        }
+    }
+    const out: Partial<Record<ShipModuleKind, Record<ShipModuleKind, number>>> = {};
+    for (const from of ALL_TECH) {
+        const steps = Object.fromEntries(ALL_TECH.map((kind) => [kind, Infinity])) as Record<ShipModuleKind, number>;
+        steps[from] = 0;
+        let ring = [from];
+        for (let d = 1; ring.length > 0; d++) {
+            const next: ShipModuleKind[] = [];
+            for (const kind of ring) {
+                for (const other of near.get(kind)!) {
+                    if (steps[other] !== Infinity) continue;
+                    steps[other] = d;
+                    next.push(other);
+                }
+            }
+            ring = next;
+        }
+        out[from] = steps;
+    }
+    return out as Record<ShipModuleKind, Record<ShipModuleKind, number>>;
+})();
