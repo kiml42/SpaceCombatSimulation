@@ -15,11 +15,12 @@ import {
     type Fleet,
 } from "../sim/index.js";
 import { isFleet, Match, runMatch } from "../evolution/match.js";
+import { DEFAULT_KINDS } from "../evolution/mutate.js";
 import { DEFAULT_FLEET_LIMITS, fleetFits, mutateFleet, type FleetMutationLimits, type FleetOperator } from "../evolution/fleetMutate.js";
 import { entrantOf, generationSize, runEvolution, shipCount } from "../evolution/run.js";
 import { parseRunConfig, runConfigFileProblem, runConfigWarnings, serialiseRunConfig } from "../evolution/configFile.js";
 import { DEFAULT_RUN } from "../evolution/run.js";
-import { BARE_CORE, CORVETTE, DINKY, GUNSHIP } from "../scenarios/blueprints.js";
+import { BARE_CORE, CATAMARAN, CORVETTE, DINKY, GUNSHIP } from "../scenarios/blueprints.js";
 import { LINE_OF_BATTLE } from "../scenarios/fleets.js";
 import { FACTORY } from "../scenarios/carrier.js";
 import { addShip, emptyFleet } from "../editor/fleetEdit.js";
@@ -210,6 +211,26 @@ describe("breeding a fleet", () => {
             if (child.edits.length > 0 && hulls === most) changed++;
         }
         expect(changed).toBeGreaterThan(0);
+    });
+
+    it("breeds no ship past the cores a ship may have, and none of one already past it beyond what it had", () => {
+        const most = (fleet: Fleet): number => Math.max(...fleetHulls(fleet).map((hull) => hull.design.cores.length));
+        // Cores drawn far more often than anything else, so a second would come if it could.
+        const ship = { kinds: { ...DEFAULT_KINDS, core: 50 } };
+        let grown = 0;
+        for (let seed = 0; seed < 30; seed++) {
+            const free = mutateFleet(shipFleet(GUNSHIP), new Rng(seed), { ship, maxShips: 1, move: 0 }).fleet;
+            if (most(free) > 1) grown++;
+            const held = mutateFleet(shipFleet(GUNSHIP), new Rng(seed), { ship, maxShips: 1, maxCores: 1, move: 0 }).fleet;
+            expect(most(held)).toBe(1);
+            expect(fleetFits(held, { radius: 500, maxShips: 1, maxCores: 1, budget: NO_BUDGET })).toBe(true);
+        }
+        // Without the limit, it would have grown more.
+        expect(grown).toBeGreaterThan(0);
+        // Already past it, it may keep what it has but take no more.
+        const twin = shipFleet(CATAMARAN);
+        for (let seed = 0; seed < 10; seed++)
+            expect(most(mutateFleet(twin, new Rng(seed), { ship, maxShips: 1, maxCores: 1 }).fleet)).toBeLessThanOrEqual(2);
     });
 
     it("scales one design up or down, whole, by about a tenth", () => {

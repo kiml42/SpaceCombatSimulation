@@ -32,6 +32,7 @@ sees. Code may keep its own names (`BattlePage`, `Blueprint`, `battleRoute`); th
 | **upgrade card** | A change to a side's limits, picked from a hand | |
 | **unlock**, **unlock card** | In a skirmish, a module kind a side may build with, and the card that gives it one; offered only once the side has the modules it needs | research, tech |
 | **starting modules** | The module kinds a skirmish's player can build with before any unlock | starting tech |
+| **cores a ship**, **most cores** | In a skirmish, the most cores any one ship may have: a limit like ships and spread, which _Redundant Cores_ raises | core limit |
 | **build time** | A side's limit on the time before the battle: its robots build its fleet in it, and its ships load and charge in what is left | build budget |
 | **robots**, in a budget | How many build a side's fleet at once in its build time | builders, workers |
 | **not ready in time** | A ship the build time leaves short of loaded or charged when the battle starts | unready |

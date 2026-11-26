@@ -81,6 +81,8 @@ export interface FleetMutationLimits {
     readonly radius: number;
     /** Most ships a fleet may field, which bounds what a match costs. */
     readonly maxShips: number;
+    /** Most cores any one ship may have; no limit where not given. */
+    readonly maxCores?: number;
     /** How far a ship moves, as a share of its radius: the spread of its drift. */
     readonly size: number;
     /** How far a heading turns, radians: the spread of its drift. */
@@ -154,8 +156,13 @@ export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutat
         ...limits,
         operators: { ...DEFAULT_FLEET_LIMITS.operators, ...limits?.operators },
     };
-    // A fleet already past the cap may stay as large but grow no larger, or no child of it would fit.
-    const bounds = { ...given, maxShips: max(given.maxShips, fleetHulls(parent).length) };
+    // A fleet already past a cap may stay as large but grow no larger, or no child of it would fit.
+    const hulls = fleetHulls(parent);
+    const bounds = {
+        ...given,
+        maxShips: max(given.maxShips, hulls.length),
+        ...(given.maxCores === undefined ? {} : { maxCores: max(given.maxCores, mostCores(hulls)) }),
+    };
     const draft = clone(parent);
     const edits: string[] = [];
     let attempts = 0;
@@ -210,16 +217,24 @@ export function awayFrom(rivals: readonly { readonly livery?: Livery }[]): strin
 /** `blueprintProblem`, asked once of each design however many candidates carry it unchanged. */
 const designProblem = byContent(64, blueprintProblem);
 
-export function fleetFits(fleet: Fleet, limits: Pick<FleetMutationLimits, "budget" | "radius" | "maxShips">): boolean {
+export function fleetFits(fleet: Fleet, limits: Pick<FleetMutationLimits, "budget" | "radius" | "maxShips" | "maxCores">): boolean {
     if (fleetProblem(fleet) !== null) return false;
     if (hangarClashes(fleet).length > 0) return false;
     for (const blueprint of Object.values(fleet.designs))
         if (designProblem(withFleetFighters(blueprint, fleet.designs)) !== null) return false;
     const hulls = fleetHulls(fleet);
     if (hulls.length === 0 || hulls.length > limits.maxShips) return false;
+    if (limits.maxCores !== undefined && mostCores(hulls) > limits.maxCores) return false;
     if (!affords(limits.budget, fleetBill(hulls))) return false;
     if (fleetReach(hulls) > limits.radius) return false;
     return firstOverlap(hulls) === null;
+}
+
+/** The most cores any of `hulls` has. */
+function mostCores(hulls: readonly { readonly design: { readonly cores: readonly unknown[] } }[]): number {
+    let most = 0;
+    for (const hull of hulls) most = max(most, hull.design.cores.length);
+    return most;
 }
 
 function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {

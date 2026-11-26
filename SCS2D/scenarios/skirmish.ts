@@ -136,6 +136,13 @@ export interface SkirmishSettings {
      * a limit on the work a battle is, more than on the fleets.
      */
     readonly maxShips: number;
+    /**
+     * The most cores any ship of either side may have, unless the enemy's
+     * already have more; none for no limit. A ship with one core breaks into
+     * pieces that drift, so a limit stops a fleet winning by pieces of its
+     * ships that each fly on and fight without having paid for a ship each.
+     */
+    readonly maxCores: number;
     /** How far from its origin any of either side's hulls may reach, unless the enemy already reaches further, metres. */
     readonly radius: number;
     /** How bright each round's drawn light is, sun and shadows alike, as a multiple of what its seed draws: only seen, never fought. */
@@ -177,6 +184,7 @@ export const DEFAULT_SKIRMISH_SETTINGS: SkirmishSettings = {
     stretchAfter: 4,
     answerMargin: 0.2,
     maxShips: 3,
+    maxCores: 1,
     radius: 500,
     light: 1,
     breeding: {},
@@ -283,7 +291,19 @@ export function fleetFault(fleet: Fleet): string | null {
  */
 export function startLimits(skirmish: Skirmish): Limits {
     const settings = settingsOf(skirmish);
-    return { budget: skirmish.budget, maxShips: settings.maxShips, radius: settings.radius };
+    return { budget: skirmish.budget, maxShips: settings.maxShips, ...coresOf(settings), radius: settings.radius };
+}
+
+/** The core limit settings set, as limits hold it: absent for none. */
+function coresOf(settings: SkirmishSettings): { maxCores?: number } {
+    return settings.maxCores > 0 ? { maxCores: settings.maxCores } : {};
+}
+
+/** The most cores any of `hulls` has. */
+export function mostCores(hulls: readonly { readonly design: { readonly cores: readonly unknown[] } }[]): number {
+    let most = 0;
+    for (const hull of hulls) most = math.max(most, hull.design.cores.length);
+    return most;
 }
 
 /** What the player's fleet is held to: the starting limits, moved by the cards they hold. */
@@ -302,6 +322,7 @@ export function atLeast(limits: Limits, fleet: Fleet): Limits {
             build: math.max(bill.build / robotsOf(limits), limits.budget.build),
         },
         maxShips: math.max(hulls.length, limits.maxShips),
+        ...(limits.maxCores === undefined ? {} : { maxCores: math.max(mostCores(hulls), limits.maxCores) }),
         radius: math.max(fleetReach(hulls), limits.radius),
         robots: robotsOf(limits),
     };
@@ -342,22 +363,25 @@ export function workLimit(limits: Limits): Budget {
  */
 export function enemyLimits(skirmish: Skirmish): Limits {
     const settings = settingsOf(skirmish);
-    const start = { budget: skirmish.budget, maxShips: settings.maxShips, radius: settings.radius };
+    const start = { budget: skirmish.budget, maxShips: settings.maxShips, ...coresOf(settings), radius: settings.radius };
     return atLeast(withCards(start, skirmish.enemyCards ?? []), skirmish.enemy);
 }
 
 /**
- * How the player's fleet breaks the skirmish's limit on ships or spread, or
- * null if it does not.
+ * How the player's fleet breaks the skirmish's limit on ships, cores or
+ * spread, or null if it does not.
  */
 export function overLimit(skirmish: Skirmish): string | null {
     const tech = playerTech(skirmish);
     const locked = tech === null ? [] : lockedIn(skirmish.player, tech);
     if (locked.length > 0)
         return `${locked.length === 1 ? "a module" : "modules"} not unlocked: ${locked.map((k) => KIND_NAMES[k]).join(", ")}`;
-    const { maxShips, radius } = playerLimits(skirmish);
+    const { maxShips, maxCores, radius } = playerLimits(skirmish);
     const hulls = fleetHulls(skirmish.player);
     if (hulls.length > maxShips) return `${hulls.length} ships, more than the ${maxShips} allowed`;
+    const cores = mostCores(hulls);
+    if (maxCores !== undefined && cores > maxCores)
+        return `a ship with ${cores} cores, more than the ${maxCores} allowed${maxCores === 1 ? "" : " a ship"}`;
     const reach = fleetReach(hulls);
     if (reach > radius) return `a spread of ${math.round(reach)} m, beyond the ${math.round(radius)} m allowed`;
     return null;
@@ -670,9 +694,14 @@ export function parseSkirmish(value: unknown): Skirmish {
     };
     function settingsIn(raw: unknown): SkirmishSettings {
         try {
-            // Settings saved before answers had a margin go on without one.
+            // Settings saved before answers had a margin, or ships a core limit, go on without one.
             const settings = parseSkirmishSettings(raw);
-            return (raw as Record<string, unknown>)["answerMargin"] === undefined ? { ...settings, answerMargin: 0 } : settings;
+            const saved = raw as Record<string, unknown>;
+            return {
+                ...settings,
+                ...(saved["answerMargin"] === undefined ? { answerMargin: 0 } : {}),
+                ...(saved["maxCores"] === undefined ? { maxCores: 0 } : {}),
+            };
         } catch (error) {
             return fail(`settings: ${(error as Error).message}`);
         }

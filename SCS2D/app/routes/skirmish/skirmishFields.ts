@@ -21,6 +21,15 @@ export const SKIRMISH_FIELDS: readonly SettingField[] = [
         title: "The most ships either side may field, unless the enemy already has more: a limit on how hard a battle works the computer.",
     },
     {
+        name: "maxCores",
+        group: "limits",
+        label: "most cores a ship",
+        step: 1,
+        min: 0,
+        value: D.maxCores,
+        title: "The most cores any one ship may have, unless the enemy's already have more; 0 for no limit. A ship with one core breaks into pieces that drift; with more, its pieces may fly on and fight.",
+    },
+    {
         name: "radius",
         group: "limits",
         label: "spawn radius m",
@@ -180,7 +189,7 @@ export const SKIRMISH_FIELDS: readonly SettingField[] = [
     },
 ];
 /** Those that are counts, and so whole. */
-export const WHOLE = new Set(["cardAfter", "mutants", "seeds", "stretchAfter", "maxShips", "bareCoreDrills", "shieldedDrills"]);
+export const WHOLE = new Set(["cardAfter", "mutants", "seeds", "stretchAfter", "maxShips", "maxCores", "bareCoreDrills", "shieldedDrills"]);
 
 /** Every box of the setup screen: the skirmish's, the mutation odds and the map, each with its ±. */
 export const SETUP_FIELDS: readonly SettingField[] = [...SKIRMISH_FIELDS, ...MUTATION_FIELDS, ...rangedMapFields()];
