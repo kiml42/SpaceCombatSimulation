@@ -84,6 +84,7 @@ import {
 } from "../sim/modules.js";
 import { pushNeighbours, sharedFace, shiftSeam, type SharedFace } from "../sim/push.js";
 import { Rng } from "../sim/rng.js";
+import { isTech, TECH_STEPS } from "../skirmish/techTree.js";
 import { affords, billOf, isLimited, NO_BUDGET, type Budget } from "../sim/bill.js";
 
 /**
@@ -1426,7 +1427,7 @@ function reinforce(site: ModuleSite, jitter: Jitter): string | null {
  */
 function refit(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
     const was = site.spec.kind;
-    const to = pickKind(rng, bounds.kinds, was);
+    const to = pickKind(rng, nearKinds(bounds.kinds, was), was);
     if (to === null) return null;
     const turn = to === "engine" && !isWeaponMount(was) ? rng.nextInt(4) * HALF_PI : 0;
     Object.assign(site.spec, refitModule(site.spec, to, turn));
@@ -3180,6 +3181,23 @@ function points(kind: ModuleKind): boolean {
 /** Which face of a module a thing went on, in the module's own terms. */
 function faceName(outward: number): string {
     return ["bow", "port", "stern", "starboard"][outward] ?? "bow";
+}
+
+/** How much likelier a refit is to a kind by its steps on the tech tree from what it was: one step, two, and further. */
+const REFIT_STEP_ODDS = [1, 1, 0.25, 0.05] as const;
+
+/**
+ * Kind weights for a refit of a `was`, each scaled by how far that kind is
+ * from it on the tech tree (`TECH_STEPS`): a kind and what it needs, or what
+ * needs it, are near, so a gun becomes a turret or a beam far more often than
+ * a pad. Further kinds are still reachable, only rarely.
+ */
+export function nearKinds(weights: KindWeights, was: ModuleKind): KindWeights {
+    if (!isTech(was)) return weights;
+    const steps = TECH_STEPS[was];
+    const out: Record<string, number> = {};
+    for (const kind of MODULE_KINDS) out[kind] = weights[kind] * REFIT_STEP_ODDS[min(steps[kind], REFIT_STEP_ODDS.length - 1)]!;
+    return out as KindWeights;
 }
 
 /**

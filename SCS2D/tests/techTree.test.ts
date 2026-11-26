@@ -13,7 +13,18 @@ import {
     type Skirmish,
 } from "../scenarios/skirmish.js";
 import { cardById, UNLOCK_CARDS } from "../skirmish/cards.js";
-import { ALL_TECH, canUnlock, fleetKinds, lockedIn, PREREQUISITES, STARTING_TECH, toggled, unlockable } from "../skirmish/techTree.js";
+import {
+    ALL_TECH,
+    canUnlock,
+    fleetKinds,
+    lockedIn,
+    PREREQUISITES,
+    STARTING_TECH,
+    TECH_STEPS,
+    toggled,
+    unlockable,
+} from "../skirmish/techTree.js";
+import { nearKinds, type KindWeights } from "../evolution/mutate.js";
 import { breeding } from "../evolution/mutationFields.js";
 import { withTech } from "../evolution/answer.js";
 
@@ -132,5 +143,23 @@ describe("choosing starting modules", () => {
         expect(toggled(STARTING_TECH, "core", false)).toContain("core");
         for (const kind of toggled(STARTING_TECH, "slipway", true))
             expect(canUnlock(kind, toggled(STARTING_TECH, "slipway", true))).toBe(true);
+    });
+});
+
+describe("refits along the tech tree", () => {
+    it("counts a kind and what it needs, or what needs it, a step apart, either way", () => {
+        expect(TECH_STEPS.hullGun.turret).toBe(1);
+        expect(TECH_STEPS.turret.hullGun).toBe(1);
+        expect(TECH_STEPS.hullGun.hullGun).toBe(0);
+        for (const a of ALL_TECH) for (const b of ALL_TECH) expect(TECH_STEPS[a][b]).toBe(TECH_STEPS[b][a]);
+        for (const a of ALL_TECH) for (const b of ALL_TECH) expect(Number.isFinite(TECH_STEPS[a][b])).toBe(true);
+    });
+
+    it("makes a refit to a near kind likelier than to a far one", () => {
+        const even = Object.fromEntries(ALL_TECH.map((kind) => [kind, 1])) as unknown as KindWeights;
+        const near = nearKinds(even, "hullGun");
+        expect(near.turret).toBe(1);
+        expect(near.turret).toBeGreaterThan(near.slipway);
+        expect(near.slipway).toBeGreaterThan(0);
     });
 });
