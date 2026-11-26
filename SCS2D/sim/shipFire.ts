@@ -470,7 +470,7 @@ const FUEL_SETTLE = 1e-9;
 /**
  * Fuel gun `t` still lacks for the rest of its reload, kg: what is left of the
  * round's at the rate it reloads now, less what it has claimed. None for a
- * gun that is not reloading, or that loads no fuel as it does.
+ * gun that is not reloading, that loads no fuel as it does, or a lance waiting for a target.
  */
 function fuelOwed(ships: Ships, b: number, i: number, t: number): number {
     if (ships.turretStates[i]![t] !== TurretState.Reloading) return 0;
@@ -478,6 +478,8 @@ function fuelOwed(ships: Ships, b: number, i: number, t: number): number {
     const mount = ships.designs[i]!.turrets[t]!;
     const gun = mount.gun;
     if (!(timer > 0) || !(gun.cycleTime > 0) || gun.bankEnergy > 0) return 0;
+    // A lance that charges only on target claims nothing until it begins to.
+    if (waitsForTarget(ships, i, t) && !onTarget(ships, i, t)) return 0;
     const whole = shotFuel(gun);
     const rate = ships.damage.remaining(b, mount.module, DamageEffect.FireRate);
     const owed = (whole * rate * timer) / gun.cycleTime - ships.primed[i]![t]!;
