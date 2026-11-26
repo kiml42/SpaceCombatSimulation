@@ -261,7 +261,7 @@ export interface Approach {
     /**
      * What each other ship already covering a friend takes off its score as a
      * consort, so escorts spread over several friends rather than all piling
-     * onto the nearest. Zero, the default, ignores them.
+     * onto the nearest. Zero ignores them.
      */
     readonly escortCrowding: number;
     /**
@@ -635,7 +635,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         escort: 0.15,
         escortInner: 0.5,
         escortMinRadii: 1,
-        escortCrowding: 0,
+        escortCrowding: 100,
         guardRange: 1,
         separation: 300,
         separationRadii: 3,

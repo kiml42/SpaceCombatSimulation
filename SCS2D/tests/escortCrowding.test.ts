@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compileBlueprint } from "../sim/index.js";
+import { compileBlueprint, DEFAULT_DOCTRINE } from "../sim/index.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { CORVETTE, GUNSHIP } from "../scenarios/blueprints.js";
 
@@ -34,13 +34,13 @@ describe("escortCrowding", () => {
         return battle.escorts.map((e) => battle.ships.consort[e]!);
     }
 
-    it("piles onto the nearest friend by default", () => {
+    it("piles onto the nearest friend when told to ignore the crowd", () => {
         const [a, b] = charges(0);
         expect(a).toBe(b);
     });
 
-    it("spreads over friends when each escort counts against one", () => {
-        const [a, b] = charges(200);
+    it("spreads over friends by default", () => {
+        const [a, b] = charges(DEFAULT_DOCTRINE.approach.escortCrowding);
         expect(a).not.toBe(b);
         expect(a).toBeGreaterThanOrEqual(0);
         expect(b).toBeGreaterThanOrEqual(0);
