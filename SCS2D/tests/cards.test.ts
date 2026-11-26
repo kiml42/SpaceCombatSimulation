@@ -20,8 +20,8 @@ describe("the upgrade card deck", () => {
     it("reads, every card named once, with simple cards and trade-offs both", () => {
         expect(DECK).toEqual([...parseDeck(deckFile), ...UNLOCK_CARDS]);
         expect(new Set(DECK.map((card) => card.id)).size).toBe(DECK.length);
-        expect(DECK.filter(isSimple).map((card) => card.id)).toEqual(["metal", "fuel", "build", "ship", "spread", "robot"]);
-        expect(DECK.length).toBe(16 + UNLOCK_CARDS.length);
+        expect(DECK.filter(isSimple).map((card) => card.id)).toEqual(["metal", "fuel", "build", "ship", "spread", "robot", "core"]);
+        expect(DECK.length).toBe(17 + UNLOCK_CARDS.length);
     });
 
     it("refuses a card it cannot use", () => {
@@ -103,9 +103,21 @@ describe("cards held", () => {
     });
 
     it("go to the enemy for what it presses hardest, the first drawn on a tie", () => {
-        const usage = { metal: 0.9, fuel: 0.3, build: 0.95, ships: 0.5, spread: 0.2, robots: 0.95 };
+        const usage = { metal: 0.9, fuel: 0.3, build: 0.95, ships: 0.5, cores: 0, spread: 0.2, robots: 0.95 };
         expect(neediest(["fuel", "metal", "build"], usage)).toBe("build");
         expect(neediest(["fuel", "metal", "ship"], usage)).toBe("metal");
         expect(neediest(["spread", "fuel"], { ...usage, spread: 0.3 })).toBe("spread");
+    });
+
+    it("raise the cores a ship may have, but only for a side held to a number of them", () => {
+        const held = { ...START, maxCores: 1 };
+        expect(withCards(held, ["core", "core"]).maxCores).toBe(3);
+        expect(effectText({ limit: "cores", step: 1 })).toEqual({ amount: "+1", limit: "cores", word: "core a ship" });
+        const core = DECK.find((card) => card.id === "core")!;
+        expect(fits(held, [], core)).toBe(true);
+        // No limit on cores to raise: the card is no use, so never offered.
+        expect(fits(START, [], core)).toBe(false);
+        expect(withCards(START, ["core"]).maxCores).toBeUndefined();
+        for (let seed = 0; seed < 30; seed++) expect(drawHand(new Rng(seed), START, [])).not.toContain("core");
     });
 });

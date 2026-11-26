@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { fleetBill, fleetDraftHulls, fleetHulls, fleetReach, NEUTRAL_TEAM, type Blueprint, type Fleet } from "../sim/index.js";
-import { BARE_CORE, GUNSHIP } from "../scenarios/blueprints.js";
+import { fleetBill, fleetDraftHulls, fleetHulls, fleetReach, NEUTRAL_TEAM, shipFleet, type Blueprint, type Fleet } from "../sim/index.js";
+import { BARE_CORE, CATAMARAN, GUNSHIP } from "../scenarios/blueprints.js";
 import { LINE_OF_BATTLE } from "../scenarios/fleets.js";
 import { customBattle } from "../scenarios/customBattle.js";
 import { Activity, QUIET_TIME, TIME_CAP, type Decision } from "../scenarios/decision.js";
@@ -307,6 +307,26 @@ describe("the skirmish", () => {
         expect(enemyLimits(newSkirmish(pair, pair, 5, one, budget)).maxShips).toBe(2);
         expect(overLimit(newSkirmish(far, far, 5, undefined, budget))).toMatch(/beyond the 500 m allowed/);
         expect(enemyLimits(newSkirmish(far, far, 5, undefined, budget)).radius).toBeGreaterThan(500);
+    });
+
+    it("will not fight with a ship of more cores than its settings allow, though the enemy keeps its own", () => {
+        const budget = { metal: 1e9, fuel: 1e9, build: 1e9 };
+        const twin = shipFleet(CATAMARAN);
+        expect(fleetHulls(twin)[0]!.design.cores.length).toBe(2);
+        expect(overLimit(newSkirmish(core, twin, 5, undefined, budget))).toMatch(/a ship with 2 cores, more than the 1 allowed/);
+        expect(overLimit(newSkirmish(core, twin, 5, { ...DEFAULT_SKIRMISH_SETTINGS, maxCores: 2 }, budget))).toBeNull();
+        // None for no limit.
+        expect(overLimit(newSkirmish(core, twin, 5, { ...DEFAULT_SKIRMISH_SETTINGS, maxCores: 0 }, budget))).toBeNull();
+        expect(playerLimits(newSkirmish(core, twin, 5, { ...DEFAULT_SKIRMISH_SETTINGS, maxCores: 0 }, budget)).maxCores).toBeUndefined();
+        // A card raises it.
+        expect(overLimit({ ...newSkirmish(core, twin, 5, undefined, budget), cards: ["core"] })).toBeNull();
+        // The enemy keeps the cores it fields.
+        expect(enemyLimits(newSkirmish(twin, core, 5, undefined, budget)).maxCores).toBe(2);
+        // A skirmish saved before ships had a core limit goes on without one.
+        const saved = serialiseSkirmish(newSkirmish(core, twin, 5, DEFAULT_SKIRMISH_SETTINGS, budget));
+        const { maxCores: _maxCores, ...before } = saved["settings"] as Record<string, unknown>;
+        expect(settingsOf(parseSkirmish({ ...saved, settings: before })).maxCores).toBe(0);
+        expect(settingsOf(parseSkirmish(saved)).maxCores).toBe(1);
     });
 
     it("will not fight with nothing, or over budget", () => {
