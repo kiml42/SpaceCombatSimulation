@@ -1,4 +1,4 @@
-import { AlphaFilter, Container, type Filter, Graphics, GraphicsContext, Matrix, Texture } from "pixi.js";
+import { ColorMatrixFilter, Container, type Filter, Graphics, GraphicsContext, Matrix, Texture } from "pixi.js";
 import { isDomed, originOf, type Livery, type ModuleSpec, type ShipDesign, type Snapshot } from "../sim/index.js";
 import { patternColour, patternTile, patternTransform, tileKey } from "./livery.js";
 import {
@@ -26,6 +26,7 @@ import {
     LANDED_SHADOW_M,
     rockHeight,
     THICK_ROCK_RISE,
+    shadowTint,
     THICK_SHADOW_M,
     type Light,
 } from "./light.js";
@@ -127,18 +128,18 @@ export class HullLayer {
     readonly thinRock = new Pool();
     /** Where a kernel's shadow may fall: rock. */
     readonly rockUnderKernel = new Pool();
-    private readonly fighterShade: AlphaFilter;
+    private readonly fighterShade: Shade;
     private light: Light | null = null;
     /** Scratch for a bevel's corners. */
     private readonly quad: number[] = [];
     private readonly barrelEnds: number[] = [];
 
     /**
-     * `shade` makes the filter a shadow layer is darkened through, all at once
-     * so that where shadows overlap is no darker; a test, without a browser to
+     * `shade` makes what a shadow layer is darkened through, all at once so
+     * that where shadows overlap is no darker; a test, without a browser to
      * build one in, passes a stand-in.
      */
-    constructor(shade: () => AlphaFilter = () => new AlphaFilter()) {
+    constructor(shade: () => Shade = multiplyShade) {
         this.thickShadows = new BlockShadows(shade(), this.thinHull.container);
         this.rockShadows = new BlockShadows(shade(), this.hullUnderRock.container);
         this.thickRockShadows = new BlockShadows(shade(), this.thinRock.container);
@@ -150,7 +151,7 @@ export class HullLayer {
         this.litLayer.visible = false;
         this.fighterShadows.container.addChild(this.fighterBarrels);
         this.fighterShadows.container.mask = this.hull.container;
-        this.fighterShadows.container.filters = [this.fighterShade];
+        this.fighterShadows.container.filters = [this.fighterShade.filter];
         // Lowest first: each depth's shadows fall on what is drawn before them.
         this.container.addChild(
             this.thin.container,
@@ -433,8 +434,9 @@ export class HullLayer {
         // A bevel's highlight is the light's colour too.
         this.thinBevels.tint = light.colour;
         this.thickBevels.tint = light.colour;
-        for (const shadows of this.blockShadows()) shadows.shade.alpha = 1 - light.ambient;
-        this.fighterShade.alpha = 1 - light.ambient;
+        const [r, g, b] = shadowTint(light);
+        for (const shadows of this.blockShadows()) shadows.shade.tint(r, g, b);
+        this.fighterShade.tint(r, g, b);
     }
 
     private blockShadows(): BlockShadows[] {
@@ -477,12 +479,12 @@ export class BlockShadows {
     readonly shapes: number[][] = [];
 
     constructor(
-        readonly shade: AlphaFilter,
+        readonly shade: Shade,
         under: Container,
     ) {
         this.layer.addChild(this.graphics);
         this.layer.mask = under;
-        this.layer.filters = [shade];
+        this.layer.filters = [shade.filter];
     }
 
     clear(): void {
@@ -524,6 +526,28 @@ export class BlockShadows {
             this.shapes.push(shadow);
         }
     }
+}
+
+/**
+ * What a shadow layer is seen through: its shapes, drawn black, multiply what
+ * is under them by `tint`, the ambient light over the sun's
+ * (`render/light.ts`, `shadowTint`).
+ */
+export interface Shade {
+    readonly filter: Filter;
+    tint(r: number, g: number, b: number): void;
+}
+
+function multiplyShade(): Shade {
+    const filter = new ColorMatrixFilter();
+    filter.blendMode = "multiply";
+    return {
+        filter,
+        tint: (r, g, b) => {
+            // Every pixel the tint, keeping its own alpha, so a shape's edge blends as it is covered.
+            filter.matrix = [0, 0, 0, 0, r, 0, 0, 0, 0, g, 0, 0, 0, 0, b, 0, 0, 0, 1, 0];
+        },
+    };
 }
 
 /** Graphics kept from frame to frame, placed afresh each one. */

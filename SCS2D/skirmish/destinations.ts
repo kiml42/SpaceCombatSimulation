@@ -1,5 +1,6 @@
 import { DEFAULT_MAP, math, Rng } from "../sim/index.js";
 import type { SkirmishSettings } from "../scenarios/skirmish.js";
+import { startLighting, wander } from "../scenarios/lights.js";
 
 /**
  * Where the next round is fought, offered to the player once they win one: a
@@ -29,9 +30,6 @@ const SPEED_STEP = 40;
 const MOST_MAJORS = 2;
 /** The most minors a step brings a round up to. */
 const MOST_MINORS = 30;
-/** How much a step dims the light, and the dimmest it goes. */
-const DIMMING = 0.6;
-const DARKEST = 0.2;
 
 const majors = (s: SkirmishSettings): number => s.map.majors ?? DEFAULT_MAP.majors;
 const minors = (s: SkirmishSettings): number => s.map.minors ?? DEFAULT_MAP.minors;
@@ -109,29 +107,26 @@ export const DESTINATIONS: readonly Destination[] = [
         open: (s) => s.closingSpeed !== 0 || s.crossingSpeed !== 0,
         apply: (s) => ({ ...s, closingSpeed: 0, crossingSpeed: 0 }),
     },
-    {
-        id: "dark",
-        name: "Into the dark",
-        change: (s) => `Sunlight ${percent(s.light)} → ${percent(math.max(DARKEST, tidy(s.light * DIMMING)))}`,
-        means: "Harder to watch, as what ships light themselves is most of what shows; the fight itself is the same.",
-        open: (s) => s.light > DARKEST,
-        apply: (s) => ({ ...s, light: math.max(DARKEST, tidy(s.light * DIMMING)) }),
-    },
-    {
-        id: "bright",
-        name: "Into the light",
-        change: (s) => `Sunlight ${percent(s.light)} → ${percent(math.min(1, tidy(s.light / DIMMING)))}`,
-        means: "A brighter sun and softer shadows: easier to watch; the fight itself is the same.",
-        open: (s) => s.light < 1,
-        apply: (s) => ({ ...s, light: math.min(1, tidy(s.light / DIMMING)) }),
-    },
 ];
 
 const metres = (m: number): string => `${math.round(m).toLocaleString("en-GB")} m`;
 const percent = (share: number): string => `${math.round(share * 100)}%`;
 
-/** To two places, so a light dimmed and brightened again comes back to where it was. */
-const tidy = (n: number): number => math.round(n * 100) / 100;
+/**
+ * The settings of the round fought where `id` leads, after the round won on
+ * `seed`, `from` the round won's: its change, and the light wandered a step
+ * from the one that round was seen in. The step is drawn from the seed and the
+ * way, so a reload goes the same way, and is not shown: it changes how the
+ * round looks and nothing about how it is fought.
+ */
+export function arriveAt(settings: SkirmishSettings, seed: number, id: string, from: number): SkirmishSettings | null {
+    const destination = destinationById(id);
+    if (destination === null) return null;
+    let hash = seed ^ 0x6c696768;
+    for (let k = 0; k < id.length; k++) hash = math.imul(hash ^ id.charCodeAt(k), 0x01000193) >>> 0;
+    const lighting = wander(settings.lighting ?? startLighting(from), new Rng(hash >>> 0));
+    return { ...destination.apply(settings), lighting };
+}
 
 /** A round as its settings set it out, in a few words: "1 major and 6 minor asteroids, 1,500 m apart, closing at 40 m/s". */
 export function describeArena(s: SkirmishSettings): string {
