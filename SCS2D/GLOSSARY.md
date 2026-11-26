@@ -39,6 +39,7 @@ sees. Code may keep its own names (`BattlePage`, `Blueprint`, `battleRoute`); th
 | **priority** | How soon a part gets its ship's fuel, metal and charge when there is not enough, and how soon it is mended: higher first | claim, tier |
 | **turning gear** | The share of a turret given to the ring and drive that swing it, which reloading gives up | traverse gear, training gear |
 | **warhead** | A part that fires by blowing itself apart: a tank whose fuel is its charge, burnt last, and whose casing flies out as fragments when an enemy comes within its fire range, across its **spread** | bomb, explosive, payload |
+| **out of the fight** | A ship that can shoot with nothing, main guns or secondary, and so counts for nothing in deciding a battle: its **core is out**, its guns **wrecked**, or it is **out of ammunition** (no metal for a round's casing), **out of fuel** (none to reload with) or **out of charge** | disarmed, knocked out |
 | **landing gear** | What lets a fighter's core bring it down onto a friend's pad to be refuelled, rearmed or mended. Without it on any core, a fighter is still built on a pad and launched from one, but never lands again, and its core is simpler to build | docking gear |
 
 ## How to write them

@@ -17,6 +17,7 @@ import {
     shotMetal,
     type Blueprint,
     type ShipDesign,
+    Unarmed,
 } from "../sim/index.js";
 import { TURRET_CORVETTE } from "./fixtures.js";
 
@@ -174,6 +175,36 @@ describe("a gun firing", () => {
         s.ships.command(DT, s.world);
         expect(s.ships.isLoaded(s.body, gun)).toBe(true);
         if (before > 0) expect(s.ships.cooldownOf(s.mine, 0)).toBeLessThan(before);
+    });
+
+    it("says why it can shoot no more: out of fuel to reload, with casings aboard and its engines dry", () => {
+        const s = firing(corvette, 20, 0, true);
+        expect(s.ships.whyUnarmed(s.mine)).toBe(Unarmed.NoFuel);
+        expect(s.ships.whyImmobile(s.mine)).toBe(Unarmed.NoFuel);
+        expect(s.ships.roundsAboard(s.mine)).toBeGreaterThan(0);
+        expect(s.ships.canShoot(s.mine)).toBe(false);
+    });
+
+    it("says it is out of ammunition with no casing to load", () => {
+        const s = firing(corvette, 20, 0, false, true);
+        expect(s.ships.whyUnarmed(s.mine)).toBe(Unarmed.NoAmmunition);
+        expect(s.ships.roundsAboard(s.mine)).toBe(0);
+    });
+
+    it("counts a secondary gun as armed for the battle, though the ship itself fights as disarmed", () => {
+        const secondary = (v: unknown): unknown => {
+            if (Array.isArray(v)) return v.map(secondary);
+            if (v === null || typeof v !== "object") return v;
+            const out: Record<string, unknown> = {};
+            for (const [k, x] of Object.entries(v)) out[k] = secondary(x);
+            if (out["kind"] === "turret" || out["kind"] === "hullGun") out["main"] = false;
+            return out;
+        };
+        const design = compileBlueprint(secondary(TURRET_CORVETTE) as Blueprint);
+        expect(design.turrets.some((t) => t.main)).toBe(false);
+        const s = firing(design, 0);
+        expect(s.ships.isDisarmed(s.mine)).toBe(true);
+        expect(s.ships.canShoot(s.mine)).toBe(true);
     });
 
     it("burns a round's propellant and bursting charge of fuel for each round it reloads", () => {
