@@ -144,6 +144,7 @@ const Body = styled.div`
 const Decided = styled.div`
     position: absolute;
     top: 0.7rem;
+
     /* Clear of the fleet strip down the view's left edge, when it is shown. */
     left: calc(0.7rem + var(--strips-left, 0px));
     max-width: 22rem;
