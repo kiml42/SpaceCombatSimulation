@@ -1,6 +1,6 @@
 import { styled } from "@linaria/react";
 import type { ReactNode } from "react";
-import { enemyLimits, playerLimits, type Skirmish } from "~/scenarios/skirmish";
+import { enemyLimits, mostCores, playerLimits, type Skirmish } from "~/scenarios/skirmish";
 import { fleetBill, fleetDraftHulls, fleetReach, math, type Fleet } from "~/sim/index";
 import type { Limits } from "~/skirmish/cards";
 import { CardHand, ResourceWord } from "./Cards";
@@ -94,6 +94,8 @@ interface Used {
     readonly fuel: number;
     readonly build: number;
     readonly ships: number;
+    /** The most cores any one of its ships has. */
+    readonly cores: number;
     readonly spread: number;
 }
 
@@ -101,7 +103,7 @@ interface Used {
 function usedBy(fleet: Fleet): Used | null {
     try {
         const hulls = fleetDraftHulls(fleet);
-        return { ...fleetBill(hulls), ships: hulls.length, spread: fleetReach(hulls) };
+        return { ...fleetBill(hulls), ships: hulls.length, cores: mostCores(hulls), spread: fleetReach(hulls) };
     } catch {
         return null;
     }
@@ -127,6 +129,7 @@ const ROWS = [
     { key: "fuel", unit: mass },
     { key: "build", unit: time },
     { key: "ships", unit: (): Show => (n) => String(n) },
+    { key: "cores", unit: (): Show => (n) => String(n) },
     { key: "spread", unit: (): Show => inUnit(1, "m") },
     { key: "robots", unit: (): Show => (n) => String(n) },
 ] as const;
@@ -136,6 +139,7 @@ function limitOf(limits: Limits, key: (typeof ROWS)[number]["key"]): number {
     const robots = limits.robots ?? 1;
     if (key === "robots") return robots;
     if (key === "build") return limits.budget.build * robots;
+    if (key === "cores") return limits.maxCores ?? Infinity;
     return key === "ships" ? limits.maxShips : key === "spread" ? limits.radius : limits.budget[key];
 }
 
@@ -176,7 +180,8 @@ export function BudgetTable({ skirmish, id, enemy = true, names, cards }: Budget
                         {enemy && <td id="enemyName">{names.enemy}</td>}
                     </tr>
                 )}
-                {ROWS.map(({ key, unit }) => {
+                {/* Cores a ship are a row only where the skirmish sets a limit on them. */}
+                {ROWS.filter(({ key }) => key !== "cores" || player.limits.maxCores !== undefined).map(({ key, unit }) => {
                     // How many robots build it is a limit only, nothing a fleet uses.
                     const usedOf = (used: Used | null): number | null => (key === "robots" || used === null ? null : used[key]);
                     const show = unit(math.max(...sides.flatMap(({ used, limits }) => [usedOf(used) ?? 0, limitOf(limits, key)])));
@@ -185,7 +190,13 @@ export function BudgetTable({ skirmish, id, enemy = true, names, cards }: Budget
                     return (
                         <tr key={key} className={over ? "over" : undefined} data-over={over || undefined}>
                             <th scope="row">
-                                {key === "metal" || key === "fuel" || key === "build" ? <ResourceWord resource={key} long={!enemy} /> : key}
+                                {key === "metal" || key === "fuel" || key === "build" ? (
+                                    <ResourceWord resource={key} long={!enemy} />
+                                ) : key === "cores" ? (
+                                    <abbr title="The most cores any one ship may have">cores</abbr>
+                                ) : (
+                                    key
+                                )}
                             </th>
                             {sides.map(({ side, used, limits }) => (
                                 <td key={side} className={side}>

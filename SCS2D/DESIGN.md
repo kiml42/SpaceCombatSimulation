@@ -1531,7 +1531,7 @@ inside any one file is not contiguous.
   Mining is built; what is left of it is in ROADMAP.md §12, for later.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (the Skirmish route,
-  `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set; the enemy keeps every ship and the spread it starts with, but the player is held to the limits, as they build after), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by
+  `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships, cores a ship and spread (20, 1 and 500 m unless set; the enemy keeps every ship, core and the spread it starts with, but the player is held to the limits, as they build after). A ship with one core breaks into pieces that drift, so the core limit stops a fleet winning by pieces of its ships that fly on and fight each on its own, without having paid for a ship each; a skirmish saved before it goes on without one, each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by
   `scenarios/decision.ts` once one side has fired or rammed in the last 30 s and the other has not, which
   counts only once both have fired, so slow ships closing from far off are not out before they are in range;
   ramming counts as firing only while the rammer gets closer to its target than it has been, so one that
@@ -1588,14 +1588,14 @@ inside any one file is not contiguous.
   covers the battle view instead, each match's two sides side by side, the player's on the left. **Both sides' budgets grow by upgrade cards**
   (#691), from the same start, the enemy's never below what it already costs. The cards are data, in
   `skirmish/cards.json`, read by `skirmish/cards.ts`: each moves metal, fuel or build time by a share of
-  where the skirmish started it, or the ship count or spread by a step, none below half its start nor ships
-  below one. Three losses in a row on a round (a setup setting), each with a fleet that has not lost it
+  where the skirmish started it, or the ship count, the cores a ship may have or spread by a step, none below half its start nor ships or cores
+  below one; a card for cores is offered only where the skirmish limits them. Three losses in a row on a round (a setup setting), each with a fleet that has not lost it
   before, draw the player a hand of three from the round's seed, held in the fleet editor until one is
   picked, before the next try. Each time the search goes 4 generations without an answer, the enemy draws
   three simple cards and keeps the one for the limit its best fleet uses most of. A card is drawn by
   `host/cardFace.ts`, one face in ems at any size, bordered in the colour of the cost it adds to
   (`render/resources.ts`, which the battle's gauges use too): large to pick, small in either side's hand on
-  the skirmish page, copies stacked, and in the timeline beside the match it came before. Both sides' limits — metal, fuel, build time, ships and spread — are shown
+  the skirmish page, copies stacked, and in the timeline beside the match it came before. Both sides' limits — metal, fuel, build time, ships, cores a ship where limited, and spread — are shown
   side by side with what each fleet uses of them, on the skirmish page and in the fleet editor (`BudgetTable`). Step 5 is built; what is left of it is
   tuning its numbers (ROADMAP.md §12).
   See ROADMAP.md §8.

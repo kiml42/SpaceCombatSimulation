@@ -8,16 +8,17 @@ import { ALL_TECH, canUnlock, KIND_NAMES } from "./techTree.js";
  * the limits a side builds its fleet to. The deck is data, in `cards.json`.
  */
 
-/** What a card can move: the three costs, the ship count, how far a fleet may spread and the robots that build it. */
-export type Limit = "metal" | "fuel" | "build" | "ships" | "spread" | "robots";
+/** What a card can move: the three costs, the ship count, the cores a ship may have, how far a fleet may spread and the robots that build it. */
+export type Limit = "metal" | "fuel" | "build" | "ships" | "cores" | "spread" | "robots";
 
 /** The three costs, which a card moves by a share of where the skirmish started them. */
 export const RESOURCES = ["metal", "fuel", "build"] as const;
 export type Resource = (typeof RESOURCES)[number];
 
-/** One change a card makes: a share of the starting value for a cost, a whole step for ships, spread and robots. */
+/** One change a card makes: a share of the starting value for a cost, a whole step for ships, cores, spread and robots. */
 export type Effect =
-    { readonly limit: Resource; readonly share: number } | { readonly limit: "ships" | "spread" | "robots"; readonly step: number };
+    | { readonly limit: Resource; readonly share: number }
+    | { readonly limit: "ships" | "cores" | "spread" | "robots"; readonly step: number };
 
 export interface Card {
     readonly id: string;
@@ -31,6 +32,12 @@ export interface Card {
 export interface Limits {
     readonly budget: Budget;
     readonly maxShips: number;
+    /**
+     * The most cores any one of its ships may have; no limit where not given.
+     * A ship with one breaks into pieces that drift, where one with more may
+     * break into pieces that each fly on and fight.
+     */
+    readonly maxCores?: number;
     /** How far from its origin any hull may reach, metres. */
     readonly radius: number;
     /** How many robots build the fleet in its build time (`Yard`); one where not given. */
@@ -74,6 +81,7 @@ export function effectText(effect: Effect): { readonly amount: string; readonly 
     }
     if (effect.limit === "ships") return { amount: `${sign}${size}`, limit: "ships", word: size === 1 ? "ship" : "ships" };
     if (effect.limit === "robots") return { amount: `${sign}${size}`, limit: "robots", word: size === 1 ? "robot" : "robots" };
+    if (effect.limit === "cores") return { amount: `${sign}${size}`, limit: "cores", word: size === 1 ? "core a ship" : "cores a ship" };
     return { amount: `${sign}${size} m`, limit: "spread", word: "spread" };
 }
 
@@ -113,7 +121,7 @@ export function parseDeck(value: unknown): Card[] {
                         return fail(`${id}: ${limit} needs a share, not zero, above −${FLOOR}`);
                     return { limit, share };
                 }
-                if (limit === "ships" || limit === "spread" || limit === "robots") {
+                if (limit === "ships" || limit === "cores" || limit === "spread" || limit === "robots") {
                     const step = effect["step"];
                     const whole = limit !== "spread";
                     if (typeof step !== "number" || !Number.isFinite(step) || step === 0 || (whole && !Number.isInteger(step)))
@@ -164,7 +172,7 @@ export function cardsOf(ids: readonly string[]): Card[] {
 
 /** How far every limit has been moved by these cards: shares summed for costs, steps for ships and spread. */
 function moved(cards: readonly Card[]): Record<Limit, number> {
-    const out: Record<Limit, number> = { metal: 0, fuel: 0, build: 0, ships: 0, spread: 0, robots: 0 };
+    const out: Record<Limit, number> = { metal: 0, fuel: 0, build: 0, ships: 0, cores: 0, spread: 0, robots: 0 };
     for (const card of cards) for (const effect of card.effects) out[effect.limit] += amountOf(effect);
     return out;
 }
@@ -185,21 +193,25 @@ export function withCards(start: Limits, ids: readonly string[]): Limits {
     return {
         budget: { metal: cost("metal"), fuel: cost("fuel"), build: cost("build") },
         maxShips: math.max(shipFloor(start.maxShips), start.maxShips + by.ships),
+        ...(start.maxCores === undefined ? {} : { maxCores: math.max(1, start.maxCores + by.cores) }),
         radius: math.max(start.radius * FLOOR, start.radius + by.spread),
         robots: math.max(1, (start.robots ?? 1) + by.robots),
     };
 }
 
-/** Whether a side holding `held` could take `card` without cutting any limit past its floor. */
+/** Whether a side holding `held` could take `card`: without cutting any limit past its floor, and moving only limits it has. */
 export function fits(start: Limits, held: readonly string[], card: Card): boolean {
     const by = moved([...cardsOf(held), card]);
     for (const effect of card.effects) {
+        // Cores are a limit only where the skirmish sets one: a card moving them is no use elsewhere.
+        if (effect.limit === "cores" && start.maxCores === undefined) return false;
         if (amountOf(effect) > 0) continue;
         const limit = effect.limit;
         if (isResource(limit) && 1 + by[limit] < FLOOR) return false;
         if (limit === "ships" && start.maxShips + by.ships < shipFloor(start.maxShips)) return false;
         if (limit === "spread" && start.radius + by.spread < start.radius * FLOOR) return false;
         if (limit === "robots" && (start.robots ?? 1) + by.robots < 1) return false;
+        if (limit === "cores" && start.maxCores !== undefined && start.maxCores + by.cores < 1) return false;
     }
     return true;
 }

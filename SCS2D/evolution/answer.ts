@@ -17,6 +17,7 @@ import { Activity } from "../scenarios/decision.js";
 import {
     atLeast,
     DEFAULT_SKIRMISH_SETTINGS,
+    mostCores,
     robotsOf,
     roundBattle,
     startingBudget,
@@ -207,11 +208,12 @@ export class EnemySearch {
         return leader;
     }
 
-    /** The enemy's limits before its cards: the skirmish's budget, ship count and spread. */
+    /** The enemy's limits before its cards: the skirmish's budget, ship count, cores a ship and spread. */
     private get start(): Limits {
         return {
             budget: this.playerBudget ?? startingBudget(this.startEnemy),
             maxShips: this.settings.maxShips,
+            ...(this.settings.maxCores > 0 ? { maxCores: this.settings.maxCores } : {}),
             radius: this.settings.radius,
         };
     }
@@ -296,10 +298,11 @@ export class EnemySearch {
     private begin(): void {
         const parent = this.best.enemy;
         this.standings = [{ enemy: parent, wins: 0, onRound: false, margin: 0 }];
-        const { maxShips, radius } = this.limits;
+        const { maxShips, maxCores, radius } = this.limits;
         const limits = {
             budget: workLimit(this.limits),
             maxShips,
+            ...(maxCores === undefined ? {} : { maxCores }),
             ...this.bred.fleet,
             radius,
             ship: this.bred.ship,
@@ -369,7 +372,7 @@ export class EnemySearch {
         const hand = drawHand(this.cardRng, this.start, this.cards, isSimple);
         const hulls = fleetHulls(this.best.enemy);
         const bill = fleetBill(hulls);
-        const { maxShips, radius } = this.limits;
+        const { maxShips, maxCores, radius } = this.limits;
         const budget = workLimit(this.limits);
         const build = shareOf(bill.build, budget.build);
         const kept = neediest(hand, {
@@ -377,6 +380,7 @@ export class EnemySearch {
             fuel: shareOf(bill.fuel, budget.fuel),
             build,
             ships: shareOf(hulls.length, maxShips),
+            cores: shareOf(mostCores(hulls), maxCores ?? Infinity),
             spread: shareOf(fleetReach(hulls), radius),
             // Another robot is more build time by another name.
             robots: build,

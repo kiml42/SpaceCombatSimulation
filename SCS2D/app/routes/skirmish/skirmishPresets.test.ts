@@ -42,3 +42,10 @@ test("open space has no asteroids, and the small universe only minor ones", () =
     expect(small.mapSpread.majors ?? 0).toBe(0);
     expect(small).toMatchObject({ gap: 800, timeCap: 400, quietTime: 20 });
 });
+
+test("holds a ship to at least one core, as none would leave nothing to build", () => {
+    const texts = settingsTexts(DEFAULT_SKIRMISH_SETTINGS);
+    expect(readSettings(texts).maxCores).toBe(1);
+    expect(readSettings({ ...texts, maxCores: "0" }).maxCores).toBe(1);
+    expect(readSettings({ ...texts, maxCores: "3" }).maxCores).toBe(3);
+});
