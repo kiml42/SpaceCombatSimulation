@@ -42,7 +42,7 @@ export function outLine(standing: ShipStanding): string {
     if (standing.unarmed !== Unarmed.NoAmmunition && standing.rounds > 0) {
         const aboard = `casings for ${rounds(standing.rounds)} aboard`;
         // Fuel is a round's propellant and bursting charge, which is why a gun needs it at all.
-        parts.push(standing.unarmed === Unarmed.NoFuel ? `${aboard}, but no fuel for charges` : aboard);
+        parts.push(standing.unarmed === Unarmed.NoFuel ? `${aboard}, but no fuel to fire them` : aboard);
     }
     const moving = engines(standing);
     if (moving !== "") parts.push(moving);
