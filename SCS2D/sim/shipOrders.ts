@@ -71,7 +71,6 @@ export function effectiveOrder(ships: Ships, i: number): Order | undefined {
         return given;
     }
 
-    const design = ships.designs[i]!;
     const approach = ships.doctrines[i]!.approach;
     const standing = ships.standing[i]!;
     const source = ships.salvaging[i]!;
@@ -129,7 +128,8 @@ export function effectiveOrder(ships: Ships, i: number): Order | undefined {
     // 1,073: the station it is holding is a third of the way inside the ship,
     // so it flies into it, and no amount of keeping clear can save a craft
     // whose orders are to be there.
-    const band = holdBand(approach, design.reach, shipAim.sizeOf(ships, target));
+    // As far as its guns will fire at what they are aimed at, which for guns minding what they hit is a part.
+    const band = holdBand(approach, shipAim.reachAt(ships, i, target), shipAim.sizeOf(ships, target));
     standing.minRange = band.min;
     standing.maxRange = band.max;
     if (ships.ramming[i] !== target && shipDecide.rams(ships, i, target)) ships.ramming[i] = target;
@@ -226,7 +226,7 @@ export function liveBand(ships: Ships, i: number, order: Order): void {
     const approach = ships.doctrines[i]!.approach;
     order.approachSpeed = order.speed ?? approach.approachSpeed;
     if (order.ram || order.defend === true || order.target === NO_TARGET || ships.alive[order.target] !== 1) return;
-    const band = holdBand(approach, ships.designs[i]!.reach, ships.designs[order.target]!.radius, order.distance);
+    const band = holdBand(approach, shipAim.reachAt(ships, i, order.target), ships.designs[order.target]!.radius, order.distance);
     order.minRange = band.min;
     order.maxRange = band.max;
 }
