@@ -1117,7 +1117,7 @@ export class Ships3D {
         this.sun.color = new Color(light.colour);
         // Lambert in three.js is divided by π, and a top facing up takes the light at a slant.
         this.sun.intensity = (Math.PI * (1 - light.ambient)) / toward.z;
-        this.ambient.color = new Color(light.colour);
+        this.ambient.color = new Color(light.ambientColour ?? light.colour);
         this.ambient.intensity = Math.PI * light.ambient;
         // The shadows' map over what is in view, square on to the light.
         const cx = (seen.minX + seen.maxX) / 2;

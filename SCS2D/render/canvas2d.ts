@@ -51,7 +51,7 @@ import {
 } from "../sim/index.js";
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
-import { fighterHeight, THICK_SHADOW_M, type Light } from "./light.js";
+import { fighterHeight, shadowTint, THICK_SHADOW_M, type Light } from "./light.js";
 import { RoundedParts, type Level } from "./roundedLights.js";
 import {
     BEVEL_DARK,
@@ -1410,10 +1410,10 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
     const poseAgo = tracked ? (ago: number, into: Pose): boolean => poses.at(ship.body, ship.serial, ago, into) : undefined;
     const [r, g, b] = rgba(light === undefined ? LEAK : litColour(LEAK, light.colour));
     const tint = (r << 16) | (g << 8) | b;
-    // In a shadow, only the light's ambient share, as the hull there is.
+    // In a shadow, only the ambient light, as the hull there is.
     const shaded = light !== undefined && overshadowed.set(ship, light);
-    const dim = light?.ambient ?? 1;
-    const shadowTint = (Math.round(r * dim) << 16) | (Math.round(g * dim) << 8) | Math.round(b * dim);
+    const [dr, dg, db] = light === undefined ? [1, 1, 1] : shadowTint(light);
+    const shadowTinted = (Math.round(r * dr) << 16) | (Math.round(g * dg) << 8) | Math.round(b * db);
     const c = Math.cos(ship.angle);
     const s = Math.sin(ship.angle);
     const inShadow = (p: Puff): boolean => {
@@ -1456,7 +1456,7 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
             tankFills,
             puff,
             (p) => {
-                const base = shaded && inShadow(p) ? shadowTint : tint;
+                const base = shaded && inShadow(p) ? shadowTinted : tint;
                 // In the world, for the light there: set out from a past pose it already is.
                 const x = tracked ? p.x : ship.x + p.x * c - p.y * s;
                 const y = tracked ? p.y : ship.y + p.x * s + p.y * c;

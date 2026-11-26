@@ -44,8 +44,31 @@ export const LIGHTS = {
 const MOST_AMBIENT = 0.8;
 /** How far a drawn light's tint is from white at most, as HSV saturation. */
 const MOST_TINT = 0.5;
+/** How far an ambient light's tint is from white at most: deeper than the sun's, as a nebula's glow may be. */
+const MOST_AMBIENT_TINT = 0.7;
 /** How dim a drawn light is at least, as HSV value. */
 const LEAST_BRIGHTNESS = 0.55;
+/** How dim the sun wanders at least: never so dark that the ships cannot be seen by it. */
+const LEAST_WANDERED_BRIGHTNESS = 0.1;
+/** How long shadows fall, as `Light.slant`: from a sun well up to one well down, never overhead or on the horizon. */
+const LEAST_SLANT = 0.4;
+const MOST_SLANT = 1.4;
+
+/**
+ * A skirmish's light as it stands, in the terms it wanders in: the sun's
+ * bearing, height, hue, tint and brightness, and the ambient light's hue, tint
+ * and strength. Hues are 0 to 6 round the wheel.
+ */
+export interface Lighting {
+    readonly from: number;
+    readonly slant: number;
+    readonly hue: number;
+    readonly tint: number;
+    readonly brightness: number;
+    readonly ambient: number;
+    readonly ambientHue: number;
+    readonly ambientTint: number;
+}
 
 /**
  * The light a skirmish round is seen in, drawn from its seed, so a round
@@ -61,6 +84,54 @@ export function roundLight(seed: number, scale = 1): Light {
     const ambient = MOST_AMBIENT * draw.nextRange(0, 1) ** 2 * scale;
     const brightness = math.min(1, draw.nextRange(LEAST_BRIGHTNESS, 1) * scale);
     return { from, colour: hsvHex(hue, tint, brightness), ambient: math.min(1, ambient) };
+}
+
+/**
+ * The lighting a skirmish starts in, drawn from its seed: the light
+ * `roundLight` draws, with the ambient light the sun's own colour, as there.
+ */
+export function startLighting(seed: number): Lighting {
+    const draw = new Rng(seed ^ 0x6c6974);
+    const from = draw.nextRange(0, math.TAU);
+    const hue = draw.nextRange(0, 6);
+    const tint = draw.nextRange(0, MOST_TINT);
+    const ambient = MOST_AMBIENT * draw.nextRange(0, 1) ** 2;
+    const brightness = draw.nextRange(LEAST_BRIGHTNESS, 1);
+    return { from, slant: 1, hue, tint, brightness, ambient: ambient * brightness, ambientHue: hue, ambientTint: tint };
+}
+
+/**
+ * The lighting moved a random step from `lighting`: the sun turned, raised or
+ * lowered, tinted and dimmed or brightened a little, and the ambient light
+ * likewise, so a skirmish's light wanders rather than jumping. Each stays in
+ * its range: the sun no dimmer than `LEAST_WANDERED_BRIGHTNESS` nor further
+ * from overhead than its slant allows, the ambient light as dark as black.
+ */
+export function wander(lighting: Lighting, draw: Rng): Lighting {
+    const step = (value: number, by: number, least: number, most: number): number =>
+        math.min(most, math.max(least, value + draw.nextRange(-by, by)));
+    const turn = (hue: number, by: number): number => (((hue + draw.nextRange(-by, by)) % 6) + 6) % 6;
+    return {
+        from: (((lighting.from + draw.nextRange(-0.6, 0.6)) % math.TAU) + math.TAU) % math.TAU,
+        slant: step(lighting.slant, 0.25, LEAST_SLANT, MOST_SLANT),
+        hue: turn(lighting.hue, 0.5),
+        tint: step(lighting.tint, 0.12, 0, MOST_TINT),
+        brightness: step(lighting.brightness, 0.15, LEAST_WANDERED_BRIGHTNESS, 1),
+        ambient: step(lighting.ambient, 0.1, 0, MOST_AMBIENT),
+        ambientHue: turn(lighting.ambientHue, 0.8),
+        ambientTint: step(lighting.ambientTint, 0.15, 0, MOST_AMBIENT_TINT),
+    };
+}
+
+/** The light `lighting` is seen as, `scale` times as bright, sun and shadows alike. */
+export function lightOf(lighting: Lighting, scale = 1): Light {
+    return {
+        from: lighting.from,
+        colour: hsvHex(lighting.hue, lighting.tint, math.min(1, lighting.brightness * scale)),
+        ambient: math.min(1, lighting.ambient * scale),
+        ambientColour: hsvHex(lighting.ambientHue, lighting.ambientTint, 1),
+        slant: lighting.slant,
+    };
 }
 
 /** A colour of `hue` (0 to 6 round the wheel), `tint` saturation and `brightness` value, as CSS hex. */

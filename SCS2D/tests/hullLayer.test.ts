@@ -1,11 +1,11 @@
 import { BEVEL_QUAD_STRIDE } from "../render/bevelLighting.js";
 import { describe, expect, it } from "vitest";
-import type { AlphaFilter, Filter, Graphics } from "pixi.js";
+import type { Filter, Graphics } from "pixi.js";
 import { capture, isDomed, Snapshot } from "../sim/index.js";
 import { duel } from "../scenarios/duel.js";
 import { asteroidField } from "../scenarios/asteroidField.js";
 import { starWars } from "../scenarios/starWars.js";
-import { blockShadow, HullLayer } from "../render/hullLayer.js";
+import { blockShadow, HullLayer, type Shade } from "../render/hullLayer.js";
 import {
     BUILDER_LIGHT,
     DEFAULT_LIGHT,
@@ -21,7 +21,16 @@ import {
 import { isFighterModule } from "../render/moduleFills.js";
 
 /** A layer whose shadows are darkened through a stand-in, as Node cannot build a filter's shader. */
-const layerOf = (): HullLayer => new HullLayer(() => ({ alpha: 1 }) as AlphaFilter);
+/** A shade that keeps the tint it was last given, without a browser to build a filter in. */
+const stubShade = (): Shade & { tinted: number[] } => {
+    const shade = {
+        filter: {} as Filter,
+        tinted: [] as number[],
+        tint: (r: number, g: number, b: number) => void (shade.tinted = [r, g, b]),
+    };
+    return shade;
+};
+const layerOf = (): HullLayer => new HullLayer(stubShade);
 
 describe("the Pixi hull layer", () => {
     // Capital ships with thick modules, and fighters.
@@ -162,7 +171,7 @@ describe("the Pixi hull layer", () => {
         expect(layer.thickShadows.layer.mask).toBe(layer.thinHull.container);
         expect(layer.fighterShadows.container.mask).toBe(layer.hull.container);
         // What is in shadow keeps only the ambient share; what is lit takes the light's colour.
-        expect((layer.thickShadows.layer.filters as AlphaFilter[])[0]!.alpha).toBeCloseTo(0.6);
+        for (const k of [0, 1, 2]) expect((layer.thickShadows.shade as ReturnType<typeof stubShade>).tinted[k]).toBeCloseTo(0.4);
         expect(layer.thin.container.tint).toBe(0xffd0a0);
     });
 
