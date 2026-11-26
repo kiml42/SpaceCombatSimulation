@@ -13,6 +13,7 @@ import {
     type WellSpec,
     type MapSettings,
     schedule,
+    middleRock,
     type Yard,
 } from "../sim/index.js";
 import { addCapability, EFFECTS, workingShare } from "./capability.js";
@@ -419,6 +420,9 @@ function ringRadius(
     let radius = settings.radius;
     if (placed.length > 1) radius = math.max(radius, (first + second) / (2 * math.sin(halfGap)));
     if (settings.goal !== null) radius = math.max(radius, first + settings.goal.size);
+    // Clear of a rock in the middle, where the map puts one.
+    const rock = middleRock(settings.map, settings.seed);
+    if (rock !== null) radius = math.max(radius, first + rock.radius + math.length(rock.x, rock.y));
     return radius;
 }
 
