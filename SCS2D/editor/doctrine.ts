@@ -137,6 +137,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
         step: 0.1,
     },
     {
+        field: "escortCrowding",
+        label: "spread out",
+        hint: "How much each other ship already covering a friend counts against covering it too, so escorts spread over several friends. 0 ignores them",
+        step: 1,
+    },
+    {
         field: "guardRange",
         label: "screens within",
         hint: "How near its charge an enemy must be, as a share of its reach from there, for it to screen its charge first rather than fight first. Screening, it stations on its band where it would fight from; fighting, it keeps its range and closes on its charge only sideways",
@@ -635,28 +641,32 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                 title: "Escorting",
                 entries: [
                     entry("targeting", "escortWeight"),
-                    ...(["escortMinRadii", "escortRadii", "escort", "escortInner", "guardRange"] as const).map((field) =>
+                    ...(["escortMinRadii", "escortCrowding", "escortRadii", "escort", "escortInner", "guardRange"] as const).map((field) =>
                         entry("approach", field, {
                             // Nothing about escorting matters to a ship that never escorts.
                             shown: (v) => v.targeting.escortWeight > 0,
                             absolute: (v, ship) =>
-                                field === "escortMinRadii"
-                                    ? v.approach.escortMinRadii > 0
-                                        ? `covers friends of ${metres(v.approach.escortMinRadii * ship.radius)} radius or more`
-                                        : "covers friends of any size"
-                                    : field === "escortRadii"
-                                      ? `${metres(v.approach.escortRadii * ship.radius)} off the skin of a consort its own size`
-                                      : field === "guardRange"
-                                        ? ship.reach > 0
-                                            ? `screens while an enemy is within ${metres(v.approach.guardRange * ship.reach)} of its charge`
-                                            : "always screens: it has no guns"
-                                        : field === "escortInner"
-                                          ? v.approach.escortInner > 0
-                                              ? `${Math.round(Math.min(1, v.approach.escortInner) * 100)}% of the way out across its band`
-                                              : "no inside edge: as close as keeping clear lets it"
-                                          : ship.reach > 0
-                                            ? `no further than ${metres(v.approach.escort * ship.reach)}`
-                                            : "no cap: it has no guns",
+                                field === "escortCrowding"
+                                    ? v.approach.escortCrowding > 0
+                                        ? `each other escort counts ${v.approach.escortCrowding} against a friend`
+                                        : "goes with the crowd"
+                                    : field === "escortMinRadii"
+                                      ? v.approach.escortMinRadii > 0
+                                          ? `covers friends of ${metres(v.approach.escortMinRadii * ship.radius)} radius or more`
+                                          : "covers friends of any size"
+                                      : field === "escortRadii"
+                                        ? `${metres(v.approach.escortRadii * ship.radius)} off the skin of a consort its own size`
+                                        : field === "guardRange"
+                                          ? ship.reach > 0
+                                              ? `screens while an enemy is within ${metres(v.approach.guardRange * ship.reach)} of its charge`
+                                              : "always screens: it has no guns"
+                                          : field === "escortInner"
+                                            ? v.approach.escortInner > 0
+                                                ? `${Math.round(Math.min(1, v.approach.escortInner) * 100)}% of the way out across its band`
+                                                : "no inside edge: as close as keeping clear lets it"
+                                            : ship.reach > 0
+                                              ? `no further than ${metres(v.approach.escort * ship.reach)}`
+                                              : "no cap: it has no guns",
                         }),
                     ),
                 ],
