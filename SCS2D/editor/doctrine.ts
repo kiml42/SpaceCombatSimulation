@@ -98,6 +98,12 @@ const TARGETING_ROWS: readonly DoctrineRow[] = [
         step: 10,
     },
     {
+        field: "swarmWeight",
+        label: "among a swarm",
+        hint: "How much the other enemies near a ship count towards a mount picking it, per hundred: a miss at one ship of a swarm may hit the next, and a miss near a friend may hit the friend. 0 picks by the ship alone",
+        step: 10,
+    },
+    {
         field: "fireRange",
         label: "fires within",
         hint: "How far out it fires, as a multiple of how far its shot is worth taking: above 1 spends shells on long odds, below 1 saves them for a sure thing",
@@ -893,6 +899,7 @@ export const MOUNT_SECTIONS: readonly DoctrineSection[] = [
                 ]),
             },
             { title: "What size", entries: [entry("mount", "massWeight"), sizeWanted("mount")] },
+            { title: "In a swarm", entries: [entry("mount", "swarmWeight")] },
         ],
     },
     {
