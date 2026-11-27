@@ -2,7 +2,7 @@ import { styled } from "@linaria/react";
 import { useEffect, useState } from "react";
 import { useSampled } from "~/features/battle/useSampled";
 import { useLibrary } from "~/features/storage/useLibrary";
-import { fieldMin, MOUNT_SECTIONS, SHIP_SECTIONS, type DoctrineEntry } from "~/editor/doctrine";
+import { fieldRange, MOUNT_SECTIONS, SHIP_SECTIONS, type DoctrineEntry } from "~/editor/doctrine";
 import { keyOf, mountsOf, shared, slotsOf, told, valuesOf, type BuildSlot } from "~/editor/doctrineParts";
 import type { BattleView } from "~/host/battleView";
 import { choices, type Choice } from "~/host/designChoices";
@@ -224,6 +224,7 @@ function CommitBox({
     value,
     step,
     min,
+    max,
     onCommit,
     label,
     field,
@@ -231,6 +232,7 @@ function CommitBox({
     readonly value: number | undefined;
     readonly step: number;
     readonly min?: number | undefined;
+    readonly max?: number | undefined;
     readonly onCommit: (typed: string) => void;
     readonly label: string;
     /** The doctrine field it tells, where it tells one. */
@@ -250,6 +252,7 @@ function CommitBox({
             data-field={field}
             step={step}
             min={min}
+            max={max}
             defaultValue={shown}
             placeholder={value === undefined ? "mixed" : ""}
             onBlur={(event) => commit(event.target)}
@@ -271,6 +274,10 @@ function DoctrineBox({
 }) {
     const value = shared(ships.flatMap((ship) => valuesOf(ship, part, row))) ?? undefined;
     const says = ships.some((ship) => told(ship.override, part, row));
+    // Never past what any of the ships holds for its partner, so no band is crossed.
+    const range = fieldRange(row.field, (field) =>
+        part === "ship" ? ships.flatMap((ship) => valuesOf(ship, part, { ...row, field })) : [],
+    );
     return (
         <Row title={row.hint} data-told={says}>
             <span>{row.label}</span>
@@ -290,7 +297,8 @@ function DoctrineBox({
                 field={row.field}
                 value={value}
                 step={row.step}
-                min={fieldMin(row.field)}
+                min={range.min}
+                max={range.max}
                 onCommit={(typed) => onIssue(row.field, typed === "" ? null : Number(typed))}
             />
         </Row>

@@ -4,6 +4,7 @@ import {
     defaultTargeting,
     holdBand,
     NON_NEGATIVE_FIELDS,
+    ORDERED_FIELDS,
     TARGETING_FIELDS,
     type Approach,
     type Doctrine,
@@ -39,6 +40,29 @@ export interface DoctrineRow {
 
 /** The least a field's box takes, where it has one. */
 export const fieldMin = (field: string): number | undefined => (NON_NEGATIVE_FIELDS.includes(field) ? 0 : undefined);
+
+/** What a field's box takes: its own floor, and never past its partner in `ORDERED_FIELDS`, given every value the partner holds. */
+export function fieldRange(
+    field: string,
+    partner: (field: string) => readonly number[],
+): { min: number | undefined; max: number | undefined } {
+    let min = fieldMin(field);
+    let max: number | undefined;
+    for (const [lower, upper] of ORDERED_FIELDS) {
+        const held = partner(field === lower ? upper : lower);
+        if (held.length === 0) continue;
+        if (field === lower) max = Math.min(...held);
+        else if (field === upper) min = Math.max(min ?? -Infinity, ...held);
+    }
+    return { min, max };
+}
+
+/** `value` brought within `range`. */
+export function withinRange(value: number, range: { min: number | undefined; max: number | undefined }): number {
+    if (range.max !== undefined && value > range.max) return range.max;
+    if (range.min !== undefined && value < range.min) return range.min;
+    return value;
+}
 
 const TARGETING_ROWS: readonly DoctrineRow[] = [
     { field: "proximityWeight", label: "near", hint: "Prefer what is close, measured against its own reach", step: 10 },

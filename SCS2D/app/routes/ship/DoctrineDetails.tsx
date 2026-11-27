@@ -1,6 +1,7 @@
 import { styled } from "@linaria/react";
 import {
-    fieldMin,
+    fieldRange,
+    withinRange,
     kindName,
     mountDefault,
     mountSummary,
@@ -107,6 +108,11 @@ export interface DoctrineOpen {
  * above it has made it mean nothing. Empty is the default, shown as the
  * placeholder: what the box will do if left alone.
  */
+/** What a row's partner in its band holds, by field: nothing for a field with none. */
+function partnerIn(values: DoctrineValues, row: DoctrineEntry): (field: string) => number[] {
+    return (field) => (row.half === "approach" ? [(values.approach as unknown as Record<string, number>)[field]!] : []);
+}
+
 function DoctrineBoxes({
     sections,
     values,
@@ -138,6 +144,7 @@ function DoctrineBoxes({
                             const value = held(row);
                             const shown = value === undefined || value === fallback(row) ? "" : String(value);
                             const absolute = context === null ? "" : (row.absolute?.(values, context) ?? "");
+                            const range = fieldRange(row.field, partnerIn(values, row));
                             return (
                                 <DoctrineField key={row.field} title={row.hint}>
                                     <label htmlFor={id}>{row.label}</label>
@@ -145,7 +152,8 @@ function DoctrineBoxes({
                                         id={id}
                                         type="number"
                                         step={row.step}
-                                        min={fieldMin(row.field)}
+                                        min={range.min}
+                                        max={range.max}
                                         title={row.hint}
                                         placeholder={String(fallback(row))}
                                         stepFrom={fallback(row)}
@@ -317,9 +325,14 @@ export function DoctrineDetails({
                     fallback={(row) => shipDefault(row.half as "targeting" | "approach", row.field)}
                     onStart={editing.endGesture}
                     onType={(row, typed) => {
-                        const value = typedValue(typed);
+                        let value = typedValue(typed);
                         if (value === undefined) return;
-                        const changed = withShipField(doc.blueprint.doctrine, row.half as "targeting" | "approach", row.field, value);
+                        // Never past its partner, so the least and most of a band cannot cross; nor emptied to a default that would.
+                        const half = row.half as "targeting" | "approach";
+                        const meant = value ?? shipDefault(half, row.field);
+                        const kept = withinRange(meant, fieldRange(row.field, partnerIn(doctrine ?? DEFAULT_DOCTRINE, row)));
+                        if (kept !== meant) value = kept;
+                        const changed = withShipField(doc.blueprint.doctrine, half, row.field, value);
                         const next = { ...doc.blueprint };
                         if (changed === undefined) delete next.doctrine;
                         else next.doctrine = changed;

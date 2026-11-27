@@ -12,6 +12,8 @@ import {
 } from "../sim/index.js";
 import { DINKY } from "../scenarios/blueprints.js";
 import {
+    fieldRange,
+    withinRange,
     kindName,
     mountChanges,
     mountDefault,
@@ -228,5 +230,29 @@ describe("what the shipped fleet says now", () => {
         const design = compileBlueprint(DINKY);
         expect(design.turrets[0]!.targeting.engineWeight).toBeGreaterThan(defaultTargeting("hullGun").engineWeight);
         expect(design.turrets[0]!.targeting.engineWeight).toBeGreaterThan(design.turrets[0]!.targeting.gunWeight);
+    });
+});
+
+describe("a band's least and most", () => {
+    const held =
+        (values: Record<string, number[]>) =>
+        (field: string): number[] =>
+            values[field] ?? [];
+
+    it("keep each box from passing the other", () => {
+        const band = held({ tangentialMin: [30], tangentialMax: [80] });
+        expect(fieldRange("tangentialMin", band)).toEqual({ min: 0, max: 80 });
+        expect(fieldRange("tangentialMax", band)).toEqual({ min: 30, max: undefined });
+        expect(withinRange(120, fieldRange("tangentialMin", band))).toBe(80);
+        expect(withinRange(10, fieldRange("tangentialMax", band))).toBe(30);
+        expect(withinRange(50, fieldRange("tangentialMin", band))).toBe(50);
+    });
+
+    it("hold every ship's band at once, and leave a field with no partner alone", () => {
+        const fleet = held({ tangentialMin: [10, 40], tangentialMax: [60, 90] });
+        expect(fieldRange("tangentialMin", fleet).max).toBe(60);
+        expect(fieldRange("tangentialMax", fleet).min).toBe(40);
+        expect(fieldRange("standoff", fleet)).toEqual({ min: undefined, max: undefined });
+        expect(fieldRange("proximityWeight", fleet)).toEqual({ min: undefined, max: undefined });
     });
 });
