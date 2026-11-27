@@ -3,18 +3,20 @@ import { mostRelevant, standings, type ShipStanding } from "../scenarios/decisio
 import { Unarmed } from "../sim/index.js";
 
 /** Ships named one way and painted another, as a piece broken off a ship is. */
-function stood(ships: readonly { name: string; cores: readonly (string | null)[] }[]): string[] {
+function stood(ships: readonly { name: string; cores: readonly (string | null)[]; gone?: boolean }[]): string[] {
     const fake = {
         highWater: ships.length,
         teamOf: () => 1,
         isDerelict: () => false,
-        isAlive: () => true,
+        isAlive: (i: number) => ships[i]!.gone !== true,
         nameOf: (i: number) => ships[i]!.name,
         coreNames: (i: number, out: (string | null)[]) => {
+            // As a ship gone has nothing left to read its paint from.
+            if (ships[i]!.gone === true) throw new Error("no hull");
             out.length = 0;
             out.push(...ships[i]!.cores);
         },
-        designs: ships.map(() => ({ name: "Gunship" })),
+        designs: ships.map((ship) => (ship.gone === true ? null : { name: "Gunship" })),
         whyUnarmed: () => 0,
         whyImmobile: () => 0,
         roundsAboard: () => 0,
@@ -32,6 +34,15 @@ describe("a ship in the standings", () => {
 
     it("keeps its own name where no core of its is painted", () => {
         expect(stood([{ name: "5.1", cores: [null, null] }])).toEqual(["5.1"]);
+    });
+
+    it("leaves out a ship that is gone, which has no hull or design left to name it by", () => {
+        expect(
+            stood([
+                { name: "6", cores: [], gone: true },
+                { name: "7", cores: ["7"] },
+            ]),
+        ).toEqual(["7"]);
     });
 });
 

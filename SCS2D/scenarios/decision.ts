@@ -293,7 +293,7 @@ export interface ShipStanding {
     readonly nearest: number;
 }
 
-/** Every ship of the first `sides` sides still in the battle, as it stands now: broken-off pieces left out. */
+/** Every ship of the first `sides` sides still in the battle, as it stands now: broken-off pieces and ships gone left out. */
 export function standings(
     battle: { readonly ships: Ships; readonly world: { readonly tick: number; readonly dt: number } },
     sides: number,
@@ -303,7 +303,8 @@ export function standings(
     const painted: (string | null)[] = [];
     for (let i = 0; i < ships.highWater; i++) {
         const team = ships.teamOf(i);
-        if (team === NEUTRAL_TEAM || team >= sides || ships.isDerelict(i)) continue;
+        // A ship gone has nothing left to say of it, nor any design to name.
+        if (team === NEUTRAL_TEAM || team >= sides || ships.isDerelict(i) || !ships.isAlive(i)) continue;
         const fired = ships.lastFired(i);
         out.push({
             team,
@@ -313,7 +314,7 @@ export function standings(
             immobile: ships.whyImmobile(i),
             rounds: ships.roundsAboard(i),
             quietFor: fired < 0 ? null : (world.tick - fired) * world.dt,
-            nearest: ships.isAlive(i) ? ships.nearestEnemy(i) : Infinity,
+            nearest: ships.nearestEnemy(i),
         });
     }
     return out;
