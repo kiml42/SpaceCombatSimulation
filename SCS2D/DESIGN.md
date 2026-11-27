@@ -891,10 +891,15 @@ inside any one file is not contiguous.
   With no nozzle there is nothing for a ring to stand on, and a magnetic engine with none is a plain one. Its
   field holds the flame together past the ring, which a
   bell's walls cannot: it reaches `MAGNETIC_PLUME_REACH` (1.5) times as far as the same bell's would aimed
-  perfectly. That makes a short bell, and the flow and mass it saves, worth having. The ring draws `MAGNETIC_POWER_PER_EXIT_AREA`
-  (0.2 MW/m²) at full throttle, as thrust's claim on charge: a fighter's core runs its main engine's ring,
-  and a capital's mains want generators of their own. Short of power the jet leaves aimed only as well as
-  the bell aims it. The ring and the gap before it take the bell's last three fifths (`RING_SHARE`), so the bell
+  perfectly. That makes a short bell, and the flow and mass it saves, worth having. The field is the nozzle,
+  so a magnetic engine keeps the widest throat (`MOST_THROAT_SHARE`) however long its nozzle, for a short bell's
+  flow, and its field carries on expanding the jet past the exit as a wall at the bell's slope would over
+  `MAGNETIC_BELL_REACH` times its length: a long magnetic nozzle has a long bell's exhaust speed and more, at a
+  short one's thrust. The ring draws `MAGNETIC_POWER_PER_EXIT_AREA`
+  (0.2 MW/m²) for each exit width of nozzle at full throttle, as thrust's claim on charge, so it is the length
+  that costs: a fighter's core runs its main engine's ring,
+  and a capital's mains want generators of their own. Short of power the jet leaves aimed and expanded only as
+  well as the bell does it. The ring and the gap before it take the bell's last three fifths (`RING_SHARE`), so the bell
   proper is short, and thin bars beside each nozzle carry the ring, running back past the bell and the chamber
   to the machinery block, or to the engine's front where it has none, and taking nothing off its exit. So
   unpowered it aims a little worse than a plain bell of the same length. The ring weighs

@@ -11,6 +11,7 @@ import {
     MAGNETIC_PLUME_REACH,
     PRESSURE_FED_BELL,
     MAGNETIC_POWER_PER_EXIT_AREA,
+    MOST_THROAT_SHARE,
     moduleStats,
     parseBlueprint,
     serialiseBlueprint,
@@ -73,7 +74,11 @@ describe("a magnetic nozzle", () => {
         // The same fuel through each square metre of exit, thrown straighter.
         const flow = (stats: typeof plain, spec: ModuleSpec): number => stats.thrust / stats.exhaustVelocity / exit(spec);
         expect(flow(magnetic, stubby({ magnetic: true })) / flow(plain, stubby())).toBeCloseTo(1, 1);
-        expect(magnetic.ringPower).toBeCloseTo(MAGNETIC_POWER_PER_EXIT_AREA * exit(stubby({ magnetic: true })), 3);
+        const g = engineGeometry(stubby({ magnetic: true }));
+        expect(magnetic.ringPower).toBeCloseTo(
+            MAGNETIC_POWER_PER_EXIT_AREA * exit(stubby({ magnetic: true })) * (g.nozzleLength / g.exitWidth),
+            3,
+        );
         expect(magnetic.mass).toBeGreaterThan(plain.mass * 0.9);
         expect(plain.ringPower).toBe(0);
     });
@@ -83,7 +88,10 @@ describe("a magnetic nozzle", () => {
         const plain = moduleStats(long);
         const magnetic = moduleStats({ ...long, magnetic: true });
         const ring = MAGNETIC_MASS_PER_EXIT_AREA * 2.2 * 2.2;
-        expect(magnetic.mass - plain.mass).toBeLessThan(ring * 0.25);
+        // Less the machinery, which a ring's wide throat feeds more gas.
+        const rest = (stats: typeof plain, spec: ModuleSpec): number =>
+            stats.mass - (stats.thrust / engineGeometry(spec).divergence) * ENGINE_MASS_PER_NEWTON;
+        expect(rest(magnetic, { ...long, magnetic: true }) - rest(plain, long)).toBeLessThan(ring * 0.5);
         // More bell, more sheet.
         expect(moduleStats({ ...long, nozzle: 2 }).mass).toBeLessThan(plain.mass);
         // A pressure-fed bell is bare sheet: a short block leaves no room for a pump.
@@ -115,13 +123,14 @@ describe("a magnetic nozzle", () => {
         expect(compileBlueprint(back).modules.some((m) => m.spec.magnetic === true)).toBe(true);
     });
 
-    it("pushes with only its bell's share of its powered aim when there is no power to run the ring", () => {
+    it("pushes with only its bell's share of its powered thrust when there is no power to run the ring", () => {
         // A Dinky has neither generator nor battery.
         const design = compileBlueprint(magnetised(DINKY));
         const throttles = burnt(magnetised(DINKY));
         design.engines.forEach((engine, t) => {
             const geometry = engineGeometry(design.modules[engine.module!]!.spec);
-            expect(throttles[t]).toBeCloseTo(geometry.bellDivergence / geometry.divergence, 9);
+            expect(throttles[t]).toBeCloseTo(geometry.unpowered, 9);
+            expect(geometry.unpowered).toBeLessThan(geometry.bellDivergence / geometry.divergence);
         });
     });
 
@@ -153,5 +162,28 @@ describe("a magnetic nozzle", () => {
         expect(magnetic.exhaustVelocity).toBe(plain.exhaustVelocity);
         expect(magnetic.mass).toBe(plain.mass);
         expect(engineGeometry(stubby({ nozzle: 0, magnetic: true }))).toEqual(engineGeometry(stubby({ nozzle: 0 })));
+    });
+
+    it("keeps the widest throat however long it is, so its field's length buys speed without costing flow", () => {
+        let speed = 0;
+        let thrust = 0;
+        let power = 0;
+        for (const nozzle of [0.1, 0.2, 0.4, 0.8, 1.5, 3]) {
+            const spec = stubby({ nozzle, magnetic: true });
+            const g = engineGeometry(spec);
+            const stats = moduleStats(spec);
+            expect(g.throatWidth / g.exitWidth).toBeCloseTo(MOST_THROAT_SHARE, 9);
+            expect(stats.exhaustVelocity).toBeGreaterThan(speed);
+            expect(stats.thrust).toBeGreaterThan(thrust);
+            // Power in proportion to the field's length.
+            expect(stats.ringPower / nozzle).toBeCloseTo(power === 0 ? stats.ringPower / nozzle : power, 3);
+            speed = stats.exhaustVelocity;
+            thrust = stats.thrust;
+            power = stats.ringPower / nozzle;
+        }
+        // A long one outruns the longest plain bell.
+        expect(moduleStats(stubby({ nozzle: 1.5, magnetic: true })).exhaustVelocity).toBeGreaterThan(
+            moduleStats(stubby({ nozzle: 3 })).exhaustVelocity,
+        );
     });
 });

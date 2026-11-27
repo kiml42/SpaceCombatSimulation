@@ -812,8 +812,9 @@ export const MAGNETIC_PLUME_REACH = 1.5;
 
 /**
  * Power a magnetic nozzle draws at full throttle, watts per square metre of
- * exit. Set so a core's generator runs a fighter's ring, and a capital's
- * mains want generators of their own.
+ * exit, for a nozzle one exit width long; in proportion to its length, as a
+ * longer field takes more coil. Set so a core's generator runs a fighter's
+ * ring, and a capital's mains want generators of their own.
  */
 export const MAGNETIC_POWER_PER_EXIT_AREA = 2e5;
 
@@ -2502,8 +2503,10 @@ export interface EngineGeometry {
     bellDivergence: number;
     /** Length of the bell proper, metres: short of `nozzleLength` by a magnetic nozzle's ring and gap. */
     bellLength: number;
-    /** Exit area over throat area: how far the bell expands its gas, which `expansion` turns into exhaust speed. */
+    /** Exit area over throat area: how far the bell expands its gas, which `expansion` turns into exhaust speed; through a powered magnetic nozzle, how far its field does. */
     areaRatio: number;
+    /** The share of its thrust a magnetic engine keeps with its ring unpowered, aimed and expanded by its bell alone; 1 for any other engine. */
+    unpowered: number;
 }
 
 /** Whether `magnetic` means anything on this kind. */
@@ -2537,7 +2540,12 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
     const narrowest = max(exitWidth * LEAST_THROAT_SHARE, 3 * skin);
     const widest = exitWidth * MOST_THROAT_SHARE;
     const narrowed = exitWidth - 2 * nozzleLength * NOZZLE_WALL_SLOPE;
-    const throatWidth = narrowed > widest ? widest : narrowed < narrowest ? min(narrowest, widest) : narrowed;
+    // A ring's field is the nozzle, so its throat stays widest: the field does the expanding the walls would.
+    const throatWidth = magnetic ? widest : narrowed > widest ? widest : narrowed < narrowest ? min(narrowest, widest) : narrowed;
+    const bellRatio = (exitWidth / throatWidth) * (exitWidth / throatWidth);
+    // Past the exit, as a wall at the bell's slope would over `MAGNETIC_BELL_REACH` times the nozzle's length.
+    const fieldExit = exitWidth + 2 * nozzleLength * MAGNETIC_BELL_REACH * NOZZLE_WALL_SLOPE;
+    const areaRatio = magnetic ? (fieldExit / throatWidth) * (fieldExit / throatWidth) : bellRatio;
     // How far the wall has to travel sideways over the bell's length.
     const flare = (exitWidth - throatWidth) * 0.5;
     const halfAngle = atan2(flare, bell);
@@ -2545,6 +2553,9 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
     // zero rather than nearly so when there is no bell at all.
     const aimed = (length: number): number => (length > 0 ? length / sqrt(length * length + flare * flare) : 0);
     const axial = aimed(bell);
+    // A powered ring aims the jet as a plain bell `MAGNETIC_BELL_REACH` times the whole nozzle's length would.
+    const divergence = magnetic ? (1 + aimed(nozzleLength * MAGNETIC_BELL_REACH)) * 0.5 : (1 + axial) * 0.5;
+    const bellDivergence = (1 + axial) * 0.5;
     return {
         nozzles,
         share,
@@ -2555,11 +2566,11 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
         exitHeight,
         throatWidth,
         halfAngle,
-        // A powered ring aims the jet as a plain bell `MAGNETIC_BELL_REACH` times the whole nozzle's length would.
-        divergence: magnetic ? (1 + aimed(nozzleLength * MAGNETIC_BELL_REACH)) * 0.5 : (1 + axial) * 0.5,
-        bellDivergence: (1 + axial) * 0.5,
+        divergence,
+        bellDivergence,
         bellLength: bell,
-        areaRatio: (exitWidth / throatWidth) * (exitWidth / throatWidth),
+        areaRatio,
+        unpowered: magnetic ? (bellDivergence * expansion(bellRatio)) / (divergence * expansion(areaRatio)) : 1,
     };
 }
 
@@ -4019,7 +4030,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         // The bell weighs its sheet, so a long one costs mass as well as flow.
         fittingMass += bellWallArea(engine) * BELL_MASS_PER_AREA * (isPressureFed(engine) ? PRESSURE_FED_BELL : 1);
         if (isMagnetic(spec)) {
-            ringPower = MAGNETIC_POWER_PER_EXIT_AREA * exitArea;
+            ringPower = MAGNETIC_POWER_PER_EXIT_AREA * exitArea * (engine.nozzleLength / engine.exitWidth);
             fittingMass += MAGNETIC_MASS_PER_EXIT_AREA * exitArea;
         }
     } else if (mount !== null) {
