@@ -268,7 +268,7 @@ export class Activity {
 /** How one ship stood when a battle was decided: what a defeat or a victory is explained by. */
 export interface ShipStanding {
     readonly team: number;
-    /** Which ship it is after its side's name (`Ships.nameOf`). */
+    /** Which ship it is after its side's name, as its cores are labelled in the picture: every one it carries. */
     readonly name: string;
     /** Its design's name. */
     readonly design: string;
@@ -291,13 +291,14 @@ export function standings(
 ): ShipStanding[] {
     const { ships, world } = battle;
     const out: ShipStanding[] = [];
+    const painted: (string | null)[] = [];
     for (let i = 0; i < ships.highWater; i++) {
         const team = ships.teamOf(i);
         if (team === NEUTRAL_TEAM || team >= sides || ships.isDerelict(i)) continue;
         const fired = ships.lastFired(i);
         out.push({
             team,
-            name: ships.nameOf(i),
+            name: labelOf(ships, i, painted),
             design: ships.designs[i]!.name,
             unarmed: ships.whyUnarmed(i),
             immobile: ships.whyImmobile(i),
@@ -307,4 +308,15 @@ export function standings(
         });
     }
     return out;
+}
+
+/**
+ * A ship's name as its hull shows it: the name painted on each core it carries,
+ * which a piece broken off keeps from the ship it came from. Its own name where
+ * none is painted.
+ */
+function labelOf(ships: Ships, i: number, painted: (string | null)[]): string {
+    ships.coreNames(i, painted);
+    const names = painted.filter((name): name is string => name !== null);
+    return names.length === 0 ? ships.nameOf(i) : names.join(", ");
 }
