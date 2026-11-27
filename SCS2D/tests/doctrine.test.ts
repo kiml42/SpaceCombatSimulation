@@ -12,6 +12,8 @@ import {
     blueprintFileProblem,
     compileBlueprint,
     doctrineProblem,
+    doctrineValueProblems,
+    blueprintProblem,
     doctrineUnread,
     look,
     parseBlueprint,
@@ -90,11 +92,33 @@ describe("a doctrine as written down", () => {
             aggression: 3,
             targeting: { aggression: 4 },
         });
-        expect(doctrineProblem({ targeting: { preferredMass: 0 } })).toMatch(/greater than zero/);
-        expect(doctrineProblem({ approach: { standoffRadii: -2 } })).toMatch(/greater than zero/);
-        expect(doctrineProblem({ approach: { accelerate: 0 } })).toMatch(/greater than zero/);
-        expect(doctrineProblem({ approach: { brake: 0 } })).toMatch(/greater than zero/);
         expect(doctrineProblem([])).toMatch(/object/);
+    });
+
+    it("reads a value out of range, and leaves it to the ship's validation", () => {
+        const with_ = (targeting: object, approach: object): Doctrine => ({
+            targeting: { ...DEFAULT_DOCTRINE.targeting, ...targeting },
+            approach: { ...DEFAULT_DOCTRINE.approach, ...approach },
+        });
+        expect(doctrineProblem({ targeting: { preferredMass: 0 } })).toBeNull();
+        expect(doctrineValueProblems(with_({ preferredMass: 0 }, {}))).toEqual([
+            expect.stringMatching(/preferredMass must be greater than zero/),
+        ]);
+        expect(doctrineValueProblems(with_({}, { standoffRadii: -2 }))[0]).toMatch(/greater than zero/);
+        expect(doctrineValueProblems(with_({}, { accelerate: 0 }))[0]).toMatch(/greater than zero/);
+        expect(doctrineValueProblems(with_({}, { brake: 0 }))[0]).toMatch(/greater than zero/);
+        expect(doctrineValueProblems(DEFAULT_DOCTRINE)).toEqual([]);
+
+        // A ship whose least sideways speed is above its most still opens, to be put right.
+        const crossed = { ...DINKY, doctrine: with_({}, { tangentialMin: 30, tangentialMax: 10 }) };
+        const opened = parseBlueprint(serialiseBlueprint(crossed));
+        expect(opened.doctrine?.approach.tangentialMin).toBe(30);
+        expect(blueprintProblem(opened)).toMatch(/tangentialMin \(30\) must be no more than tangentialMax \(10\)/);
+        // And so does a mount with a targeting override out of range.
+        const mount = DINKY.modules.findIndex((m) => "kind" in m && m.kind === "hullGun");
+        expect(mount).toBeGreaterThanOrEqual(0);
+        const modules = DINKY.modules.map((m, i) => (i === mount ? { ...m, targeting: { preferredMass: -1 } } : m));
+        expect(blueprintProblem(parseBlueprint(serialiseBlueprint({ ...DINKY, modules })))).toMatch(/targeting\.preferredMass/);
     });
 
     it("writes down only what it says differently from the default", () => {
