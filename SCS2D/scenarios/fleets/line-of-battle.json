@@ -91,7 +91,7 @@
               "angle": 180,
               "length": 4,
               "width": 4.5,
-              "nozzle": 0.8889,
+              "nozzle": 0.838,
               "thick": true
             }
           ]
@@ -552,7 +552,7 @@
           "length": 5,
           "width": 6,
           "barrels": 2,
-          "nozzle": 1.6667
+          "nozzle": 0.831
         },
         {
           "id": 3,
@@ -655,7 +655,7 @@
               "length": 0.4,
               "width": 0.2,
               "barrels": 1,
-              "nozzle": 1.75
+              "nozzle": 0.831
             },
             {
               "id": 10,

@@ -14,7 +14,8 @@
                     "angle": 180,
                     "length": 1.5,
                     "width": 3.5,
-                    "reinforcement": 2
+                    "reinforcement": 2,
+                    "nozzle": 0.836
                 }
             ]
         },

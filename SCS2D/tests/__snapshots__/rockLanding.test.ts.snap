@@ -36,17 +36,17 @@ exports[`Rock Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 
 exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
 {
-  "bumps": 29,
-  "crashes": 31,
+  "bumps": 1,
+  "crashes": 6,
   "landed": [
+    "stopped at 52.02 s",
+    "85.57 s",
     "not by 150 s",
-    "stopped at 61.83 s",
-    "stopped at 54.53 s",
-    "stopped at 55.53 s",
-    "stopped at 53.47 s",
-    "stopped at 126.25 s",
-    "stopped at 46.78 s",
     "not by 150 s",
+    "88.73 s",
+    "stopped at 107.00 s",
+    "stopped at 54.57 s",
+    "stopped at 65.77 s",
   ],
 }
 `;
@@ -54,50 +54,50 @@ exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
 exports[`Rock Landing > Raider, no main [4] 1`] = `
 {
   "bumps": 0,
-  "crashes": 3,
+  "crashes": 0,
   "landed": [
-    "95.92 s",
-    "117.13 s",
-    "63.73 s",
-    "90.85 s",
-    "64.68 s",
-    "89.98 s",
-    "65.78 s",
-    "80.58 s",
+    "109.38 s",
+    "81.00 s",
+    "107.38 s",
+    "81.03 s",
+    "111.32 s",
+    "82.62 s",
+    "82.87 s",
+    "82.22 s",
   ],
 }
 `;
 
 exports[`Rock Landing > Raider, one turn far weaker [1, 8] 1`] = `
 {
-  "bumps": 2,
-  "crashes": 9,
+  "bumps": 0,
+  "crashes": 2,
   "landed": [
-    "61.88 s",
-    "63.80 s",
-    "61.53 s",
-    "63.42 s",
-    "64.23 s",
-    "stopped at 111.80 s",
-    "not by 150 s",
-    "65.63 s",
+    "63.15 s",
+    "62.03 s",
+    "60.62 s",
+    "63.33 s",
+    "62.45 s",
+    "stopped at 61.50 s",
+    "63.05 s",
+    "63.28 s",
   ],
 }
 `;
 
 exports[`Rock Landing > Raider, one turn far weaker [3, 7] 1`] = `
 {
-  "bumps": 3,
-  "crashes": 10,
+  "bumps": 0,
+  "crashes": 1,
   "landed": [
-    "not by 150 s",
-    "58.70 s",
-    "60.25 s",
-    "63.13 s",
-    "64.27 s",
-    "stopped at 58.35 s",
-    "not by 150 s",
-    "not by 150 s",
+    "63.47 s",
+    "57.42 s",
+    "58.25 s",
+    "58.68 s",
+    "62.92 s",
+    "44.72 s",
+    "63.42 s",
+    "58.92 s",
   ],
 }
 `;
@@ -139,16 +139,16 @@ exports[`Rock Landing > Raider, pushes turn it [4, 8, 10] 1`] = `
 exports[`Rock Landing > Raider, undamaged 1`] = `
 {
   "bumps": 0,
-  "crashes": 0,
+  "crashes": 2,
   "landed": [
-    "29.22 s",
-    "35.12 s",
-    "29.02 s",
     "28.80 s",
-    "29.27 s",
+    "46.60 s",
+    "28.55 s",
+    "34.65 s",
+    "28.85 s",
+    "28.48 s",
     "28.93 s",
-    "29.37 s",
-    "28.88 s",
+    "34.80 s",
   ],
 }
 `;

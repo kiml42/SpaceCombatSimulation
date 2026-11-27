@@ -117,8 +117,8 @@ describe("icon shape", () => {
     const shape = (name: keyof typeof BLUEPRINTS) => iconShape(compileBlueprint(BLUEPRINTS[name]));
 
     it("is an arrowhead for a fighter", () => {
-        expect(shape("xWing")).toBe("arrow");
-        expect(shape("tie")).toBe("arrow");
+        expect(shape("dinky")).toBe("arrow");
+        expect(shape("kkv")).toBe("arrow");
     });
 
     it("is a square for a ship that pushes alike every way", () => {
