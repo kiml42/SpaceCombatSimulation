@@ -36,17 +36,17 @@ exports[`Rock Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 
 exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
 {
-  "bumps": 5,
-  "crashes": 8,
+  "bumps": 1,
+  "crashes": 6,
   "landed": [
-    "stopped at 57.75 s",
+    "stopped at 52.02 s",
+    "85.57 s",
     "not by 150 s",
-    "117.73 s",
-    "stopped at 63.55 s",
-    "stopped at 126.02 s",
-    "stopped at 110.07 s",
-    "stopped at 56.82 s",
-    "stopped at 110.53 s",
+    "not by 150 s",
+    "88.73 s",
+    "stopped at 107.00 s",
+    "stopped at 54.57 s",
+    "stopped at 65.77 s",
   ],
 }
 `;
@@ -56,14 +56,14 @@ exports[`Rock Landing > Raider, no main [4] 1`] = `
   "bumps": 0,
   "crashes": 0,
   "landed": [
-    "72.38 s",
-    "66.53 s",
-    "68.80 s",
-    "69.30 s",
-    "72.27 s",
-    "70.23 s",
-    "73.18 s",
-    "69.48 s",
+    "109.38 s",
+    "81.00 s",
+    "107.38 s",
+    "81.03 s",
+    "111.32 s",
+    "82.62 s",
+    "82.87 s",
+    "82.22 s",
   ],
 }
 `;
@@ -73,14 +73,14 @@ exports[`Rock Landing > Raider, one turn far weaker [1, 8] 1`] = `
   "bumps": 0,
   "crashes": 2,
   "landed": [
-    "55.18 s",
-    "64.53 s",
-    "40.28 s",
-    "67.03 s",
-    "56.48 s",
-    "stopped at 61.17 s",
-    "55.52 s",
-    "64.68 s",
+    "63.15 s",
+    "62.03 s",
+    "60.62 s",
+    "63.33 s",
+    "62.45 s",
+    "stopped at 61.50 s",
+    "63.05 s",
+    "63.28 s",
   ],
 }
 `;
@@ -88,16 +88,16 @@ exports[`Rock Landing > Raider, one turn far weaker [1, 8] 1`] = `
 exports[`Rock Landing > Raider, one turn far weaker [3, 7] 1`] = `
 {
   "bumps": 0,
-  "crashes": 0,
+  "crashes": 1,
   "landed": [
-    "66.18 s",
-    "59.85 s",
-    "37.52 s",
-    "63.83 s",
-    "64.27 s",
-    "64.35 s",
-    "66.12 s",
-    "63.87 s",
+    "63.47 s",
+    "57.42 s",
+    "58.25 s",
+    "58.68 s",
+    "62.92 s",
+    "44.72 s",
+    "63.42 s",
+    "58.92 s",
   ],
 }
 `;
@@ -139,16 +139,16 @@ exports[`Rock Landing > Raider, pushes turn it [4, 8, 10] 1`] = `
 exports[`Rock Landing > Raider, undamaged 1`] = `
 {
   "bumps": 0,
-  "crashes": 0,
+  "crashes": 2,
   "landed": [
-    "31.53 s",
-    "30.23 s",
-    "31.37 s",
-    "30.68 s",
-    "31.57 s",
-    "30.83 s",
-    "31.67 s",
-    "30.75 s",
+    "28.80 s",
+    "46.60 s",
+    "28.55 s",
+    "34.65 s",
+    "28.85 s",
+    "28.48 s",
+    "28.93 s",
+    "34.80 s",
   ],
 }
 `;

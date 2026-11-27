@@ -121,9 +121,9 @@ describe("match", () => {
         // The survivor still has the goal to fly: stopping would score it as
         // though it stayed wherever the last kill left it.
         // A seed whose fight is decided.
-        const result = runMatch([GUNSHIP, CORVETTE], { seed: 2 });
+        const result = runMatch([GUNSHIP, CORVETTE], { seed: 1 });
         const early = runMatch([GUNSHIP, CORVETTE], {
-            seed: 2,
+            seed: 1,
             weights: { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 },
         });
         expect(result.ending).toEqual("decided");

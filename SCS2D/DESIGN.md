@@ -185,7 +185,8 @@ inside any one file is not contiguous.
   where it was, and what was shed is counted as discarded, momentum and angular momentum with it. The
   metal each module has shed is what repairing it will put back (`Damage.shedAt`). Hits and gun muzzles flash on the canvas, and wrecked modules are drawn as wreckage.
   **An engine is a weapon at close quarters**: a plume reaches back a fixed number of its own nozzle's
-  widths, further for machinery that feeds it harder and for a longer bell that collimates it, so a big
+  widths, further for machinery that feeds it harder and for a bell that collimates it, though a long bell's
+  narrow throat passes less to carry, so a flame reaches furthest from a moderate bell, and a big
   engine throws a long flame and a cluster of nozzles throws short ones. How fiercely it burns — its power
   over its area — is drawn as its opacity, fading to its tip as its bite does. Whatever stands in it burns — its own hull if a nozzle was pointed into one, anything that drifts
   behind a burning stern if not. It is the same flame the renderer draws, so what is on the screen is what
@@ -343,7 +344,7 @@ inside any one file is not contiguous.
   the speed and its thrust can hold the turn (v²/r) at it, and otherwise carries on through on a pass, pushed
   out only once into the inner edge's fade; out past the band, the same line points it back, and on that run its guns wait for its mains
   (`rangeHold` does not count), so it turns and burns for another pass. Whether it circles or makes passes
-  comes from its build and its speed, not a setting: the `circling` scenario has a Y-wing circle a Corvette
+  comes from its build and its speed, not a setting: the `circling` scenario has a Dinky at its own pass speeds circle a Corvette
   and `passes` a fast-set Dinky make passes at one. Only an attack: a ram, a dock and an escort still close
   to rest. The stock fighters attack at 20–60 m/s. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
   fighting fights what it can instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
@@ -1014,8 +1015,8 @@ inside any one file is not contiguous.
   short of its own; until fuel does, the core is all computing. One set is kept however small, and 0 leaves
   it out. A core's complexity is 8 for its computing, and 1 more for fuel, 1 for a hold, 4 for a generator
   and 2 for a battery, so a fighter's bare core is half a full one's. Each engine has an exhaust velocity:
-  `EXHAUST_VELOCITY`, less what its bell throws sideways (`divergence`) and what a small throat loses to its
-  walls. **A bell weighs its sheet**, `BELL_MASS_PER_AREA` (50 kg/m²) of wall with coolant channels through
+  `EXHAUST_VELOCITY`, more or less as its bell expands its gas (`expansion`), less what its bell throws sideways
+  (`divergence`) and what a small engine loses to its walls. **A bell weighs its sheet**, `BELL_MASS_PER_AREA` (50 kg/m²) of wall with coolant channels through
   it, so a long bell costs mass as well as the flow it takes from the machinery — about 1,900 s of specific impulse on a capital's main engine and 1,650 s on a fighter's, and
   never under 700 s. **An engine with a throat under `PRESSURE_FED_THROAT` (0.25 m), or a block shorter than
   `PRESSURE_FED_BLOCK` (0.25 m), is pressure-fed**, with no room for pumps: it passes half the flow (`PRESSURE_FED_FLOW`), so half
@@ -1995,12 +1996,20 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   (`ATTACHMENT_TOLERANCE`, as the simulation has it), a plate and a web hold the chamber to it; elsewhere it
   stands clear, so the missing pump is what shows. The matter is still the whole block to the simulation; only
   the picture changes (`render/engineLayout.ts`).
-- **How hard the nozzle is fed is the machinery's business.** Thrust is the exit face's area times what
-  the chamber and pumps behind it can drive through the throat, and that machinery is the block: a deep
+- **How hard the nozzle is fed is the machinery's business.** Flow is the throat's area times what
+  the chamber and pumps behind it can drive through it, and that machinery is the block: a deep
   one feeds more flow. A throat chokes rather than passing whatever is pushed at it, which is what stops a
-  long thin engine being unbounded thrust. The bell is the other half — aim, and reach of flame — and
-  both are paid for in length and mass rather than in each other. An engine whose nozzle has fallen off throws its gas sideways however hard it
-  is pumping.
+  long thin engine being unbounded thrust. **The bell is the other half: expansion, aim and reach of flame.**
+  Its wall flares at 15° (`NOZZLE_WALL_SLOPE`), so behind the same exit a longer bell narrows its throat,
+  expanding its gas the more: by the ideal relations for an exhaust of γ 1.2 (`expansion`), the wider the exit
+  over the throat, the faster the gas leaves, with diminishing returns. So a long bell's narrow throat passes
+  less gas, faster: more efficient, less thrust, a shorter flame; a short bell's wide one pushes harder and
+  wastes more, as a vacuum engine and a sea-level one differ. The throat is never wider than
+  `MOST_THROAT_SHARE` (0.6) of the exit, a short bell steepening its wall instead, down to a flat plate with a
+  hole at no length at all, which throws its gas sideways; nor narrower than `LEAST_THROAT_SHARE` (0.35), a long
+  bell flaring more gently past that, for aim and no more expansion. `THRUST_PER_EXIT_AREA` and
+  `EXHAUST_VELOCITY` are what an engine with a throat of `NOZZLE_THROAT_FRACTION` (0.55) has, the length every
+  engine's throat once was. How big an engine is, for its pumps and its walls' losses, is still that throat.
 - **An engine is bolted on like any other module, by its block.** It carries the machinery it needs, so it
   may be held on by any face of its block, to anything, the same way a gun mount or a plate of hull is — the
   only rule about where one may go is the one every module obeys, that it is attached to the ship. **Its

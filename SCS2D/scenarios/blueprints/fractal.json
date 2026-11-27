@@ -61,7 +61,7 @@
           "angle": 180,
           "length": 3,
           "width": 3,
-          "nozzle": 1
+          "nozzle": 0.836
         }
       ]
     },
