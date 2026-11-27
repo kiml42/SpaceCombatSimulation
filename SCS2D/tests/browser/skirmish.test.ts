@@ -573,6 +573,9 @@ describe("the skirmish in a browser", () => {
         await page.waitForSelector("#answered", { timeout: 90_000 });
         expect(await page.isVisible("#answerSpinner")).toBe(false);
         expect(await page.textContent("#answerProgress")).toMatch(/^Found in generation \d+/);
+        // Found while the history had the room: it keeps it, the answer there to watch, until the next round starts.
+        expect(await page.isVisible("#wideHistory")).toBe(true);
+        expect(await page.textContent("#watchEvolving")).toBe("Watch the answer");
         // The answer heads the timeline, the enemy's losses before it folded away.
         const first = page.locator("#timeline > .match").first();
         expect(await first.locator(".match-head span").textContent()).toBe("Round 1 · the enemy's answer");

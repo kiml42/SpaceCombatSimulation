@@ -599,7 +599,8 @@ export function SkirmishPage() {
         showOn(view, battle.current, true);
     };
 
-    const showAnswer = (enemy: Fleet, current: Skirmish | null = skirmishes.skirmish): void => {
+    /** Set up the answer fighting the round; run only where it is watched, not behind the history covering it. */
+    const showAnswer = (enemy: Fleet, current: Skirmish | null = skirmishes.skirmish, run: boolean = watching): void => {
         if (current === null || current.won === undefined || view === null) return;
         mode.current = "answer";
         undecided();
@@ -611,7 +612,7 @@ export function SkirmishPage() {
         setOutcome({ text: "The enemy's answer.", kind: "lost" });
         setEnemyLine(`${enemy.name}, the answer`);
         setFightable(true);
-        showOn(view, battle.current, true);
+        showOn(view, battle.current, run);
     };
 
     /** Fight a match of the history again on the battle view, and come back to where things were. */
@@ -912,8 +913,9 @@ export function SkirmishPage() {
                   ? `Your fleet has ${limit}: edit it to fit.`
                   : "Your fleet is over budget: edit it to cut it down.";
     const answeringNow = skirmish?.won !== undefined;
-    // Not watching the search, the history has the battle's room, the two sides of each match side by side.
-    const wideHistory = answeringNow && skirmish.ways === undefined && !watching && !replaying && answering.latest?.found == null;
+    // Not watching the search, or its answer, the history has the battle's room, the two sides of each match side by side,
+    // until the next round starts.
+    const wideHistory = answeringNow && skirmish.ways === undefined && !watching && !replaying;
     const timeline = (
         <Timeline
             history={history}
@@ -938,7 +940,8 @@ export function SkirmishPage() {
               : `Generation ${latest.generation}: the best enemy so far won ${latest.wins} of its ${latest.seeds} matches. It holds ${latest.cards.length} upgrade ${latest.cards.length === 1 ? "card" : "cards"}.`;
     const toggleWatching = (): void => {
         setWatching(!watching);
-        if (!watching && latest !== null) watch(latest);
+        if (!watching && found !== null) showAnswer(found, skirmish, true);
+        else if (!watching && latest !== null) watch(latest);
         else if (watching) view?.setRunning(false);
     };
     const headedTo = skirmish?.headed === undefined ? null : destinationById(skirmish.headed);
@@ -1085,9 +1088,9 @@ export function SkirmishPage() {
                     {wideHistory && (
                         <WideHistory id="wideHistory">
                             <Evolving id="evolving">
-                                <Spinner aria-hidden="true" />
+                                {found === null && <Spinner aria-hidden="true" />}
                                 <div>
-                                    <strong>The enemy is evolving an answer</strong>
+                                    <strong>{found === null ? "The enemy is evolving an answer" : "The enemy has an answer"}</strong>
                                     <p id="evolvingProgress">{answerText}</p>
                                     {headedTo !== null && skirmish !== null && (
                                         <p id="headedTo">
@@ -1097,7 +1100,7 @@ export function SkirmishPage() {
                                 </div>
                                 {skirmish !== null && <ArenaPicture skirmish={skirmish} />}
                                 <Button id="watchEvolving" variant="primary" onClick={toggleWatching}>
-                                    Watch the best so far
+                                    {found === null ? "Watch the best so far" : "Watch the answer"}
                                 </Button>
                             </Evolving>
                             <h2>History</h2>
