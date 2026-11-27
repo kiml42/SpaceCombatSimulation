@@ -891,13 +891,19 @@ inside any one file is not contiguous.
   With no nozzle there is nothing for a ring to stand on, and a magnetic engine with none is a plain one. Its
   field holds the flame together past the ring, which a
   bell's walls cannot: it reaches `MAGNETIC_PLUME_REACH` (1.5) times as far as the same bell's would aimed
-  perfectly. That makes a short bell, and the flow and mass it saves, worth having. The ring draws `MAGNETIC_POWER_PER_EXIT_AREA`
-  (0.2 MW/m²) at full throttle, as thrust's claim on charge: a fighter's core runs its main engine's ring,
-  and a capital's mains want generators of their own. Short of power the jet leaves aimed only as well as
-  the bell aims it. The ring and the gap before it take the bell's last three fifths (`RING_SHARE`), so the bell
-  proper is short, and thin bars beside each nozzle carry the ring, running back past the bell and the chamber
+  perfectly. That makes a short bell, and the flow and mass it saves, worth having. The field is the nozzle,
+  so a magnetic engine keeps the widest throat (`MOST_THROAT_SHARE`) however long its nozzle, for a short bell's
+  flow, and its field carries on expanding the jet past the exit as a wall at the bell's slope would over
+  `MAGNETIC_BELL_REACH` times its length: a long magnetic nozzle has a long bell's exhaust speed and more, at a
+  short one's thrust. The ring draws `MAGNETIC_POWER_PER_EXIT_AREA`
+  (0.2 MW/m²) for each exit width of nozzle at full throttle, as thrust's claim on charge, so it is the length
+  that costs: a fighter's core runs its main engine's ring,
+  and a capital's mains want generators of their own. Short of power the jet leaves aimed and expanded only as
+  well as the bell does it. Its bell proper flares at a plain bell's 15°, so it is only as long as it takes to reach the exit
+  from the wide throat; the ring and the gap before it take the rest, and at least a quarter of the nozzle
+  (`RING_SHARE`), so a short one's bell steepens instead. Thin bars beside each nozzle carry the ring, running back past the bell and the chamber
   to the machinery block, or to the engine's front where it has none, and taking nothing off its exit. So
-  unpowered it aims a little worse than a plain bell of the same length. The ring weighs
+  unpowered it does worse than a plain bell of the same length. The ring weighs
   `MAGNETIC_MASS_PER_EXIT_AREA` (300 kg/m² of exit), which the bell it shortens mostly pays for. It is
   drawn as a short bell, the bars, the exhaust running full width and undimmed through the gap, and the
   ring across the engine's whole width at its aft edge, over the exhaust, ring and bars in the hull's

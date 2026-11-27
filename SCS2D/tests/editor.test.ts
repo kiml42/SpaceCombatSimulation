@@ -28,7 +28,7 @@ import {
     EngineLayout,
     isPressureFed,
 } from "../sim/index.js";
-import { CORVETTE, GUNSHIP, RAIL_CORVETTE, TORCH, X_WING } from "../scenarios/blueprints.js";
+import { CORVETTE, GUNSHIP, RAIL_CORVETTE, SCAVENGER, TORCH } from "../scenarios/blueprints.js";
 import { EditorDocument } from "../editor/document.js";
 import {
     addModule,
@@ -1062,7 +1062,7 @@ describe("the manoeuvring envelopes", () => {
     });
 
     it("costs a ship symmetrical about its keel little to hold its heading", () => {
-        const envelope = envelopes(new EditorDocument(X_WING).view.design!);
+        const envelope = envelopes(new EditorDocument(SCAVENGER).view.design!);
         expect(headingCost(envelope)).toBeLessThan(0.15);
     });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_DOCTRINE, doctrineProblem, Rng, type Blueprint } from "../sim/index.js";
+import { DEFAULT_DOCTRINE, doctrineValueProblems, Rng, type Blueprint } from "../sim/index.js";
 import { mutate } from "../evolution/mutate.js";
 import { circling, passes } from "../scenarios/passes.js";
 import { DINKY } from "../scenarios/blueprints.js";
@@ -72,9 +72,11 @@ describe("the doctrine for it", () => {
     });
 
     it("refuses a speed below zero, or a least above a most", () => {
-        expect(doctrineProblem({ approach: { tangentialMin: -1, tangentialMax: 10 } })).toMatch(/below zero/);
-        expect(doctrineProblem({ approach: { tangentialMin: 30, tangentialMax: 10 } })).toMatch(/no more than/);
-        expect(doctrineProblem({ approach: { tangentialMin: 10, tangentialMax: 30 } })).toBeNull();
+        const band = (tangentialMin: number, tangentialMax: number) =>
+            doctrineValueProblems({ ...DEFAULT_DOCTRINE, approach: { ...DEFAULT_DOCTRINE.approach, tangentialMin, tangentialMax } });
+        expect(band(-1, 10)[0]).toMatch(/below zero/);
+        expect(band(30, 10)[0]).toMatch(/no more than/);
+        expect(band(10, 30)).toEqual([]);
     });
 
     it("is never bred out of order", () => {
@@ -86,7 +88,7 @@ describe("the doctrine for it", () => {
         };
         for (let i = 0; i < 400; i++) {
             held = mutate(held, rng, { thrusters: 0 }).blueprint;
-            expect(doctrineProblem(held.doctrine)).toBeNull();
+            expect(doctrineValueProblems(held.doctrine!)).toEqual([]);
         }
     });
 });

@@ -10,7 +10,7 @@ import {
     type ModuleSpec,
     type PadApproach,
 } from "../sim/index.js";
-import { STAR_DESTROYER } from "../scenarios/blueprints.js";
+import { REPLICATOR } from "../scenarios/blueprints.js";
 
 /** The ways a fighter can come in to a pad, worked out once when its carrier is compiled. */
 
@@ -71,15 +71,20 @@ describe("a pad's ways in", () => {
         expect(ways[0]!.through).toBe(false);
     });
 
-    it("are the Star Destroyer's three outboard sides and the two corners between them", () => {
-        const design = compileBlueprint(STAR_DESTROYER);
+    it("are open outboard on the Replicator, and shut inboard by its hull", () => {
+        const design = compileBlueprint(REPLICATOR);
         const pads = design.modules.flatMap((m, i) => (m.spec.kind === "pad" ? [i] : []));
-        expect(pads.length).toBeGreaterThan(0);
+        expect(pads.length).toBe(2);
         for (const pad of pads) {
             // Away from the centre line, whichever side of it the pad is.
             const outboard = design.modules[pad]!.spec.y < 0 ? 6 : 2;
-            expect(eighths(approachesOf(design, pad))).toEqual([0, outboard - 1, outboard, outboard + 1, 4].sort((a, b) => a - b));
+            const ways = eighths(approachesOf(design, pad));
+            expect(ways).toEqual(expect.arrayContaining([0, outboard - 1, outboard, outboard + 1, 4]));
+            expect(ways).not.toContain((outboard + 4) % 8);
         }
+        // Its two pads mirror each other.
+        const [a, b] = pads.map((pad) => eighths(approachesOf(design, pad)));
+        expect(a!.map((e) => (8 - e) % 8).sort((x, y) => x - y)).toEqual(b);
     });
 
     it("turn with their pad when the carrier is welded into something else", () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { compileBlueprint, parseBlueprint, serialiseBlueprint, subDesign, World, type Blueprint, type ModuleSpec } from "../sim/index.js";
 import { Ships } from "../sim/ships.js";
-import { GUNSHIP, STAR_DESTROYER } from "../scenarios/blueprints.js";
+import { BROADSIDE, GUNSHIP } from "../scenarios/blueprints.js";
 
 /** A core with a big gun on the bow and a small one on the stern, either or both main. */
 function twoGuns(bigMain: boolean, smallMain: boolean): Blueprint {
@@ -98,12 +98,13 @@ describe("main guns", () => {
         expect(compileBlueprint(ship(true)).mainWeaponEngines).toEqual([0]);
     });
 
-    it("are the spinal gun on the gunship and the heavy turrets on the Star Destroyer", () => {
+    it("are the spinal gun on the gunship and the beam guns on the Broadside, not their turrets", () => {
         const gunship = compileBlueprint(GUNSHIP);
         expect(gunship.turrets.filter((t) => t.main).map((t) => gunship.modules[t.module]!.spec.kind)).toEqual(["hullGun"]);
-        const destroyer = compileBlueprint(STAR_DESTROYER);
-        const heavy = destroyer.turrets.filter((t) => t.main);
-        expect(heavy.length).toBe(8);
-        expect(heavy.every((t) => destroyer.modules[t.module]!.spec.width === 140)).toBe(true);
+        const broadside = compileBlueprint(BROADSIDE);
+        const kinds = (main: boolean) =>
+            broadside.turrets.filter((t) => t.main === main).map((t) => broadside.modules[t.module]!.spec.kind);
+        expect(kinds(true)).toEqual(["hullGun", "hullGun", "hullGun"]);
+        expect(kinds(false)).toEqual(["turret"]);
     });
 });
