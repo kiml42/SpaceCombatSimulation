@@ -5,6 +5,7 @@ import {
     holdBand,
     NON_NEGATIVE_FIELDS,
     ORDERED_FIELDS,
+    PART_TRAIT_FIELDS,
     TARGETING_FIELDS,
     type Approach,
     type Doctrine,
@@ -119,6 +120,30 @@ const TARGETING_ROWS: readonly DoctrineRow[] = [
         field: "clusterWeight",
         label: "aim: among others",
         hint: "How much a part's neighbours count towards aiming at it, per hundred: a miss lands near the part aimed at, so among others worth hitting is the better aim, and beside something it would rather not hit the worse. 0 picks by the part alone",
+        step: 10,
+    },
+    {
+        field: "largePartWeight",
+        label: "aim: bigger parts",
+        hint: "Among parts of a kind, how much more the biggest is worth, per hundred of its kind's weight: at 100 twice as much. Below zero prefers the smallest",
+        step: 10,
+    },
+    {
+        field: "longRangeWeight",
+        label: "aim: longer-ranged guns",
+        hint: "Among guns, how much more the longest-ranged is worth, per hundred of its kind's weight: at 100 twice as much. Below zero prefers the shortest",
+        step: 10,
+    },
+    {
+        field: "pointedWeight",
+        label: "aim: guns on it",
+        hint: "Among guns, how much more one pointed straight at it is worth, per hundred of its kind's weight: at 100 twice as much, and nothing extra for one pointed abeam or away",
+        step: 10,
+    },
+    {
+        field: "weakPartWeight",
+        label: "aim: weaker parts",
+        hint: "Among parts of a kind, how much more the one with least left to take before it breaks is worth, per hundred of its kind's weight: at 100 twice as much. Thin walls and damage both count. Below zero prefers the toughest",
         step: 10,
     },
     {
@@ -924,7 +949,14 @@ export const MOUNT_SECTIONS: readonly DoctrineSection[] = [
         groups: [
             {
                 title: "Where it aims",
-                entries: preferences("mount", ["coreWeight", "engineWeight", "gunWeight", "structureWeight", "clusterWeight"]),
+                entries: preferences("mount", [
+                    "coreWeight",
+                    "engineWeight",
+                    "gunWeight",
+                    "structureWeight",
+                    "clusterWeight",
+                    ...PART_TRAIT_FIELDS,
+                ]),
             },
         ],
     },
@@ -986,7 +1018,8 @@ function isAimField(field: string): boolean {
         field === "engineWeight" ||
         field === "gunWeight" ||
         field === "structureWeight" ||
-        field === "clusterWeight"
+        field === "clusterWeight" ||
+        PART_TRAIT_FIELDS.includes(field as keyof Targeting)
     );
 }
 

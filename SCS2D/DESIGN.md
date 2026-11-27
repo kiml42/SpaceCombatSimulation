@@ -389,7 +389,10 @@ inside any one file is not contiguous.
   one** — more of a hull left to harvest, or a ship a player would rather disable than cut in half — which
   is a campaign's concern rather than a battle's, and it is paid for in rate of fire, since a mount waiting
   for one part is a mount not shooting at the rest. **It is a mount's to say and not a hull's**, since a ship chooses a ship and
-  only a gun chooses a part of one. Away from the default is where crippling beats killing: the Dinky's gun
+  only a gun chooses a part of one. **Among parts of a kind, a doctrine can also prefer the bigger, the
+  longer-ranged gun, the gun pointed at it, or the one with least left to take** (`largePartWeight` and its three
+  siblings, zero by default): each scales the kind's weight by how the part measures against the best of that ship's,
+  so they order a ship's guns among themselves without turning a refused kind into a target. Away from the default is where crippling beats killing: the Dinky's gun
   puts engines first, because a fighter that cannot destroy a capital can still strand one, and a beam goes
   for a ship's guns and engines because it arrives where it is pointed and can afford to be particular.
   **A weapon fires when its shot would land on what its doctrine asked for**, which is the target's own

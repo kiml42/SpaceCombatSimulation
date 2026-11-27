@@ -18,7 +18,7 @@ import {
     type GunStats,
     type ModuleKind,
 } from "./modules.js";
-import { abs, atan2, angleDelta, PI, clamp, cos, length, max, round, sin, sqrt } from "./math.js";
+import { abs, atan2, angleDelta, PI, clamp, cos, length, max, min, round, sin, sqrt } from "./math.js";
 import { overriddenMount, placementOf, type Targeting } from "./doctrine.js";
 import type { World } from "./world.js";
 import type { SpatialGrid } from "./index.js";
@@ -370,7 +370,8 @@ export function locateMount(ships: Ships, bodies: Bodies, b: number, mount: Desi
  * Ties go to whatever is nearest the gun — the gun itself, not its ship —
  * so a mount aiming for engines takes the engine on the near side rather
  * than shooting through the ship to reach one behind it. A module already
- * spent is no longer worth a round.
+ * spent is no longer worth a round. Among parts of a kind, the doctrine's
+ * part traits (`largePartWeight`) scale each by what it is beside the rest.
  */
 export function aimModule(
     ships: Ships,
@@ -402,18 +403,21 @@ export function aimModule(
     // it already holds keeps a margin: one barely better is not worth retraining for.
     const t = doctrine.clusterWeight === 0 ? -1 : ships.designs[i]!.turrets.indexOf(mount);
     const held = t >= 0 && ships.turretTarget[i]![t] === target ? ships.turretAimModule[i]![t]! : -1;
+    const traits = hasTraits(doctrine);
+    if (traits) measureParts(ships, layers, design, tb, target);
     let best = WHOLE_SHIP;
     let bestWeight = 0;
     let bestRange = 0;
     for (let k = 0; k < design.modules.length; k++) {
         if (!reaches(ships, layers, design, tb, target, k)) continue;
-        const own = anyPart ? 1 : partWeight(doctrine, design.modules[k]!.spec.kind);
+        const kindWeight = anyPart ? 1 : partWeight(doctrine, design.modules[k]!.spec.kind);
         // Only what this doctrine wants destroyed. Zero is not a poor ranking
         // but a different statement — *not worth a shot* — and the best of a
         // bad list would otherwise still be chosen however bad the list is.
-        if (own <= 0) continue;
+        if (kindWeight <= 0) continue;
         const mx = bodies.x[tb]! + design.modules[k]!.x * c - design.modules[k]!.y * s;
         const my = bodies.y[tb]! + design.modules[k]!.x * s + design.modules[k]!.y * c;
+        const own = traits ? kindWeight * (1 + partTraits(ships, bodies, doctrine, target, tb, k, mx, my, fromX, fromY)) : kindWeight;
         const range = length(mx - fromX, my - fromY);
         const weight =
             doctrine.clusterWeight === 0
@@ -436,6 +440,86 @@ export function aimModule(
 
 /** The share of its own aim weight a held part is preferred by, counting neighbours. */
 const HELD_PART_MARGIN = 0.25;
+
+function hasTraits(doctrine: Targeting): boolean {
+    return (
+        doctrine.largePartWeight !== 0 || doctrine.longRangeWeight !== 0 || doctrine.pointedWeight !== 0 || doctrine.weakPartWeight !== 0
+    );
+}
+
+/** The best of a target's parts in reach, that `partTraits` measures each against. */
+const PARTS = { size: 0, reach: 0, left: 0 };
+
+/** Fill `PARTS` from the parts of `target` a mount in `layers` could land on. */
+function measureParts(ships: Ships, layers: number, design: ShipDesign, tb: number, target: number): void {
+    const mounts = mountsOf(design);
+    PARTS.size = 0;
+    PARTS.reach = 0;
+    PARTS.left = Infinity;
+    for (let k = 0; k < design.modules.length; k++) {
+        if (!reaches(ships, layers, design, tb, target, k)) continue;
+        PARTS.size = max(PARTS.size, aimRadius(design.modules[k]!.spec));
+        const t = mounts[k]!;
+        if (t >= 0) PARTS.reach = max(PARTS.reach, design.turrets[t]!.reach);
+        const left = ships.damage.capacityLeft(tb, k);
+        if (left > 0) PARTS.left = min(PARTS.left, left);
+    }
+}
+
+/**
+ * How much more module `k` of `target`, at `(mx, my)`, is worth than its
+ * kind, as a share of its kind's weight (`largePartWeight`), for a gun at
+ * `(fromX, fromY)`. `PARTS` must hold the target's, from `measureParts`.
+ */
+function partTraits(
+    ships: Ships,
+    bodies: Bodies,
+    doctrine: Targeting,
+    target: number,
+    tb: number,
+    k: number,
+    mx: number,
+    my: number,
+    fromX: number,
+    fromY: number,
+): number {
+    const design = ships.designs[target]!;
+    const t = mountsOf(design)[k]!;
+    let total = 0;
+    if (doctrine.largePartWeight !== 0 && PARTS.size > 0) {
+        total += doctrine.largePartWeight * (aimRadius(design.modules[k]!.spec) / PARTS.size);
+    }
+    if (doctrine.longRangeWeight !== 0 && t >= 0 && PARTS.reach > 0) {
+        total += doctrine.longRangeWeight * (design.turrets[t]!.reach / PARTS.reach);
+    }
+    if (doctrine.pointedWeight !== 0 && t >= 0) {
+        const ti = ships.turretIndex[target]?.[t];
+        const range = length(fromX - mx, fromY - my);
+        if (ti !== undefined && range > 0) {
+            const barrel = ships.turrets.worldBearing(bodies, ti);
+            total += doctrine.pointedWeight * max(0, (cos(barrel) * (fromX - mx) + sin(barrel) * (fromY - my)) / range);
+        }
+    }
+    if (doctrine.weakPartWeight !== 0) {
+        // A part with no record of what it can take is as weak as the weakest.
+        const left = ships.damage.capacityLeft(tb, k);
+        total += doctrine.weakPartWeight * (left > 0 && PARTS.left < Infinity ? PARTS.left / left : 1);
+    }
+    return total / 100;
+}
+
+/** Each module's mount on a design, by index into its turrets, or -1. */
+const designMounts = new WeakMap<ShipDesign, Int32Array>();
+
+function mountsOf(design: ShipDesign): Int32Array {
+    let mounts = designMounts.get(design);
+    if (mounts === undefined) {
+        mounts = new Int32Array(design.modules.length).fill(-1);
+        for (let t = 0; t < design.turrets.length; t++) mounts[design.turrets[t]!.module] = t;
+        designMounts.set(design, mounts);
+    }
+    return mounts;
+}
 
 /**
  * What a miss at module `k` of `target`, on body `tb`, from a gun at

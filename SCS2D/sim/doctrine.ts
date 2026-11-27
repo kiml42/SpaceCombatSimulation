@@ -167,6 +167,32 @@ export interface Targeting {
      */
     readonly clusterWeight: number;
     /**
+     * How much more a part is worth for what it is among others of its kind,
+     * per hundred of its aim weight: at 100, a part with the most of it on that
+     * ship is worth twice what its kind is, and one with none of it its kind's
+     * worth. Below zero prefers the least of it. Zero, the default, picks by
+     * kind alone.
+     *
+     * **A scale on the kind's weight, not a weight of its own**, so a part its
+     * kind refuses is still refused and a kind rated low is still mostly
+     * passed over. Each is measured against the best of the target's parts in
+     * reach, since "bigger" and "weaker" only mean anything beside the rest.
+     *
+     * - `largePartWeight`: by size, against the biggest. A big part is easier
+     *   to hit, and on most designs the bigger gun or engine.
+     * - `longRangeWeight`: guns, by how far each is worth firing, against the
+     *   longest; anything else has none. What outranges you first.
+     * - `pointedWeight`: guns, by how squarely the barrel points at the chooser,
+     *   nothing abeam or away. What is shooting back first.
+     * - `weakPartWeight`: by how little it has left to take before it breaks,
+     *   the least of any being full: thin walls, or what is already hurt. The
+     *   quickest kills first.
+     */
+    readonly largePartWeight: number;
+    readonly longRangeWeight: number;
+    readonly pointedWeight: number;
+    readonly weakPartWeight: number;
+    /**
      * How firmly a ship holds by something it will never shoot at.
      *
      * What a craft escorts is anything not hostile to it — one of its own, or
@@ -625,6 +651,10 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         gunWeight: 100,
         structureWeight: 0,
         clusterWeight: 50,
+        largePartWeight: 0,
+        longRangeWeight: 0,
+        pointedWeight: 0,
+        weakPartWeight: 0,
         escortWeight: 0,
         fireRange: 1,
     },
@@ -829,9 +859,16 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
     "gunWeight",
     "structureWeight",
     "clusterWeight",
+    "largePartWeight",
+    "longRangeWeight",
+    "pointedWeight",
+    "weakPartWeight",
     "escortWeight",
     "fireRange",
 ];
+
+/** The fields that rank parts of one kind against each other (`largePartWeight`). */
+export const PART_TRAIT_FIELDS: readonly (keyof Targeting)[] = ["largePartWeight", "longRangeWeight", "pointedWeight", "weakPartWeight"];
 
 /**
  * The fields a *mount's* targeting reads, and the ones a *ship's* does.
@@ -843,7 +880,7 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
  *
  * - `escortWeight` is a steering urge, and a mount steers nothing.
  * - `ramMass` picks what the hull is thrown at, and a mount is never thrown.
- * - the four aim weights choose a *part* of a target, which only a gun does —
+ * - the four aim weights, and the part traits, choose a *part* of a target, which only a gun does —
  *   and with it how near that part a shot has to land, since a mount that has
  *   refused something has to be sure of what it would hit.
  * - `fireRange` is how far a gun fires, which a hull does not.
@@ -867,6 +904,7 @@ export const SHIP_TARGETING_FIELDS: readonly (keyof Targeting)[] = TARGETING_FIE
         field !== "gunWeight" &&
         field !== "structureWeight" &&
         field !== "clusterWeight" &&
+        !PART_TRAIT_FIELDS.includes(field) &&
         field !== "fireRange",
 );
 
