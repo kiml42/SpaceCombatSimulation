@@ -101,6 +101,11 @@ export function fleetKinds(fleet: Fleet): ShipModuleKind[] {
     return ALL_TECH.filter((kind) => kinds.has(kind));
 }
 
+/** The fewest kinds a blueprint can be built with: its own, and the first of each prerequisite group it lacks. */
+export function techFor(blueprint: Blueprint): ShipModuleKind[] {
+    return blueprintKinds(blueprint).reduce<ShipModuleKind[]>((have, kind) => toggled(have, kind, true), ["core"]);
+}
+
 /** The kinds a fleet is built of that `unlocked` does not have, in the tree's order. */
 export function lockedIn(fleet: Fleet, unlocked: readonly ShipModuleKind[]): ShipModuleKind[] {
     return fleetKinds(fleet).filter((kind) => !unlocked.includes(kind));

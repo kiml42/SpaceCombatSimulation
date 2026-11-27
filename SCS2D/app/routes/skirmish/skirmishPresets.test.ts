@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import { BUILT_IN } from "~/editor/library";
 import { FLEETS } from "~/scenarios/fleets";
 import { DEFAULT_SKIRMISH_SETTINGS } from "~/scenarios/skirmish";
+import { blueprintKinds, canUnlock } from "~/skirmish/techTree";
 import { BATTLEFIELD_PRESETS, ENEMY_PRESETS, withBattlefield, withEnemyPreset } from "./skirmishPresets";
 import { readSettings, settingsTexts } from "./skirmishFields";
 
@@ -48,4 +49,18 @@ test("holds a ship to at least one core, as none would leave nothing to build", 
     expect(readSettings(texts).maxCores).toBe(1);
     expect(readSettings({ ...texts, maxCores: "0" }).maxCores).toBe(1);
     expect(readSettings({ ...texts, maxCores: "3" }).maxCores).toBe(3);
+});
+
+test("a preset's starting modules build its enemy, each with what it needs", () => {
+    for (const preset of ENEMY_PRESETS) {
+        if (preset.tech === undefined) continue;
+        const enemy = BUILT_IN.find((ship) => `ship:${ship.category ?? ""}/${ship.name}` === preset.enemy)!;
+        expect(preset.tech).toEqual(expect.arrayContaining(blueprintKinds(enemy)));
+        for (const kind of preset.tech) expect(canUnlock(kind, preset.tech)).toBe(true);
+    }
+});
+
+test("the torpedo boat preset starts with its modules, and a generator for the pad, and nothing else", () => {
+    const preset = ENEMY_PRESETS.find((p) => p.name === "Torpedo boat")!;
+    expect([...preset.tech!].sort()).toEqual(["core", "engine", "generator", "hold", "pad", "structure", "tank"]);
 });
