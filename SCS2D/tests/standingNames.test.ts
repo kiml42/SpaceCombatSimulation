@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { standings } from "../scenarios/decision.js";
+import { mostRelevant, standings, type ShipStanding } from "../scenarios/decision.js";
+import { Unarmed } from "../sim/index.js";
 
 /** Ships named one way and painted another, as a piece broken off a ship is. */
 function stood(ships: readonly { name: string; cores: readonly (string | null)[] }[]): string[] {
@@ -31,5 +32,28 @@ describe("a ship in the standings", () => {
 
     it("keeps its own name where no core of its is painted", () => {
         expect(stood([{ name: "5.1", cores: [null, null] }])).toEqual(["5.1"]);
+    });
+});
+
+describe("the ships a report names", () => {
+    const ship = (name: string, quietFor: number | null, unarmed = Unarmed.None): ShipStanding => ({
+        team: 1,
+        name,
+        design: "Gunship",
+        unarmed,
+        immobile: Unarmed.None,
+        rounds: 0,
+        quietFor,
+        nearest: 100,
+    });
+
+    it("are the five most recently fired, those that never fired last", () => {
+        const stood = [ship("a", null), ship("b", 40), ship("c", 5), ship("d", 90), ship("e", 10), ship("f", 20), ship("g", 30)];
+        expect(mostRelevant(stood).map((s) => s.name)).toEqual(["c", "e", "f", "g", "b"]);
+    });
+
+    it("put those still able to fight first among those that fired as long ago", () => {
+        const stood = [ship("out", 10, Unarmed.NoAmmunition), ship("able", 10)];
+        expect(mostRelevant(stood).map((s) => s.name)).toEqual(["able", "out"]);
     });
 });

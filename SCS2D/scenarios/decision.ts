@@ -320,3 +320,17 @@ function labelOf(ships: Ships, i: number, painted: (string | null)[]): string {
     const names = painted.filter((name): name is string => name !== null);
     return names.length === 0 ? ships.nameOf(i) : names.join(", ");
 }
+
+/** How many of a side's ships a battle's report names. */
+export const STANDINGS_SHOWN = 5;
+
+/**
+ * The `most` of these worth naming first: the most recently fired, those still
+ * able to fight before those that are not, and those that never fired last.
+ */
+export function mostRelevant(stood: readonly ShipStanding[], most = STANDINGS_SHOWN): ShipStanding[] {
+    const firedAgo = (standing: ShipStanding): number => standing.quietFor ?? Infinity;
+    return [...stood]
+        .sort((a, b) => firedAgo(a) - firedAgo(b) || Number(a.unarmed !== Unarmed.None) - Number(b.unarmed !== Unarmed.None))
+        .slice(0, most);
+}

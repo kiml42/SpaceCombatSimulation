@@ -36,7 +36,7 @@ import { CommitText } from "~/ui/fields/CommitText";
 import { readLog, writeLog, type Logged } from "~/scenarios/commands";
 import { customBattle, DEFAULT_SETUP, tally, type BattleSetup, type CustomBattle } from "~/scenarios/customBattle";
 import { lightOf, lit, roundLight } from "~/scenarios/lights";
-import { Activity, standings, type Decision, type ShipStanding } from "~/scenarios/decision";
+import { Activity, mostRelevant, standings, type Decision, type ShipStanding } from "~/scenarios/decision";
 import { ableLine, outLine, quietLine } from "./standingText";
 import { Unarmed } from "~/sim/index";
 import { EMPTY_HISTORY, parseHistory, type History, type WrittenLog } from "~/scenarios/history";
@@ -1385,16 +1385,23 @@ function Standings({
     // As its cores are labelled in the picture, so it can be found there.
     const label = (standing: ShipStanding): string => `${teamName(standing.team, sides)} ${standing.name} (${standing.design})`;
     const losers = decided.winner < 0 ? [0, 1] : [1 - decided.winner];
-    const lines = (team: number) =>
-        stood
-            .filter((standing) => standing.team === team && standing.unarmed !== Unarmed.Gone)
-            .map((standing, k) => (
+    // The few worth reading, and how many more there were.
+    const more = (all: number, shown: number) => (all > shown ? <li key="more">and {all - shown} more</li> : null);
+    const lines = (team: number) => {
+        const all = stood.filter((standing) => standing.team === team && standing.unarmed !== Unarmed.Gone);
+        const shown = mostRelevant(all);
+        return [
+            ...shown.map((standing, k) => (
                 <li key={k}>
                     <b>{label(standing)}</b>: {standing.unarmed === Unarmed.None ? quietLine(standing) : outLine(standing)}
                 </li>
-            ));
-    const able =
+            )),
+            more(all.length, shown.length),
+        ];
+    };
+    const allAble =
         decided.winner < 0 ? [] : stood.filter((standing) => standing.team === decided.winner && standing.unarmed === Unarmed.None);
+    const able = mostRelevant(allAble);
     return (
         <>
             {losers.map((team) => (
@@ -1411,6 +1418,7 @@ function Standings({
                                 <b>{label(standing)}</b>: {ableLine(standing)}
                             </li>
                         ))}
+                        {more(allAble.length, able.length)}
                     </ul>
                 </>
             )}
