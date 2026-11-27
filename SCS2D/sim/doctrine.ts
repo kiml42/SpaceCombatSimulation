@@ -993,8 +993,12 @@ export const DOCTRINE_FIELDS: readonly string[] = [
     ...APPROACH_FIELDS.map((field) => `approach.${field}`),
 ];
 
-/** Whatever is wrong with one half of a doctrine block, or null. */
-function halfProblem(value: unknown, where: string, fields: readonly string[], positive: readonly string[]): string | null {
+/**
+ * What makes one half of a doctrine block unreadable, or null: its shape only.
+ * A value out of range is readable, and is `halfValueProblems`' to report, so a
+ * file holding one still opens to be put right.
+ */
+function halfProblem(value: unknown, where: string, fields: readonly string[]): string | null {
     if (value === undefined) return null;
     if (typeof value !== "object" || value === null || Array.isArray(value)) {
         return `${where} must be an object, got ${JSON.stringify(value)}`;
@@ -1007,25 +1011,38 @@ function halfProblem(value: unknown, where: string, fields: readonly string[], p
         if (typeof held !== "number" || !Number.isFinite(held)) {
             return `${where}.${field} must be a number, got ${JSON.stringify(held)}`;
         }
-        if (positive.includes(field) && !(held > 0)) {
-            return `${where}.${field} must be greater than zero, got ${held}`;
-        }
-        if (NON_NEGATIVE_FIELDS.includes(field) && held < 0) {
-            return `${where}.${field} must not be below zero, got ${held}`;
-        }
     }
     return null;
 }
 
+/** Every value in one half of a doctrine out of its range. */
+function halfValueProblems(value: object | undefined, where: string, fields: readonly string[]): string[] {
+    if (value === undefined) return [];
+    const raw = value as Record<string, number | undefined>;
+    const problems: string[] = [];
+    for (const field of fields) {
+        const held = raw[field];
+        if (held === undefined) continue;
+        if (POSITIVE_FIELDS.includes(field) && !(held > 0)) problems.push(`${where}.${field} must be greater than zero, got ${held}`);
+        else if (NON_NEGATIVE_FIELDS.includes(field) && held < 0) problems.push(`${where}.${field} must not be below zero, got ${held}`);
+    }
+    return problems;
+}
+
 /**
- * Whatever is wrong with a mount's own targeting block, or null.
+ * What makes a mount's own targeting block unreadable, or null.
  *
  * A partial: a mount says only what it wants differently from the ship it is
  * bolted to, so a hull's doctrine goes on covering everything its guns have
  * no opinion about.
  */
 export function targetingProblem(value: unknown, where: string): string | null {
-    return halfProblem(value, where, TARGETING_FIELDS, POSITIVE_FIELDS);
+    return halfProblem(value, where, TARGETING_FIELDS);
+}
+
+/** Every value in a mount's own targeting out of its range. */
+export function targetingValueProblems(targeting: Partial<Targeting> | undefined, where: string): string[] {
+    return halfValueProblems(targeting, where, TARGETING_FIELDS);
 }
 
 /** A mount's targeting, with whatever it leaves out taken from its ship. */
@@ -1038,24 +1055,33 @@ export function serialiseTargeting(held: Targeting, ship: Targeting): Record<str
     return serialiseHalf(held as unknown as Record<string, number>, ship as unknown as Record<string, number>, TARGETING_FIELDS);
 }
 
-/** Whatever is wrong with a doctrine block, or null. */
+/** What makes a doctrine block unreadable, or null: its shape only (`doctrineValueProblems`). */
 export function doctrineProblem(value: unknown): string | null {
     if (value === undefined) return null;
     if (typeof value !== "object" || value === null || Array.isArray(value)) {
         return `doctrine must be an object, got ${JSON.stringify(value)}`;
     }
     const raw = value as Record<string, unknown>;
-    const problem =
-        halfProblem(raw["targeting"], "doctrine.targeting", TARGETING_FIELDS, POSITIVE_FIELDS) ??
-        halfProblem(raw["approach"], "doctrine.approach", APPROACH_FIELDS, POSITIVE_FIELDS);
-    if (problem !== null) return problem;
-    const approach = toHalf(raw["approach"], APPROACH_FIELDS, DEFAULT_DOCTRINE.approach);
+    return (
+        halfProblem(raw["targeting"], "doctrine.targeting", TARGETING_FIELDS) ??
+        halfProblem(raw["approach"], "doctrine.approach", APPROACH_FIELDS)
+    );
+}
+
+/** Every value in a doctrine out of its range, or out of order with its partner. */
+export function doctrineValueProblems(doctrine: Doctrine): string[] {
+    const problems = [
+        ...halfValueProblems(doctrine.targeting, "doctrine.targeting", TARGETING_FIELDS),
+        ...halfValueProblems(doctrine.approach, "doctrine.approach", APPROACH_FIELDS),
+    ];
     for (const [lower, upper] of ORDERED_FIELDS) {
-        if (approach[lower] > approach[upper]) {
-            return `doctrine.approach.${lower} (${approach[lower]}) must be no more than ${upper} (${approach[upper]})`;
+        if (doctrine.approach[lower] > doctrine.approach[upper]) {
+            problems.push(
+                `doctrine.approach.${lower} (${doctrine.approach[lower]}) must be no more than ${upper} (${doctrine.approach[upper]})`,
+            );
         }
     }
-    return null;
+    return problems;
 }
 
 function toHalf<T>(value: unknown, fields: readonly string[], fallback: T): T {

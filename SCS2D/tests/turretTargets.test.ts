@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     blueprintFileProblem,
+    blueprintProblem,
     blueprintWarnings,
     compileBlueprint,
     DEFAULT_DOCTRINE,
@@ -281,7 +282,7 @@ describe("a mount with a doctrine of its own", () => {
         );
     });
 
-    it("is refused when it says something nobody can read, and warned of a key it does not know", () => {
+    it("is read whatever its values, warned of a key it does not know, and faulted for a value out of range", () => {
         const file = serialiseBlueprint(DINKY) as Record<string, unknown>;
         const modules = file["modules"] as Record<string, unknown>[];
         // Whatever the Dinky's gun is mounted on: a mount's own targeting is a
@@ -291,7 +292,10 @@ describe("a mount with a doctrine of its own", () => {
         expect(blueprintFileProblem(file)).toBeNull();
         expect(blueprintWarnings(parseBlueprint(file)).join("\n")).toMatch(/targeting has a key[^\n]*aggression/);
         mount["targeting"] = { preferredMass: 0 };
-        expect(blueprintFileProblem(file)).toMatch(/greater than zero/);
+        expect(blueprintFileProblem(file)).toBeNull();
+        expect(blueprintProblem(parseBlueprint(file))).toMatch(/greater than zero/);
+        mount["targeting"] = { preferredMass: "big" };
+        expect(blueprintFileProblem(file)).toMatch(/must be a number/);
     });
 
     it("splits a pair of beam mounts between two targets either could take", () => {
