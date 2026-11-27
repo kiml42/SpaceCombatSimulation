@@ -301,8 +301,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
             // Storage full or refused: they last as long as the page.
         }
     };
-    const toggleTech = (kind: ShipModuleKind, on: boolean): void => {
-        const next = toggled(tech, kind, on);
+    const keepTech = (next: ShipModuleKind[]): void => {
         setTech(next);
         try {
             storage.setItem(TECH_KEY, JSON.stringify(next));
@@ -310,6 +309,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
             // Storage full or refused: they last as long as the page.
         }
     };
+    const toggleTech = (kind: ShipModuleKind, on: boolean): void => keepTech(toggled(tech, kind, on));
     const matchEnemy = (): void => {
         const all = { metal: shownCost(enemyCost, "metal"), fuel: shownCost(enemyCost, "fuel"), build: shownCost(enemyCost, "build") };
         setBudget(all);
@@ -363,6 +363,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
                         setEnemy(preset.enemy);
                         onEnemy(read(preset.enemy));
                         keep(settingsTexts(withEnemyPreset(settings, preset)));
+                        if (preset.tech !== undefined) keepTech([...preset.tech]);
                         // Blank boxes follow the enemy's cost as it comes in.
                         setBudget({ metal: "", fuel: "", build: "" });
                         setFollowed({ metal: "", fuel: "", build: "" });

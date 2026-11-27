@@ -1,4 +1,7 @@
+import { TORPEDO_BOAT } from "~/scenarios/blueprints";
 import { DEFAULT_SKIRMISH_SETTINGS, type SkirmishSettings } from "~/scenarios/skirmish";
+import type { ShipModuleKind } from "~/sim/index";
+import { techFor } from "~/skirmish/techTree";
 
 /** An enemy to begin against, and how many ships a side. The budget then follows the enemy's cost. */
 export interface EnemyPreset {
@@ -7,6 +10,8 @@ export interface EnemyPreset {
     /** The enemy, as the setup screen's list names it (`FleetChoices`). */
     readonly enemy: string;
     readonly maxShips: number;
+    /** The player's starting modules; the choice under Starting modules is kept where not given. */
+    readonly tech?: readonly ShipModuleKind[];
 }
 
 export const ENEMY_PRESETS: readonly EnemyPreset[] = [
@@ -14,6 +19,13 @@ export const ENEMY_PRESETS: readonly EnemyPreset[] = [
     { name: "One big ship", hint: "Against a gunship, one ship a side", enemy: "ship:Stock/Gunship", maxShips: 1 },
     { name: "Small ships", hint: "Against a pair of Dinkies, with room for the fleets to grow", enemy: "fleet:Dinky Pair", maxShips: 5 },
     { name: "Bare core", hint: "Against a bare core, on its tiny budget", enemy: "ship:Stock/Bare Core", maxShips: 3 },
+    {
+        name: "Torpedo boat",
+        hint: "Against a torpedo boat and its KKVs, one ship a side, with only the modules to build one",
+        enemy: "ship:Stock/Torpedo Boat",
+        maxShips: 1,
+        tech: techFor(TORPEDO_BOAT),
+    },
 ];
 
 /** Where and how the rounds are fought, and how the enemy is bred: every setting but the enemy preset's. */
