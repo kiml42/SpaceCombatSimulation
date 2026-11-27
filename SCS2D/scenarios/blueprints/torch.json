@@ -5,13 +5,12 @@
   "notes": "A small craft whose weapon is an engine. The big engine on the bow faces forwards, so the same burn that scorches a target brakes the approach and then shoves the ship back out: it closes fast to stop against the hull, braking on the bow engine, burns, is pushed away, and comes round again.",
   "doctrine": {
     "targeting": {
-      "proximityWeight": 60,
       "preferredMass": 2,
       "massWeight": 150,
       "closingWeight": 60,
-      "facingWeight": 100,
-      "sightWeight": 50,
-      "escortWeight": 20
+      "facingWeight": 10,
+      "armedWeight": 150,
+      "escortWeight": 10
     },
     "approach": {
       "standoffRadii": 1.8,
