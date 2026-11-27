@@ -16,8 +16,12 @@ import * as math from "../sim/math.js";
  * a rammer to come into reach is not giving up the battle to it.
  * A carrier that can still build an armed fighter is armed, and one
  * building a fighter is busy, though it is not firing: otherwise a carrier
- * with no gun of its own would be out before its first fighter was. A
- * stalemate ends at `TIME_CAP`.
+ * with no gun of its own would be out before its first fighter was. Only a
+ * real attack counts: fire, or a collision by a ship under control, landing on
+ * another side's ship still under control. Wreckage drifting into something
+ * is not fighting, nor is anything hitting a wreck. The side that goes quiet
+ * first is out; sides that last fought on the same step go quiet together, a
+ * draw. A stalemate where both keep fighting ends at `TIME_CAP`.
  */
 
 /** How long a side may go without firing or ramming before it is out of the battle, s. */
@@ -196,6 +200,8 @@ export class Activity {
             const disarmed = this.able.every((able, team) => team === active || able === 0);
             this.decision = { winner: active, reason: disarmed ? "disarmed" : "quiet", time: now };
         } else if (count === 0 && this.sides > 1 && !this.able.includes(1)) this.decision = { winner: -1, reason: "disarmed", time: now };
+        // Every armed side gone quiet on the same step, having last fought on the same step: none of them fought last.
+        else if (count === 0 && this.sides > 1) this.decision = { winner: -1, reason: "quiet", time: now };
         else if (now >= this.cap) this.decision = { winner: -1, reason: "time", time: now };
         return this.decision;
     }
@@ -214,8 +220,11 @@ export class Activity {
             if (attacker < 0) continue;
             const team = ships.teamOf(attacker);
             if (team === NEUTRAL_TEAM || team >= this.sides) continue;
-            // Not its own side, nor an asteroid: a hull ground against a rock is not fighting.
-            if (victim >= 0 && (ships.teamOf(victim) === team || ships.teamOf(victim) === NEUTRAL_TEAM)) continue;
+            // A collision is an attack only from a ship under control: wreckage drifting into something is not fighting.
+            if (credit.attackerModule[h]! >= 0 && !(ships.isAlive(attacker) && ships.hasControl(attacker))) continue;
+            // Only on another side's ship still under control: not its own, an asteroid, a wreck or a loose piece.
+            if (victim < 0 || !ships.isAlive(victim) || !ships.hasControl(victim)) continue;
+            if (ships.teamOf(victim) === team || ships.teamOf(victim) === NEUTRAL_TEAM) continue;
             this.lastActive[team] = now;
             this.fired[team] = 1;
             this.landed[attacker] = 1;
