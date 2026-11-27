@@ -940,9 +940,15 @@ export function SkirmishPage() {
               : `Generation ${latest.generation}: the best enemy so far won ${latest.wins} of its ${latest.seeds} matches. It holds ${latest.cards.length} upgrade ${latest.cards.length === 1 ? "card" : "cards"}.`;
     const toggleWatching = (): void => {
         setWatching(!watching);
-        if (!watching && found !== null) showAnswer(found, skirmish, true);
-        else if (!watching && latest !== null) watch(latest);
+        if (!watching && latest !== null) watch(latest);
         else if (watching) view?.setRunning(false);
+    };
+    /** On to the next round, against the answer: fought where it was found to win. */
+    const goToNextRound = (): void => {
+        if (skirmish === null) return;
+        const going = nextRound(skirmish, skirmish.enemy);
+        skirmishes.setSkirmish(going);
+        showRound(going);
     };
     const headedTo = skirmish?.headed === undefined ? null : destinationById(skirmish.headed);
     // The one thing to press next in the round's buttons.
@@ -1099,9 +1105,16 @@ export function SkirmishPage() {
                                     )}
                                 </div>
                                 {skirmish !== null && <ArenaPicture skirmish={skirmish} />}
-                                <Button id="watchEvolving" variant="primary" onClick={toggleWatching}>
-                                    {found === null ? "Watch the best so far" : "Watch the answer"}
-                                </Button>
+                                {found === null ? (
+                                    <Button id="watchEvolving" variant="primary" onClick={toggleWatching}>
+                                        Watch the best so far
+                                    </Button>
+                                ) : (
+                                    // The answer fights the next round as it will be fought: going on to it is the way to see it.
+                                    <Button id="evolvingNextRound" variant="primary" onClick={goToNextRound}>
+                                        Next round
+                                    </Button>
+                                )}
                             </Evolving>
                             <h2>History</h2>
                             {timeline}
@@ -1280,15 +1293,7 @@ export function SkirmishPage() {
                                                 </Buttons>
                                             ) : (
                                                 <Buttons id="answered">
-                                                    <Button
-                                                        id="nextRound"
-                                                        variant="primary"
-                                                        onClick={() => {
-                                                            const going = nextRound(skirmish, skirmish.enemy);
-                                                            skirmishes.setSkirmish(going);
-                                                            showRound(going);
-                                                        }}
-                                                    >
+                                                    <Button id="nextRound" variant="primary" onClick={goToNextRound}>
                                                         Next round
                                                     </Button>
                                                 </Buttons>
