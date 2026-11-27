@@ -2043,8 +2043,8 @@ export function rockUrgency(
 
 /**
  * The share of a magnetic engine's thrust its ring's power keeps this step,
- * having drawn it: 1 when powered, its bell's own aim when not, and 1 for any
- * other engine.
+ * having drawn it: 1 when powered, its bell's own aim over its powered aim
+ * when not, and 1 for any other engine.
  */
 function ringAim(ships: Ships, design: ShipDesign, b: number, module: number, u: number, dt: number): number {
     const placed = design.modules[module];
@@ -2053,8 +2053,8 @@ function ringAim(ships: Ships, design: ShipDesign, b: number, module: number, u:
     const allowed = shipSupply.allowed(ships, Resource.Charge, b, module, Claim.Thrust, need);
     const got = ships.power.draw(b, module, need < allowed ? need : allowed);
     shipSupply.took(ships, Resource.Charge, b, module, Claim.Thrust, got);
-    const bell = geometryOf(placed!).bellDivergence;
-    return bell + (1 - bell) * (got / need);
+    const { bellDivergence: bell, divergence: powered } = geometryOf(placed!);
+    return (bell + (powered - bell) * (got / need)) / powered;
 }
 
 /**
