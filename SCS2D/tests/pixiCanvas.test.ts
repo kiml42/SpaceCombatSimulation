@@ -144,6 +144,32 @@ describe("canvas2d.ts drawn through PixiCanvas", () => {
     });
 });
 
+describe("an image drawn through PixiCanvas", () => {
+    it("draws nothing at a width or height of nothing, as a canvas does, rather than at the image's own size", () => {
+        const context = new PixiCanvas(() => new Container() as unknown as BitmapText);
+        const image = {};
+        // The image as the canvas would have it, without a browser to make one from.
+        (context as unknown as { textures: Map<object, Texture> }).textures.set(
+            image,
+            new Texture({ source: new TextureSource({ width: 32, height: 32 }) }),
+        );
+        const drawn = (...args: number[]): { dw: number; dh: number }[] => {
+            context.begin();
+            context.drawImage(image, ...args);
+            context.end();
+            return context.root.children
+                .filter((child) => child instanceof Graphics)
+                .flatMap((g) => (g as Graphics).context.instructions)
+                .filter((instruction) => instruction.action === "texture")
+                .map((instruction) => instruction.data as { dw: number; dh: number });
+        };
+        expect(drawn(0, 0, 2, 3)).toEqual([expect.objectContaining({ dw: 2, dh: 3 })]);
+        expect(drawn(0, 0, 0, 3)).toEqual([]);
+        expect(drawn(0, 0, 2, 0)).toEqual([]);
+        expect(drawn(31, 0, 1, 32, 0, 0, 0, 2)).toEqual([]);
+    });
+});
+
 describe("a batch of particles", () => {
     it("draws with the texture it is started with, whatever it drew with before", () => {
         const texture = (size: number): Texture => new Texture({ source: new TextureSource({ width: size, height: size }) });
