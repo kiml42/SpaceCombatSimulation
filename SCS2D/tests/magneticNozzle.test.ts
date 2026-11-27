@@ -104,7 +104,8 @@ describe("a magnetic nozzle", () => {
     it("takes the end of the bell, so unpowered it aims a little worse than the plain bell", () => {
         const plain = engineGeometry(stubby());
         const magnetic = engineGeometry(stubby({ magnetic: true }));
-        expect(magnetic.divergence).toBe(1);
+        expect(magnetic.divergence).toBeGreaterThan(plain.divergence);
+        expect(magnetic.divergence).toBeLessThan(1);
         expect(magnetic.bellLength).toBeLessThan(plain.nozzleLength);
         expect(magnetic.bellDivergence).toBeLessThan(plain.divergence);
     });
@@ -114,18 +115,43 @@ describe("a magnetic nozzle", () => {
         expect(compileBlueprint(back).modules.some((m) => m.spec.magnetic === true)).toBe(true);
     });
 
-    it("pushes with only its bell's share when there is no power to run the ring", () => {
+    it("pushes with only its bell's share of its powered aim when there is no power to run the ring", () => {
         // A Dinky has neither generator nor battery.
         const design = compileBlueprint(magnetised(DINKY));
         const throttles = burnt(magnetised(DINKY));
         design.engines.forEach((engine, t) => {
-            const bell = engineGeometry(design.modules[engine.module!]!.spec).bellDivergence;
-            expect(throttles[t]).toBeCloseTo(bell, 9);
+            const geometry = engineGeometry(design.modules[engine.module!]!.spec);
+            expect(throttles[t]).toBeCloseTo(geometry.bellDivergence / geometry.divergence, 9);
         });
     });
 
     it("pushes with all of it on a fighter's core", () => {
         for (const u of burnt(magnetised(X_WING))) expect(u).toBe(1);
         for (const u of burnt(X_WING)) expect(u).toBe(1);
+    });
+
+    it("always aims better powered than a plain nozzle of its length, and better still the longer it is", () => {
+        let last = 0;
+        for (const nozzle of [0.02, 0.05, 0.1, 0.2, 0.4, 0.8, 1.5, 3]) {
+            const plain = moduleStats(stubby({ nozzle }));
+            const magnetic = moduleStats(stubby({ nozzle, magnetic: true }));
+            const aim = engineGeometry(stubby({ nozzle, magnetic: true })).divergence;
+            expect(aim).toBeGreaterThan(engineGeometry(stubby({ nozzle })).divergence);
+            expect(magnetic.thrust).toBeGreaterThan(plain.thrust);
+            expect(magnetic.exhaustVelocity).toBeGreaterThan(plain.exhaustVelocity);
+            expect(aim).toBeGreaterThan(last);
+            expect(aim).toBeLessThan(1);
+            last = aim;
+        }
+    });
+
+    it("is no magnetic nozzle at all without a nozzle for its ring to stand on", () => {
+        const plain = moduleStats(stubby({ nozzle: 0 }));
+        const magnetic = moduleStats(stubby({ nozzle: 0, magnetic: true }));
+        expect(magnetic.ringPower).toBe(0);
+        expect(magnetic.thrust).toBe(plain.thrust);
+        expect(magnetic.exhaustVelocity).toBe(plain.exhaustVelocity);
+        expect(magnetic.mass).toBe(plain.mass);
+        expect(engineGeometry(stubby({ nozzle: 0, magnetic: true }))).toEqual(engineGeometry(stubby({ nozzle: 0 })));
     });
 });

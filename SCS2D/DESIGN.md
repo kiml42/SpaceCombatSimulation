@@ -883,9 +883,12 @@ inside any one file is not contiguous.
   acceleration and a fighter 19%. That is the law being right about hulls drawn before it existed — the
   answer for them is a cluster of small bells, which is a change to the ships rather than to the law.
   **An engine may have a magnetic nozzle** (`magnetic`): a ring at the end of its bell that, powered, holds
-  the jet straight, so none of it is thrown sideways. The ring adds no energy (the drive already carries
+  the jet straighter than a bell can. The ring adds no energy (the drive already carries
   gigawatts, which no generator could add to); it aims what is there, so a powered magnetic engine pushes
-  and runs as though its bell were perfect, and its field holds the flame together past the ring, which a
+  and runs as though its bell were `MAGNETIC_BELL_REACH` (3) times its whole nozzle's length: always better aimed
+  than a plain bell of its length, and better still the longer its nozzle, so length is worth having either way.
+  With no nozzle there is nothing for a ring to stand on, and a magnetic engine with none is a plain one. Its
+  field holds the flame together past the ring, which a
   bell's walls cannot: it reaches `MAGNETIC_PLUME_REACH` (1.5) times as far as the same bell's would aimed
   perfectly. That makes a short bell, and the flow and mass it saves, worth having. The ring draws `MAGNETIC_POWER_PER_EXIT_AREA`
   (0.2 MW/m²) at full throttle, as thrust's claim on charge: a fighter's core runs its main engine's ring,
