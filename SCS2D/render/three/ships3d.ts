@@ -848,8 +848,13 @@ function magneticNozzles(
         }
         const inner = reach - rod;
         const outer = reach + rod;
-        b.lathe([-l, inner, -l, outer, -l + thickness, outer, -l + thickness, inner], across, 0, squash, rgb, false);
-        b.lying(-l, -l + thickness, across, 0, inner, inner, squash, rgb, false, true);
+        // Each face on its own, so its edges are sharp rather than shaded round as one profile's corners are.
+        const aft = -l;
+        const fore = -l + thickness;
+        b.lathe([aft, inner, aft, outer], across, 0, squash, rgb, false);
+        b.lying(aft, fore, across, 0, outer, outer, squash, rgb, false);
+        b.lathe([fore, outer, fore, inner], across, 0, squash, rgb, false);
+        b.lying(aft, fore, across, 0, inner, inner, squash, rgb, false, true);
     }
 }
 
