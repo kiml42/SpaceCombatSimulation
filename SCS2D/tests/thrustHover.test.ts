@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Allocation, compileBlueprint } from "../sim/index.js";
-import { CORVETTE, STAR_DESTROYER, Y_WING } from "../scenarios/blueprints.js";
+import { CORVETTE, RAIL_GUNSHIP } from "../scenarios/blueprints.js";
 import { burnFigures, burnThrottles, envelopes, holdingAt, holdingThrottles, inUnits, pointedThrust } from "../editor/stats.js";
 import { envelopeBearingAt, overEnvelope } from "../editor/overlay.js";
 
@@ -57,20 +57,20 @@ describe("the throttles behind a point on the envelope", () => {
     });
 
     it("burns below the most that holds the heading as the battle allocates it, not the full burn scaled down", () => {
-        // A Y-Wing going sideways: one side engine ahead of its centre of mass and one behind.
-        const ywing = compileBlueprint(Y_WING);
-        const curve = envelopes(ywing, 64);
+        // A corvette going sideways: one lateral engine ahead of its centre of mass and one behind.
+        const ship = corvette;
+        const curve = envelopes(ship, 64);
         const angle = Math.PI / 2;
         const part = pointedThrust(curve, angle, 0.28);
-        const burned = burnThrottles(ywing, angle, part.acceleration, part.holding);
-        const battle = new Float64Array(ywing.engines.length);
-        const force = part.acceleration * ywing.mass;
-        ywing.engineLayout.allocate(0, force, 0, battle, new Allocation());
+        const burned = burnThrottles(ship, angle, part.acceleration, part.holding);
+        const battle = new Float64Array(ship.engines.length);
+        const force = part.acceleration * ship.mass;
+        ship.engineLayout.allocate(0, force, 0, battle, new Allocation());
         battle.forEach((t, i) => expect(burned[i]).toBeCloseTo(t, 12));
-        const scaled = holdingThrottles(ywing, angle).map((t) => t * part.share);
+        const scaled = holdingThrottles(ship, angle).map((t) => t * part.share);
         expect(Array.from(burned)).not.toEqual(Array.from(scaled));
         // At the rim it is the full holding burn.
-        expect(Array.from(burnThrottles(ywing, angle, part.holding, part.holding))).toEqual(Array.from(holdingThrottles(ywing, angle)));
+        expect(Array.from(burnThrottles(ship, angle, part.holding, part.holding))).toEqual(Array.from(holdingThrottles(ship, angle)));
     });
 
     it("costs a burn at its engines' own specific impulse, and lasts twice as long at half throttle", () => {
@@ -128,8 +128,8 @@ describe("an acceleration as it is read out", () => {
         expect(inUnits([0], "m/s²")).toBe("0 m/s²");
     });
 
-    it("reads the Star Destroyer's push astern in a fraction of a metre, not as nought", () => {
-        const curve = envelopes(compileBlueprint(STAR_DESTROYER), 64);
+    it("reads the rail gunship's push astern in a fraction of a metre, not as nought", () => {
+        const curve = envelopes(compileBlueprint(RAIL_GUNSHIP), 64);
         const astern = curve.holding[32]!;
         expect(astern).toBeGreaterThan(0);
         expect(astern).toBeLessThan(1);

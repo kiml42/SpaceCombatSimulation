@@ -10,7 +10,7 @@ import {
     designArcs,
 } from "../sim/index.js";
 import { broadside } from "../scenarios/broadside.js";
-import { BARE_CORE, BROADSIDE, GUNSHIP, STAR_DESTROYER, TORCH } from "../scenarios/blueprints.js";
+import { BARE_CORE, BROADSIDE, CATAMARAN, GUNSHIP, TORCH } from "../scenarios/blueprints.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { OrderCancelCondition } from "../sim/ships.js";
 
@@ -124,12 +124,12 @@ describe("the attack bearing", () => {
         expect(choose(arcs([90, 30, -1]), deg(90), 0.5, 0, new AttackRegion()).speed).toBe(0);
     });
 
-    it("puts the Star Destroyer broadside on, either beam", () => {
-        const design = compileBlueprint(STAR_DESTROYER);
+    it("offers the Catamaran each bearing both its turrets cover, on either beam alike", () => {
+        const design = compileBlueprint(CATAMARAN);
         const best = bestAttackBearings(designArcs(design, new AttackArcs()), design.thrustBearing);
-        expect(best.length).toBe(2);
-        expect(best.every((b) => Math.abs(Math.abs(b.bearing) - Math.PI / 2) < deg(20))).toBe(true);
-        expect(best.every((b) => b.guns === 4)).toBe(true);
+        expect(best.length).toBeGreaterThan(2);
+        expect(best.every((b) => b.guns === 2)).toBe(true);
+        for (const b of best) expect(best.some((m) => Math.abs(m.bearing + b.bearing) < deg(1))).toBe(true);
     });
 
     it("leaves the gunship fighting bow on", () => {

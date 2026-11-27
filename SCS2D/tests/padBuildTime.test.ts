@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { buildTime, moduleReadout, padBuildTime } from "../editor/stats.js";
-import { QUASAR } from "../scenarios/blueprints.js";
+import { TORPEDO_BOAT } from "../scenarios/blueprints.js";
 import { billOf, compileBlueprint, PAD_REPAIR_PER_AREA, ROBOT_REPAIR_RATE } from "../sim/index.js";
 
 describe("a pad's figures in the editor", () => {
-    const carrier = compileBlueprint(QUASAR);
+    const carrier = compileBlueprint(TORPEDO_BOAT);
     const built = carrier.builds![0]!;
     const pad = carrier.modules[built.pad]!.spec;
     const layout = carrier.modules.map((module) => module.spec);

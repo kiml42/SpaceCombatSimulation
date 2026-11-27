@@ -15,7 +15,7 @@ import {
 } from "../sim/index.js";
 import { mountLayers } from "../sim/shipAim.js";
 import { GunType } from "../sim/modules.js";
-import { GUNSHIP, RAIL_GUNSHIP, TIE } from "../scenarios/blueprints.js";
+import { DINKY, GUNSHIP, RAIL_GUNSHIP } from "../scenarios/blueprints.js";
 import { TURRET_CORVETTE } from "./fixtures.js";
 
 /** A thick hull beam fires a beam in each layer, each with half its power. */
@@ -99,7 +99,7 @@ describe("a hull gun's slugs", () => {
     });
 
     it("fly in a fighter's layer, and in the hull layer once it has committed to ram", () => {
-        expect(layersOf(TIE)).toBe(WEAPONS_LAYER);
-        expect(layersOf(TIE, true)).toBe(HULL_LAYER);
+        expect(layersOf(DINKY)).toBe(WEAPONS_LAYER);
+        expect(layersOf(DINKY, true)).toBe(HULL_LAYER);
     });
 });
