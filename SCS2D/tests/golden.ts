@@ -100,8 +100,8 @@ export const GOLDEN: Record<ScenarioName, string> = {
     split: "d650fe2f",
     // ships=20 inFlight=2 p.fired=0 p.hits=10 b.fired=0 b.hits=0 contacts=25 bumps=0 crashes=3 severed=0 culled=0 scrap=74345.9t · 2049.1 µs/step
     crash: "63f34837",
-    // ships=11 inFlight=0 p.fired=0 p.hits=15 b.fired=8 b.hits=2224 contacts=750 bumps=4 crashes=15 severed=9 culled=0 scrap=133.4t · 299.4 µs/step
-    torchRun: "3b4de0cd",
+    // ships=9 inFlight=0 p.fired=0 p.hits=0 b.fired=11 b.hits=2786 contacts=744 bumps=2 crashes=1 severed=4 culled=0 scrap=48.5t · 197.6 µs/step
+    torchRun: "e9ffaaf6",
     // ships=4 inFlight=55 p.fired=157 p.hits=550 b.fired=0 b.hits=0 contacts=21 bumps=2 crashes=0 severed=1 culled=0 scrap=43.6t · 163.8 µs/step
     hooked: "5768f1e9",
     // ships=2 inFlight=0 p.fired=24 p.hits=116 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=15.6t · 46.8 µs/step
