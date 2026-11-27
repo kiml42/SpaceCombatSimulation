@@ -82,7 +82,12 @@ async function startWith(ship: Blueprint): Promise<void> {
     await page.waitForSelector("#fleetName");
     // How to build a fleet opens by itself the first time (checked where the fleet editor is).
     if (await page.isVisible("#fleetHelp")) await page.click("#fleetHelpClose");
-    const kept = parseSkirmish(JSON.parse((await page.evaluate(() => localStorage.getItem("scs2d.skirmish")))!));
+    // With every module unlocked, so the fleet is held only to its budget and limits.
+    const {
+        tech: _tech,
+        enemyTech: _enemyTech,
+        ...kept
+    } = parseSkirmish(JSON.parse((await page.evaluate(() => localStorage.getItem("scs2d.skirmish")))!));
     await page.goto(skirmishPage({ ...kept, player: shipFleet(ship) }));
     await page.waitForSelector("#round");
 }
@@ -198,6 +203,32 @@ describe("the skirmish in a browser", () => {
             await page.selectOption("#enemyPreset", "Bare core");
             expect(await page.inputValue("#maxShips")).toBe("3");
             expect(await page.inputValue("#radius")).toBe("500");
+            expect(problems).toEqual([]);
+        }));
+
+    it("chooses the modules the player starts with, and remembers them", () =>
+        withoutView(page, async () => {
+            await advanced();
+            expect(await page.isChecked('[data-tech="core"]')).toBe(true);
+            expect(await page.isDisabled('[data-tech="core"]')).toBe(true);
+            expect(await page.isChecked('[data-tech="hullGun"]')).toBe(true);
+            expect(await page.isChecked('[data-tech="turret"]')).toBe(false);
+            await page.check('[data-tech="turret"]');
+            // A turret needs structure, which comes with it.
+            expect(await page.evaluate(() => JSON.parse(window.localStorage.getItem("scs2d.skirmish.tech")!))).toEqual([
+                "structure",
+                "core",
+                "engine",
+                "turret",
+                "hullGun",
+            ]);
+            await page.reload();
+            await page.waitForSelector("#setupScreen");
+            await advanced();
+            expect(await page.isChecked('[data-tech="turret"]')).toBe(true);
+            // Structure taken away takes the turret that needs it.
+            await page.uncheck('[data-tech="structure"]');
+            expect(await page.isChecked('[data-tech="turret"]')).toBe(false);
             expect(problems).toEqual([]);
         }));
 

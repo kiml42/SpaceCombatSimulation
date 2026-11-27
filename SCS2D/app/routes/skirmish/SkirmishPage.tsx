@@ -66,7 +66,7 @@ import {
     type SkirmishSettings,
 } from "~/scenarios/skirmish";
 import type { Battle } from "~/scenarios/types";
-import { serialiseFleet, type Budget, type Fleet, type Snapshot } from "~/sim/index";
+import { serialiseFleet, type Budget, type Fleet, type ShipModuleKind, type Snapshot } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
 import { EditLink } from "~/ui/buttons/EditButton";
 import { EMPTY } from "./FleetChoices";
@@ -823,6 +823,7 @@ export function SkirmishPage() {
         chosen: SkirmishSettings,
         budgetOf: (cost: Budget) => Budget,
         name: string,
+        tech: readonly ShipModuleKind[],
     ): void => {
         const enemy = read(enemyValue);
         if (enemy === null) return;
@@ -831,7 +832,7 @@ export function SkirmishPage() {
         const player = playerValue === EMPTY ? { name: "My fleet", designs: {}, ships: [] } : read(playerValue);
         if (player === null) return;
         // The page's own randomness, not the battle's: it only picks which battle.
-        const begun = newSkirmish(enemy, player, Math.floor(Math.random() * 2 ** 32), chosen, budgetOf(startingBudget(enemy)), name);
+        const begun = newSkirmish(enemy, player, Math.floor(Math.random() * 2 ** 32), chosen, budgetOf(startingBudget(enemy)), name, tech);
         skirmishes.setSkirmish(begun);
         // Nothing to fight with yet: straight to the editor to build it.
         if (player.ships.length === 0) void navigate(fleetRoute(begun.player, begun));

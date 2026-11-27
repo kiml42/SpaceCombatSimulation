@@ -1,3 +1,4 @@
+import { KIND_NAMES } from "~/skirmish/techTree";
 import type { EditorDocument } from "~/editor/document";
 import { HelpDialog } from "~/features/help/Help";
 import type { TourStep } from "~/features/help/Tour";
@@ -41,7 +42,7 @@ export function ShipHelp({ open, onClose, onTutorial }: ShipHelpProps) {
 }
 
 /** The tutorial's steps, each done when the design shows it: a first ship from a blank one. */
-export function shipTutorial(doc: EditorDocument, inFleet = false): TourStep[] {
+export function shipTutorial(doc: EditorDocument, inFleet = false, weapon: ShipModuleKind = "turret"): TourStep[] {
     const modules = doc.view.modules;
     const design = doc.view.design;
     const core = modules.find((spec) => spec.kind === "core");
@@ -97,8 +98,13 @@ export function shipTutorial(doc: EditorDocument, inFleet = false): TourStep[] {
         {
             id: "weapon",
             title: "Add a weapon",
-            body: <p>A turret is a good start. Arcs, on the drawing, shows where each gun can point and where it will fire.</p>,
-            targets: ['[data-add="turret"]', "#addFolded > summary"],
+            body: (
+                <p>
+                    {weapon === "turret" ? "A turret" : `A ${KIND_NAMES[weapon].toLowerCase()}`} is a good start. Arcs, on the drawing,
+                    shows where each gun can point and where it will fire.
+                </p>
+            ),
+            targets: [`[data-add="${weapon}"]`, "#addFolded > summary"],
             beside: "#selectionPanel",
             // Placed where it fits, too: a weapon dropped on the hull is a problem.
             goal: { label: "It has a weapon, and nothing is wrong", done: modules.some((spec) => isWeaponMount(spec.kind)) && clear },
@@ -129,7 +135,7 @@ export function shipTutorial(doc: EditorDocument, inFleet = false): TourStep[] {
 }
 
 /** The module a tutorial step asks for, to be picked out in Add a module. */
-export function tutorialSuggests(step: TourStep | undefined): ShipModuleKind | null {
+export function tutorialSuggests(step: TourStep | undefined, weapon: ShipModuleKind = "turret"): ShipModuleKind | null {
     switch (step?.id) {
         case "core":
             return "core";
@@ -137,7 +143,7 @@ export function tutorialSuggests(step: TourStep | undefined): ShipModuleKind | n
         case "fly":
             return "engine";
         case "weapon":
-            return "turret";
+            return weapon;
         default:
             return null;
     }

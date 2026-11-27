@@ -23,7 +23,7 @@ import { emptyBlueprint, MY_SHIPS, nextName, toFileText, unusedName } from "~/ed
 import { ANGLE_SNAP_DEGREES, type ShipCanvas as Engine } from "~/editor/shipCanvas";
 import type { KeyRow } from "~/host/keyHelp";
 import { ARC_LABELS } from "~/render/canvas2d";
-import { inSkirmish } from "~/scenarios/skirmish";
+import { inSkirmish, playerTech } from "~/scenarios/skirmish";
 import {
     fighterProblem,
     parseBlueprint,
@@ -174,6 +174,9 @@ const Panel = styled.aside`
         border-left: none;
     }
 `;
+
+/** Weapons a tutorial may suggest, the likeliest first. */
+const WEAPON_KINDS: readonly ShipModuleKind[] = ["turret", "hullGun", "beamTurret", "hullBeam", "railGun", "plasmaLance"];
 
 /** What is selected, on the other side of the view from the design as a whole. */
 const Inspector = styled(Panel)`
@@ -475,8 +478,12 @@ export function ShipPage() {
         if (inFleet === null) reopen(emptyBlueprint(unusedName("New ship", taken())));
         setTour(0);
     };
-    const tourSteps = tour === null ? null : shipTutorial(doc, inFleet !== null);
-    const tourSuggests = tourSteps === null ? null : tutorialSuggests(tourSteps[tour!]);
+    // In a skirmish, the first weapon unlocked where a turret is not.
+    const tech = inFleet?.skirmish === undefined ? null : playerTech(inFleet.skirmish);
+    const weapon: ShipModuleKind =
+        tech === null || tech.includes("turret") ? "turret" : (WEAPON_KINDS.find((kind) => tech.includes(kind)) ?? "turret");
+    const tourSteps = tour === null ? null : shipTutorial(doc, inFleet !== null, weapon);
+    const tourSuggests = tourSteps === null ? null : tutorialSuggests(tourSteps[tour!], weapon);
     const fleetNow = inFleet === null ? null : backToFleet(inFleet.fleet, inFleet.design, blueprint);
     const skirmishNow = inFleet?.skirmish === undefined || fleetNow === null ? null : { ...inFleet.skirmish, player: fleetNow };
 
@@ -637,6 +644,7 @@ export function ShipPage() {
                         into={target !== null && !isModuleSpec(target) ? (target as AssemblyInstance).use : null}
                         fighter={asked}
                         onAdd={add}
+                        allowed={tech}
                         suggest={tourSteps === null ? (doc.blueprint.modules.length === 0 ? "core" : null) : tourSuggests}
                         {...(doc.selections.length > 0 && (target === null || isModuleSpec(target))
                             ? // Open while the tutorial asks for a module, so what it points at is there to click.

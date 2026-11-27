@@ -6,7 +6,8 @@ import { useLibrary } from "~/features/storage/useLibrary";
 import { kg } from "~/editor/budget";
 import { buildTime } from "~/editor/stats";
 import { DEFAULT_SKIRMISH_SETTINGS, parseSkirmishSettings, type SkirmishSettings } from "~/scenarios/skirmish";
-import { fleetHulls, type Budget, type Fleet } from "~/sim/index";
+import { fleetHulls, type Budget, type Fleet, type ShipModuleKind } from "~/sim/index";
+import { ALL_TECH, isTech, KIND_NAMES, STARTING_TECH, toggled } from "~/skirmish/techTree";
 import { Button } from "~/ui/buttons/Button";
 import { clampOnBlur } from "~/ui/fields/clamp";
 import { Figures } from "../ship/ShipReport";
@@ -97,6 +98,20 @@ const Cards = styled.div`
     }
 `;
 
+/** The starting modules, two to a row. */
+const TechList = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.2rem 0.8rem;
+    margin-top: 0.4rem;
+
+    label {
+        display: flex;
+        gap: 0.4rem;
+        align-items: center;
+    }
+`;
+
 const Buttons = styled.div`
     display: flex;
     flex-wrap: wrap;
@@ -179,6 +194,8 @@ export interface SetupScreenProps {
         settings: SkirmishSettings,
         budget: (cost: Budget) => Budget,
         name: string,
+        /** The module kinds the player starts with unlocked. */
+        tech: readonly ShipModuleKind[],
     ) => void;
     /** Ask for a skirmish file to load in place of this setup. */
     readonly onImport: () => void;
@@ -221,6 +238,21 @@ function opening(storage: Pick<Storage, "getItem">): { enemy: string; settings: 
     return { enemy: (ENEMY_PRESETS.find((preset) => preset.maxShips === kept.maxShips) ?? first).enemy, settings: kept };
 }
 
+/** Where the starting modules last chosen are kept. */
+const TECH_KEY = "scs2d.skirmish.tech";
+
+/** The starting modules last chosen, the core always among them; the default on a first visit. */
+function keptTech(storage: Pick<Storage, "getItem">): ShipModuleKind[] {
+    try {
+        const raw = JSON.parse(storage.getItem(TECH_KEY) ?? "null") as unknown;
+        if (Array.isArray(raw))
+            return ALL_TECH.filter((kind) => kind === "core" || raw.some((k) => typeof k === "string" && isTech(k) && k === kind));
+    } catch {
+        // Unreadable: the default.
+    }
+    return [...STARTING_TECH];
+}
+
 /** Choose an enemy, a battlefield and a budget, and start a skirmish, whose fleet is built next in the fleet editor. */
 export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: SetupScreenProps) {
     const storage = useStorage();
@@ -229,6 +261,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
     const [texts, setTexts] = useState(() => settingsTexts(start.settings));
     const [enemy, setEnemy] = useState(start.enemy);
     const [name, setName] = useState("");
+    const [tech, setTech] = useState(() => keptTech(storage));
     // Each box's text, and what was put in it from the enemy's cost: a box still showing that follows the enemy.
     const [budget, setBudget] = useState<Record<keyof Budget, string>>({ metal: "", fuel: "", build: "" });
     const [followed, setFollowed] = useState<Record<keyof Budget, string>>({ metal: "", fuel: "", build: "" });
@@ -264,6 +297,15 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
         setTexts(next);
         try {
             storage.setItem(SETTINGS_KEY, JSON.stringify(readSettings(next)));
+        } catch {
+            // Storage full or refused: they last as long as the page.
+        }
+    };
+    const toggleTech = (kind: ShipModuleKind, on: boolean): void => {
+        const next = toggled(tech, kind, on);
+        setTech(next);
+        try {
+            storage.setItem(TECH_KEY, JSON.stringify(next));
         } catch {
             // Storage full or refused: they last as long as the page.
         }
@@ -373,7 +415,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
                 <Button
                     id="start"
                     variant="primary"
-                    onClick={() => onStart(enemy, EMPTY, settings, readBudget, name.trim() === "" ? suggested : name)}
+                    onClick={() => onStart(enemy, EMPTY, settings, readBudget, name.trim() === "" ? suggested : name, tech)}
                 >
                     Start: build your fleet
                 </Button>
@@ -466,6 +508,30 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
                     already going is played out under those it started with.
                 </p>
                 <Cards>
+                    <details open data-key="tech" id="startingTech">
+                        <summary>
+                            <h2>Starting modules</h2>
+                        </summary>
+                        <p>
+                            The modules you can build with from the start. The rest are unlocked by cards, each once you have the modules it
+                            needs. The enemy starts with what its fleet is built of, and has whatever you unlock.
+                        </p>
+                        <TechList>
+                            {ALL_TECH.map((kind) => (
+                                <label key={kind}>
+                                    <input
+                                        type="checkbox"
+                                        data-tech={kind}
+                                        checked={tech.includes(kind)}
+                                        disabled={kind === "core"}
+                                        title={kind === "core" ? "Every ship needs a core" : undefined}
+                                        onChange={(event) => toggleTech(kind, event.target.checked)}
+                                    />
+                                    {KIND_NAMES[kind]}
+                                </label>
+                            ))}
+                        </TechList>
+                    </details>
                     {card(
                         "round",
                         "The round",

@@ -1,6 +1,6 @@
 import { math, Rng, type Budget, type ShipModuleKind } from "../sim/index.js";
 import deckFile from "./cards.json" with { type: "json" };
-import { ALL_TECH, canUnlock, KIND_NAMES } from "./techTree.js";
+import { ALL_TECH, canUnlock, KIND_NAMES, PREREQUISITES } from "./techTree.js";
 
 /**
  * Upgrade cards (#691): what a skirmish's player picks after losing a few
@@ -223,8 +223,27 @@ export function fits(start: Limits, held: readonly string[], card: Card): boolea
 export function drawHand(rng: Rng, start: Limits, held: readonly string[], allowed: (card: Card) => boolean = () => true): string[] {
     const pool = DECK.filter((card) => allowed(card) && fits(start, held, card));
     const hand: string[] = [];
-    while (hand.length < HAND && pool.length > 0) hand.push(pool.splice(rng.nextInt(pool.length), 1)[0]!.id);
+    while (hand.length < HAND && pool.length > 0) {
+        let total = 0;
+        for (const card of pool) total += drawWeight(card);
+        let at = rng.nextFloat() * total;
+        let k = 0;
+        while (k < pool.length - 1 && at >= drawWeight(pool[k]!)) at -= drawWeight(pool[k++]!);
+        hand.push(pool.splice(k, 1)[0]!.id);
+    }
     return hand;
+}
+
+/** How much likelier an unlock with one group of prerequisites is drawn than a card that moves limits. */
+const UNLOCK_WEIGHT = 4;
+
+/**
+ * How often a card comes up, against a limit card's one: an unlock by how
+ * few groups of prerequisites its kind has, so the common modules a tree
+ * opens with — structure, tanks, holds — come up most.
+ */
+export function drawWeight(card: Card): number {
+    return card.unlocks === undefined ? 1 : UNLOCK_WEIGHT / math.max(1, PREREQUISITES[card.unlocks].length);
 }
 
 /** How much of each limit a fleet uses, as a share of it. */
