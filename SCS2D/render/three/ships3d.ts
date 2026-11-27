@@ -23,8 +23,10 @@ import {
     SCAR_VIEW_STRIDE,
     DECK_HEIGHT,
     domeRadius,
+    engineGeometry,
     HULL_LAYER,
     isDomed,
+    isMagnetic,
     originOf,
     WEAPONS_LAYER,
     type ModuleSpec,
@@ -38,7 +40,17 @@ import type { Camera } from "../camera.js";
 import { engineLayout } from "../engineLayout.js";
 import type { Lights } from "../glows.js";
 import { DEFAULT_LIGHT, FIGHTER_SHADOW_M, fighterHeight, LANDED_SHADOW_M, type Light } from "../light.js";
-import { BARREL, fillColour, isFighterModule, moduleFills, paintedSide, warheadLines, type Fill } from "../moduleFills.js";
+import {
+    BARREL,
+    fillColour,
+    isFighterModule,
+    moduleFills,
+    paintedSide,
+    ringBars,
+    ringThickness,
+    warheadLines,
+    type Fill,
+} from "../moduleFills.js";
 import { parseColour } from "../pixiCanvas.js";
 import { fighterColours, shipColours, teamLivery } from "../teams.js";
 import { patternColour, patternTile, patternTransform, tileKey, type Affine } from "../livery.js";
@@ -572,11 +584,15 @@ function build(ship: ShipView): { model: BufferGeometry; worn: Map<number, Buffe
                 // What joins it to its neighbours is half its depth, and runs into it.
                 const joint = half / 2;
                 const firstMount = fills.length - mounts.polygons.length;
+                const magnetic = isMagnetic(spec);
+                const nozzles = layout.centres.length;
                 // Every chamber has the same outline, moved across.
                 const chamberTop: number[] = [];
                 for (let v = 0; v < layout.chamber.length; v += 2)
                     if (layout.chamber[v + 1]! >= 0) chamberTop.push(layout.chamber[v]!, layout.chamber[v + 1]!);
                 fills.forEach((fill, k) => {
+                    // A magnetic nozzle's bars and ring, drawn flat as boxes, are rods and rings round each jet below.
+                    if (magnetic && ((k >= nozzles && k < 3 * nozzles) || k === 4 * nozzles)) return;
                     const p = fill.points;
                     const rgb = shade(rgbOf(fill.colour));
                     let x0 = Infinity;
@@ -629,6 +645,7 @@ function build(ship: ShipView): { model: BufferGeometry; worn: Map<number, Buffe
                     }
                     b.prism(p, -half - k * STACK, half + k * STACK, rgb);
                 });
+                if (magnetic) magneticNozzles(b, spec, layout, half, shade(rgbOf(colours.hull)));
                 return;
             }
             if (spec.kind === "tank" && fills.length > 0 && fills[0]!.points.length === 8) {
@@ -800,6 +817,42 @@ const BARREL_ON_DOME = 0.55;
 const PEDESTAL = 0.6;
 
 /** A circle `r` across round the module's middle, as corners. */
+/** How many bars carry each magnetic nozzle's ring, set round its jet in an X. */
+const RING_RODS = 4;
+
+/**
+ * Each of an engine's magnetic nozzles as a ring round its jet at the engine's
+ * aft end, carried by rods in an X round the bell from the machinery block, or
+ * from the engine's front where it has none, as Pixi draws them seen from above.
+ */
+function magneticNozzles(
+    b: Builder,
+    spec: ModuleSpec,
+    layout: ReturnType<typeof engineLayout>,
+    half: number,
+    rgb: readonly number[],
+): void {
+    const engine = engineGeometry(spec);
+    const l = spec.length / 2;
+    const thickness = ringThickness(engine);
+    const root = layout.pumpAft < l ? layout.pumpAft : l;
+    for (const across of layout.centres) {
+        const [[from, to]] = ringBars(engine, across);
+        const rod = (to - from) / 2;
+        // Round the bell's exit, just clear of it, and squashed as the bell is to stay in its module's depth.
+        const reach = across - to + rod;
+        const squash = Math.min(1, half / (reach + rod));
+        for (let k = 0; k < RING_RODS; k++) {
+            const a = ((k + 0.5) / RING_RODS) * 2 * Math.PI;
+            b.lying(-l + thickness, root, across + Math.cos(a) * reach, Math.sin(a) * reach * squash, rod, rod, 1, rgb);
+        }
+        const inner = reach - rod;
+        const outer = reach + rod;
+        b.lathe([-l, inner, -l, outer, -l + thickness, outer, -l + thickness, inner], across, 0, squash, rgb, false);
+        b.lying(-l, -l + thickness, across, 0, inner, inner, squash, rgb, false, true);
+    }
+}
+
 function disc(r: number): number[] {
     const out: number[] = [];
     for (let k = 0; k < ROUND; k++) out.push(Math.cos((k / ROUND) * 2 * Math.PI) * r, Math.sin((k / ROUND) * 2 * Math.PI) * r);
