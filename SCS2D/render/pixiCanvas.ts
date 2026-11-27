@@ -471,6 +471,9 @@ export class PixiCanvas {
                 : args.length === 4
                   ? [...whole, ...args]
                   : args;
+        // Nothing to draw, as a canvas draws nothing: Pixi would take a width or height of 0 as not
+        // given and draw the texture at its own size, a zero-length bell as long as its shading's texture.
+        if (!(dw !== 0 && dh !== 0 && Number.isFinite(dw) && Number.isFinite(dh))) return;
         if (sx !== 0 || sy !== 0 || sw !== texture.width || sh !== texture.height) {
             texture = new Texture({ source: texture.source, frame: new Rectangle(sx, sy, sw, sh) });
         }
