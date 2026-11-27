@@ -83,7 +83,8 @@ describe("ramming as the skirmish rule sees it", () => {
     });
 
     it("lets a rammer that circles instead go quiet", () => {
-        expect(ram(() => 200, 60)).toBeNull();
+        // Neither side has done anything since the start, so both go quiet together, and neither fought last.
+        expect(ram(() => 200, 60)).toMatchObject({ winner: -1, reason: "quiet", time: 31 });
     });
 
     it("counts a rammer out of fuel as out of it, however it drifts on in", () => {
