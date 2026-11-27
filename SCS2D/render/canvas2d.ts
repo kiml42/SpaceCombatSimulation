@@ -1860,7 +1860,8 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light
             ctx.globalAlpha = outer;
             // The ring stands across the jet, in front of it and of its glow: drawn
             // once the glows are (`drawJetRings`), so the jet's light does not fall on it.
-            if (gap > 0) {
+            // A solid model has a ring of its own round the jet.
+            if (gap > 0 && !solid) {
                 const m = ctx.getTransform();
                 const ring: JetRing = {
                     m: { a: m.a, b: m.b, c: m.c, d: m.d, e: m.e, f: m.f },
