@@ -15,7 +15,7 @@ import {
     type Placement,
     type ShipDesign,
 } from "../sim/index.js";
-import { BEAM_GUNSHIP, DINKY, GUNSHIP, X_WING } from "../scenarios/blueprints.js";
+import { BEAM_GUNSHIP, DINKY, GUNSHIP } from "../scenarios/blueprints.js";
 import { TURRET_CORVETTE, TURRET_DINKY, TURRET_GUNSHIP } from "./fixtures.js";
 
 /**
@@ -328,16 +328,16 @@ describe("a mount with a doctrine of its own", () => {
         // What a doctrine per mount is *for*: one hull fighting two fights at
         // once because its guns are for different things. A shell from a
         // four-barrelled pom-pom is wasted on a capital, and the bow gun has
-        // nothing better to do with a fighter than miss it. An X-wing rather than
-        // a Dinky: the pom-poms want something a tenth the gunship's mass, and a
-        // Dinky is too small even for them.
+        // nothing better to do with a fighter than miss it. A corvette for the
+        // fighter rather than a Dinky: the pom-poms want something a fraction of
+        // the gunship's mass, and a Dinky is too small even for them.
         const capital = compileBlueprint(TURRET_GUNSHIP);
         // Both marks inside the reach of both kinds of mount, so what decides is
         // the doctrine rather than the range: the bow gun could take the fighter
         // and the pom-poms could take the capital, and neither does.
         const s = scene(capital, [
-            { design: corvette, x: 1000, y: 0 },
-            { design: compileBlueprint(X_WING), x: 300, y: 100 },
+            { design: compileBlueprint(GUNSHIP), x: 1000, y: 0 },
+            { design: corvette, x: 300, y: 100 },
         ]);
         s.run(60);
         expect(s.aim(NOSE)).toBe(1);

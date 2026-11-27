@@ -21,7 +21,7 @@ import {
 } from "../sim/index.js";
 import { nozzleReach } from "../sim/exhaust.js";
 import { burn } from "../sim/shipFlight.js";
-import { DINKY, X_WING } from "../scenarios/blueprints.js";
+import { DINKY, SCAVENGER } from "../scenarios/blueprints.js";
 
 const DT = 1 / 60;
 
@@ -125,9 +125,10 @@ describe("a magnetic nozzle", () => {
         });
     });
 
-    it("pushes with all of it on a fighter's core", () => {
-        for (const u of burnt(magnetised(X_WING))) expect(u).toBe(1);
-        for (const u of burnt(X_WING)) expect(u).toBe(1);
+    it("pushes with all of it on a core big enough to run its rings", () => {
+        // A scavenger has neither generator nor battery either, but a bigger core than a Dinky's.
+        for (const u of burnt(magnetised(SCAVENGER))) expect(u).toBe(1);
+        for (const u of burnt(SCAVENGER)) expect(u).toBe(1);
     });
 
     it("always aims better powered than a plain nozzle of its length, and better still the longer it is", () => {

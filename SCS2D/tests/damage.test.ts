@@ -22,7 +22,7 @@ import {
     IMPACT_EXIT,
     IMPACT_ROUND,
 } from "../sim/index.js";
-import { BARE_CORE, STAR_DESTROYER } from "../scenarios/blueprints.js";
+import { BARE_CORE } from "../scenarios/blueprints.js";
 import { TURRET_CORVETTE } from "./fixtures.js";
 import { joints } from "../sim/connectivity.js";
 import { DEBRIS_BREAK_SPEED, DEBRIS_CONE, DEBRIS_LEAST, DEBRIS_PIECES, debrisCone, debrisPieces } from "../sim/damage.js";
@@ -385,19 +385,29 @@ describe("what a hit logs to be drawn", () => {
 });
 
 describe("a round taking time to cross a hull", () => {
-    const destroyer = compileBlueprint(STAR_DESTROYER);
+    /** A long hull: a core between two rows of ten 75 m frames, 1600 m bow to stern. */
+    const FRAME = 75;
+    const longHull = compileBlueprint({
+        name: "Long hull",
+        modules: [
+            { kind: "core", x: 0, y: 0, length: 100, width: 60 },
+            ...Array.from({ length: 10 }, (_, k) =>
+                [-1, 1].map((side) => ({ kind: "structure" as const, x: side * (50 + (k + 0.5) * FRAME), y: 0, length: FRAME, width: 60 })),
+            ).flat(),
+        ],
+    });
 
-    /** A destroyer at rest at the origin, and a heavy round fired down its length. */
+    /** The hull at rest at the origin, and a heavy round fired down its length. */
     function lengthwise(vx = 0) {
         const world = new World({ dt: 1 / 60, seed: 5 });
         const ships = new Ships();
-        const ship = ships.spawn(world, { design: destroyer, x: 0, y: 0, vx, team: 0 });
+        const ship = ships.spawn(world, { design: longHull, x: 0, y: 0, vx, team: 0 });
         const bodies = world.bodies;
         const body = bodies.indexOf(ships.body(ship));
         const grid = new SpatialGrid(256);
         grid.rebuild(bodies);
         const projectiles = new Projectiles(8);
-        projectiles.spawn({ x: -destroyer.radius - 10, y: 0, vx: 3000, vy: 0, width: 0.5, ttl: 10, mass: 20000 });
+        projectiles.spawn({ x: -longHull.radius - 10, y: 0, vx: 3000, vy: 0, width: 0.5, ttl: 10, mass: 20000 });
         // Whole, to follow one round the length of the hull.
         const impacts = new Impacts();
         impacts.fragmenting = false;
@@ -408,14 +418,14 @@ describe("a round taking time to cross a hull", () => {
     function walkedOnce(speed = 3000): Damage {
         const world = new World({ dt: 1 / 60, seed: 5 });
         const ships = new Ships();
-        ships.spawn(world, { design: destroyer, x: 0, y: 0, team: 0 });
+        ships.spawn(world, { design: longHull, x: 0, y: 0, team: 0 });
         resolveRound(
-            destroyer,
+            longHull,
             ships.damage,
             world.bodies,
             0,
             new HullPath(),
-            -destroyer.radius - 10,
+            -longHull.radius - 10,
             0,
             1,
             0,
@@ -430,7 +440,7 @@ describe("a round taking time to cross a hull", () => {
 
     it("is still inside a long hull after the step it went in, and reaches the far end later", () => {
         const r = lengthwise();
-        const damaged = () => destroyer.modules.filter((_, m) => r.ships.damage.integrity(r.body, m) < 1).length;
+        const damaged = () => longHull.modules.filter((_, m) => r.ships.damage.integrity(r.body, m) < 1).length;
         let entered = -1;
         let left = -1;
         const counts: number[] = [];
@@ -455,7 +465,7 @@ describe("a round taking time to cross a hull", () => {
         // And the same hurt, in the end, as the whole walk taken at once, but for the hull
         // it shoves on its way moving off from under it a little.
         const once = walkedOnce();
-        for (let m = 0; m < destroyer.modules.length; m++) {
+        for (let m = 0; m < longHull.modules.length; m++) {
             expect(Math.abs(r.ships.damage.absorbedAt(r.body, m) - once.absorbedAt(0, m))).toBeLessThanOrEqual(
                 1e-5 * once.absorbedAt(0, m) + 1e-3,
             );
@@ -503,11 +513,11 @@ describe("a round taking time to cross a hull", () => {
         const hurt = (drift: number): number => {
             const world = new World({ dt: 1 / 60, seed: 5 });
             const ships = new Ships();
-            const body = world.bodies.indexOf(ships.body(ships.spawn(world, { design: destroyer, x: 0, y: 0, vx: 0, vy: drift, team: 0 })));
+            const body = world.bodies.indexOf(ships.body(ships.spawn(world, { design: longHull, x: 0, y: 0, vx: 0, vy: drift, team: 0 })));
             const grid = new SpatialGrid(256);
             grid.rebuild(world.bodies);
             const projectiles = new Projectiles(8);
-            projectiles.spawn({ x: -destroyer.radius - 10, y: 0, vx: 3000, vy: drift, width: 0.5, ttl: 10, mass: 20000 });
+            projectiles.spawn({ x: -longHull.radius - 10, y: 0, vx: 3000, vy: drift, width: 0.5, ttl: 10, mass: 20000 });
             const hits = new ProjectileHits();
             const impacts = new Impacts();
             for (let step = 0; step < 120; step++) {
@@ -517,7 +527,7 @@ describe("a round taking time to cross a hull", () => {
                 impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, undefined, undefined, 1 / 60, grid, ships.hulls);
             }
             let total = 0;
-            for (let m = 0; m < destroyer.modules.length; m++) total += ships.damage.absorbedAt(body, m);
+            for (let m = 0; m < longHull.modules.length; m++) total += ships.damage.absorbedAt(body, m);
             return total;
         };
         const still = hurt(0);
@@ -541,11 +551,11 @@ describe("a round taking time to cross a hull", () => {
         }
         expect(r.projectiles.alive[0]).toBe(1);
         expect(r.projectiles.inside[0]).toBe(-1);
-        expect(r.projectiles.x[0]!).toBeGreaterThan(r.bodies.x[r.body]! + destroyer.radius);
+        expect(r.projectiles.x[0]!).toBeGreaterThan(r.bodies.x[r.body]! + longHull.radius);
         expect(hits).toBeGreaterThanOrEqual(1);
         // Walked through once, at the speed it overtakes the hull: a second time would be more hurt than one walk.
         const once = walkedOnce(3000 - 400);
-        for (let m = 0; m < destroyer.modules.length; m++) {
+        for (let m = 0; m < longHull.modules.length; m++) {
             expect(Math.abs(r.ships.damage.absorbedAt(r.body, m) - once.absorbedAt(0, m))).toBeLessThanOrEqual(
                 1e-5 * once.absorbedAt(0, m) + 1e-3,
             );
