@@ -168,15 +168,16 @@ describe("how far a plume reaches", () => {
 
     it("carries further for more bell on the same machinery", () => {
         // A longer bell collimates the gas, so the flame holds together further
-        // out — bought with length, since the machinery behind it is unchanged.
+        // out — bought with length, since the machinery behind it is unchanged —
+        // until its throat narrows behind it, passing less gas to carry so far.
         const reach = (bell: number): number => {
             const spec: ModuleSpec = { ...engine(-5, 0), length: 1, width: 2, nozzle: bell / 2 };
             const d = compileBlueprint({ name: "Engine", modules: [spec, hull(0, 10)] });
             const t = d.engines[0]!;
             return nozzleReach(engineGeometry(d.modules[t.module!]!.spec), t.maxThrust);
         };
-        expect(reach(2)).toBeGreaterThan(reach(0.5) * 1.3);
-        expect(reach(4)).toBeGreaterThan(reach(2));
+        expect(reach(1.5)).toBeGreaterThan(reach(0.5) * 1.3);
+        expect(reach(4)).toBeLessThan(reach(1.5));
     });
 
     it("splits into shorter flames across more nozzles", () => {
@@ -294,7 +295,7 @@ describe("what an engine exhausts into", () => {
             name: "Pinned",
             modules: [
                 ...[engine(-5, 0), hull(0, 10)],
-                { kind: "structure", x: -20, y: 3.5, angle: 0, length: 50, width: 1 },
+                { kind: "structure", x: -30, y: 3.5, angle: 0, length: 70, width: 1 },
                 arm(0),
                 arm(width / 3),
                 { kind: "structure", x: -8 - 2 * reach - 0.5, y: 1.5, angle: 0, length: 1, width: 3 },

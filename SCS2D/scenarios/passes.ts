@@ -1,7 +1,7 @@
 import { compileBlueprint, DAMAGE_ENERGY_PER_KG, type Blueprint } from "../sim/index.js";
 import type { Battle } from "./types.js";
 import { makeBattle } from "./battle.js";
-import { CORVETTE, DINKY, Y_WING } from "./blueprints.js";
+import { CORVETTE, DINKY } from "./blueprints.js";
 
 /**
  * A fighter attacking on the move (`tangentialMin`, `tangentialMax`) at a
@@ -34,7 +34,7 @@ export function passes(seed = 20261012): Battle {
 const PASS_MIN = 60;
 const PASS_MAX = 100;
 
-/** A Y-wing, fighting from far enough out that it can hold the turn, circles. */
+/** A Dinky at its own pass speeds, slow enough that its thrust can hold the turn, circles. */
 export function circling(seed = 20261012): Battle {
-    return onTheMove(seed, Y_WING);
+    return onTheMove(seed, DINKY);
 }

@@ -40,6 +40,8 @@ import {
     PRESSURE_FED_EXHAUST,
     PRESSURE_FED_FLOW,
     PRESSURE_FED_THROAT,
+    NOZZLE_THROAT_FRACTION,
+    engineSize,
     mountAccel,
     slewTime,
     TRAVERSE_TOP_RATE,
@@ -504,8 +506,8 @@ function feedRow(spec: ModuleSpec): ReadoutRow {
         return { name: "feed", value: "pumped", sub: true, title: "Pumps drive its fuel into the chamber, for the full flow and Isp" };
     }
     const why =
-        engine.throatWidth < PRESSURE_FED_THROAT
-            ? `its throat is under ${PRESSURE_FED_THROAT} m across`
+        engineSize(engine) < PRESSURE_FED_THROAT
+            ? `it is too small for pumps, its exit under ${(PRESSURE_FED_THROAT / NOZZLE_THROAT_FRACTION).toFixed(2)} m across`
             : `its machinery is under ${PRESSURE_FED_BLOCK} m long`;
     const share = (fraction: number): string => `${Math.round(fraction * 100)}%`;
     return {

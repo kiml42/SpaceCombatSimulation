@@ -1,6 +1,6 @@
 import type { UnreadKeys } from "./unread.js";
 import type { Targeting } from "./doctrine.js";
-import { abs, asin, atan2, cos, floor as roundDown, max, PI, pow, round, sin, sqrt, TAU } from "./math.js";
+import { abs, asin, atan2, cos, floor as roundDown, max, min, PI, pow, round, sin, sqrt, TAU } from "./math.js";
 import {
     canShape,
     cornersAllowed,
@@ -100,14 +100,42 @@ export const THRUST_PER_EXIT_AREA = 5e4;
 export const ENGINE_MASS_PER_NEWTON = 2e-3;
 
 /**
- * A nozzle's throat as a fraction of its exit width.
- *
- * Fixed, so that expansion is bought with *length*: widening an engine widens
- * the throat with it and buys area rather than a better bell. The renderer
- * draws the taper from this same number, so the bell on the screen is the one
- * the thrust is worked out from.
+ * The throat, as a fraction of its exit's width, that an engine's flow and
+ * exhaust velocity are measured against: an engine with this throat pushes
+ * `THRUST_PER_EXIT_AREA` and runs at `EXHAUST_VELOCITY`, as every engine did
+ * when this was every engine's throat.
  */
 export const NOZZLE_THROAT_FRACTION = 0.55;
+
+/**
+ * The angle a bell's wall flares at, from its throat to its exit: so a longer
+ * bell narrows its throat behind the same exit, and expands its gas the more
+ * (`expansion`). Fifteen degrees, as conical nozzles are built; written as its
+ * tangent, `2 − √3`, so no trig function is needed.
+ */
+export const NOZZLE_WALL_SLOPE = 2 - sqrt(3);
+
+/**
+ * The widest a throat is drawn, as a share of its exit: a short bell steepens
+ * its wall rather than leave its throat as wide as its exit, down to a flat
+ * plate with a hole in it at no length at all, which throws its gas sideways.
+ */
+export const MOST_THROAT_SHARE = 0.6;
+
+/**
+ * The narrowest a throat is drawn, as a share of its exit: past the length
+ * that reaches it, a bell flares more gently instead, so length buys aim but
+ * no more expansion. It sets the most an engine gives up in flow for
+ * efficiency, an area ratio of about 8.
+ */
+export const LEAST_THROAT_SHARE = 0.35;
+
+/**
+ * The ratio of specific heats of an engine's exhaust, which with the area
+ * ratio sets how fast it leaves (`expansion`). 1.2, as hot rocket exhaust
+ * has; it makes the ideal-expansion relations work out in square roots.
+ */
+const GAMMA = 1.2;
 
 /**
  * Bell skin thickness as a fraction of hull plate.
@@ -226,7 +254,16 @@ export function bellWallArea(geometry: EngineGeometry): number {
 
 /** Whether an engine of this geometry has no room for pumps: too small a throat (`PRESSURE_FED_THROAT`), or too short a block (`PRESSURE_FED_BLOCK`). */
 export function isPressureFed(geometry: EngineGeometry): boolean {
-    return geometry.throatWidth < PRESSURE_FED_THROAT || geometry.machineryLength < PRESSURE_FED_BLOCK;
+    return engineSize(geometry) < PRESSURE_FED_THROAT || geometry.machineryLength < PRESSURE_FED_BLOCK;
+}
+
+/**
+ * How big an engine is, as the throat it would have at `NOZZLE_THROAT_FRACTION`,
+ * metres: what its pumps and its walls' losses are sized by, which its bell's
+ * length, narrowing its actual throat, does not change.
+ */
+export function engineSize(geometry: Pick<EngineGeometry, "exitWidth">): number {
+    return geometry.exitWidth * NOZZLE_THROAT_FRACTION;
 }
 
 /**
@@ -2100,7 +2137,9 @@ export function moduleProblem(spec: ModuleSpec): string | null {
         if (!(traverse >= 0)) return `${spec.kind}: barrel does not fit its own opening`;
     }
     if (spec.kind === "engine") {
-        const { exitWidth, throatWidth } = engineGeometry(spec);
+        // Its widest throat, which a short enough bell has: a long one only narrows it to what its skin leaves.
+        const { exitWidth } = engineGeometry(spec);
+        const throatWidth = exitWidth * MOST_THROAT_SHARE;
         const skin = thickness * NOZZLE_SKIN_FRACTION;
         if (2 * skin >= throatWidth) {
             return (
@@ -2463,6 +2502,8 @@ export interface EngineGeometry {
     bellDivergence: number;
     /** Length of the bell proper, metres: short of `nozzleLength` by a magnetic nozzle's ring and gap. */
     bellLength: number;
+    /** Exit area over throat area: how far the bell expands its gas, which `expansion` turns into exhaust speed. */
+    areaRatio: number;
 }
 
 /** Whether `magnetic` means anything on this kind. */
@@ -2490,7 +2531,13 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
     // Square: a thin engine's bell is held to a deck both ways.
     const exitHeight = moduleThickness(spec);
     const exitWidth = exitHeight;
-    const throatWidth = exitWidth * NOZZLE_THROAT_FRACTION;
+    // The throat narrows behind the exit at the wall's slope, as far as the bell reaches; no wider than the most
+    // share, so a short bell steepens instead, and no narrower than the least, nor than its own skin allows.
+    const skin = BASE_WALL_THICKNESS * (spec.reinforcement ?? 1) * NOZZLE_SKIN_FRACTION;
+    const narrowest = max(exitWidth * LEAST_THROAT_SHARE, 3 * skin);
+    const widest = exitWidth * MOST_THROAT_SHARE;
+    const narrowed = exitWidth - 2 * nozzleLength * NOZZLE_WALL_SLOPE;
+    const throatWidth = narrowed > widest ? widest : narrowed < narrowest ? min(narrowest, widest) : narrowed;
     // How far the wall has to travel sideways over the bell's length.
     const flare = (exitWidth - throatWidth) * 0.5;
     const halfAngle = atan2(flare, bell);
@@ -2512,8 +2559,38 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
         divergence: magnetic ? (1 + aimed(nozzleLength * MAGNETIC_BELL_REACH)) * 0.5 : (1 + axial) * 0.5,
         bellDivergence: (1 + axial) * 0.5,
         bellLength: bell,
+        areaRatio: (exitWidth / throatWidth) * (exitWidth / throatWidth),
     };
 }
+
+/**
+ * How fast an exhaust expanded through `areaRatio` (exit over throat) leaves,
+ * as a share of how fast it would leave expanded without end: the ideal
+ * relations for a gas of `GAMMA`. With it 1.2, the exit's Mach number `m`
+ * gives the area ratio as `((1 + m²/10) / 1.1)^5.5 / m` and the speed as
+ * `√(m² / (10 + m²))`, so only square roots are needed; the Mach number is
+ * found by halving, as the ratio rises with it from 1 at the throat.
+ */
+export function expansion(areaRatio: number): number {
+    const ratioAt = (m: number): number => {
+        const x = (1 + (m * m * (GAMMA - 1)) / 2) / ((GAMMA + 1) / 2);
+        const x5 = x * x * x * x * x;
+        return (x5 * sqrt(x)) / m;
+    };
+    let lo = 1;
+    let hi = 40;
+    if (!(areaRatio > 1)) hi = 1;
+    for (let k = 0; k < 60 && hi > lo; k++) {
+        const mid = (lo + hi) / 2;
+        if (ratioAt(mid) < areaRatio) lo = mid;
+        else hi = mid;
+    }
+    const m = (lo + hi) / 2;
+    return sqrt((m * m) / (2 / (GAMMA - 1) + m * m));
+}
+
+/** `expansion` at `NOZZLE_THROAT_FRACTION`'s area ratio: what `EXHAUST_VELOCITY` and `THRUST_PER_EXIT_AREA` are measured at. */
+const REFERENCE_EXPANSION = expansion(1 / (NOZZLE_THROAT_FRACTION * NOZZLE_THROAT_FRACTION));
 
 /**
  * How fast an engine's exhaust leaves along its axis, m/s.
@@ -2524,9 +2601,10 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
  * walls. A long bell on a big throat is the efficient engine.
  */
 export function engineExhaustVelocity(geometry: EngineGeometry): number {
-    const small = SMALL_ENGINE_THROAT / (SMALL_ENGINE_THROAT + geometry.throatWidth);
+    const small = SMALL_ENGINE_THROAT / (SMALL_ENGINE_THROAT + engineSize(geometry));
     const fed = isPressureFed(geometry) ? PRESSURE_FED_EXHAUST : 1;
-    return EXHAUST_VELOCITY * geometry.divergence * (1 - SMALL_ENGINE_LOSS * small) * fed;
+    const expanded = expansion(geometry.areaRatio) / REFERENCE_EXPANSION;
+    return EXHAUST_VELOCITY * expanded * geometry.divergence * (1 - SMALL_ENGINE_LOSS * small) * fed;
 }
 
 /** An exhaust velocity as a specific impulse, seconds. */
@@ -3923,7 +4001,13 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         const feed = engine.machineryLength / (PUMP_DEPTH_WIDTHS * spec.width);
         const supply = feed < THROAT_CHOKE ? feed : THROAT_CHOKE;
         const exitArea = engine.nozzles * engine.exitWidth * engine.exitHeight;
-        const throughput = THRUST_PER_EXIT_AREA * exitArea * supply * (isPressureFed(engine) ? PRESSURE_FED_FLOW : 1);
+        // The gas through it is the throat's to pass, and each kilogram pushes as hard as its bell expanded it: a
+        // long bell's narrow throat passes less, faster, and a short bell's wide one more, slower.
+        // `THRUST_PER_EXIT_AREA` is what an exit pushes behind a throat of `NOZZLE_THROAT_FRACTION`.
+        const throat = engine.throatWidth / (engine.exitWidth * NOZZLE_THROAT_FRACTION);
+        const expanded = expansion(engine.areaRatio) / REFERENCE_EXPANSION;
+        const throughput =
+            THRUST_PER_EXIT_AREA * exitArea * throat * throat * expanded * supply * (isPressureFed(engine) ? PRESSURE_FED_FLOW : 1);
         // What the bell then keeps pointed the right way. **The two pull opposite
         // ways**, which is the whole of the knob: length taken off the bell is
         // flow gained and aim lost, so the best engine is neither all bell nor all

@@ -96,7 +96,7 @@
       "angle": 0,
       "length": 0.5,
       "width": 0.5,
-      "nozzle": 1
+      "nozzle": 0.836
     },
     {
       "id": 10,
@@ -106,7 +106,7 @@
       "angle": 0,
       "length": 0.5,
       "width": 0.5,
-      "nozzle": 1
+      "nozzle": 0.836
     }
   ]
 }

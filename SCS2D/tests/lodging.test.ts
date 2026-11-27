@@ -166,11 +166,17 @@ describe("a ship stuck on rock", () => {
         for (let t = 0; t < 120 * 60 && run.ships.body(run.w) !== run.ships.body(run.a); t++) step();
         expect(run.ships.body(run.w)).toBe(run.ships.body(run.a));
         const lodged = own().length;
+        // Started on once its robots have taken anything from it, the core first as like as not,
+        // which leaves it out of the fight well before a whole module is gone.
+        const started = (): boolean => {
+            const b = run.world.bodies.indexOf(run.ships.body(run.w));
+            return own().length < lodged || own().some((m) => run.ships.damage.unbuiltAt(b, m) > 0);
+        };
         let fitWhenStarted: boolean | null = null;
         for (let t = 0; t < 900 * 60 && run.ships.isAlive(run.w); t++) {
             const fit = run.ships.hasControl(run.w) && !run.ships.isMissionKilled(run.w);
             step();
-            if (fitWhenStarted === null && own().length < lodged) fitWhenStarted = fit;
+            if (fitWhenStarted === null && started()) fitWhenStarted = fit;
         }
         expect(run.ships.isMoored(run.m)).toBe(true);
         expect(fitWhenStarted).toBe(true);
