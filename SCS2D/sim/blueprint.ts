@@ -36,7 +36,15 @@ import {
     CORE_SHARE_KEYS,
     shotMetal,
 } from "./modules.js";
-import { DEFAULT_DOCTRINE, defaultTargeting, resolveTargeting, type Doctrine, type Targeting } from "./doctrine.js";
+import {
+    DEFAULT_DOCTRINE,
+    defaultTargeting,
+    doctrineValueProblems,
+    resolveTargeting,
+    targetingValueProblems,
+    type Doctrine,
+    type Targeting,
+} from "./doctrine.js";
 import { EngineLayout, type EngineSpec } from "./engines.js";
 import { distanceToOutline, isShaped, outlineAxes, projectOutline, shapeOf, signedArea2, TRIANGLE_CORNERS } from "./shape.js";
 import { HullPath, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
@@ -2290,10 +2298,18 @@ function faultsWith(blueprint: Blueprint, crafts: Crafts): BlueprintFault[] {
         faults.push({ message: `${blueprint.name}: a ship needs at least one module`, modules: [] });
     }
 
+    if (blueprint.doctrine !== undefined) {
+        for (const problem of doctrineValueProblems(blueprint.doctrine))
+            faults.push({ message: `${blueprint.name}: ${problem}`, modules: [] });
+    }
+
     for (let i = 0; i < modules.length; i++) {
         const problem = moduleProblem(modules[i]!);
         if (problem !== null) {
             faults.push({ message: `${blueprint.name}, module ${i} — ${problem}`, modules: [i] });
+        }
+        for (const targeting of targetingValueProblems(modules[i]!.targeting, "targeting")) {
+            faults.push({ message: `${blueprint.name}, module ${i} — ${targeting}`, modules: [i] });
         }
     }
 
