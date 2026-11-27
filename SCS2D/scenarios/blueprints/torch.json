@@ -14,16 +14,16 @@
       "escortWeight": 20
     },
     "approach": {
-      "standoffRadii": 0.6,
-      "standoff": 0.5,
+      "standoffRadii": 1.8,
       "escortRadii": 10,
       "escort": 1.1,
       "separationRadii": 1,
-      "tolerance": 0.1,
+      "tolerance": 0.15,
       "approachSpeed": 200,
       "brake": 0.9,
       "burnWeight": 0.6,
-      "rangeHold": 0.8
+      "rangeHold": 0.8,
+      "tangentialMax": 0
     }
   },
   "assemblies": {
@@ -49,38 +49,26 @@
           "use": "engine",
           "x": -10.45,
           "y": 9.430705902947948e-17
-        }
-      ]
-    },
-    "assembly": {
-      "modules": [
+        },
         {
-          "id": 7,
+          "id": 13,
           "kind": "engine",
-          "x": -15.25,
-          "y": 0,
-          "angle": 0,
-          "length": 19.2603,
-          "width": 8,
-          "reinforcement": 1.5,
-          "barrels": 1,
-          "nozzle": 0.83,
-          "weapon": true,
-          "thick": true,
-          "notes": "The weapon. Its thrust points aft, so firing it at a target is also braking, and holding it on is being pushed away."
+          "x": -15.95,
+          "y": 0.7500000000000024,
+          "angle": 180,
+          "length": 1.6,
+          "width": 1.5,
+          "nozzle": 0.667
         },
         {
-          "id": 8,
-          "use": "Side",
-          "x": -2.6,
-          "y": 4
-        },
-        {
-          "id": 9,
-          "use": "Side",
-          "x": -2.5,
-          "y": -4,
-          "mirror": true
+          "id": 11,
+          "kind": "core",
+          "x": 17.05,
+          "y": 1.4999999999999984,
+          "angle": 180,
+          "length": 2,
+          "width": 2,
+          "notes": "One of a pair on the struts, flying the side engines, which are out of the bow core's reach."
         }
       ]
     },
@@ -96,7 +84,6 @@
           "width": 8,
           "barrels": 1,
           "nozzle": 0.1875,
-          "weapon": true,
           "main": false,
           "thick": true
         }
@@ -115,11 +102,35 @@
       "notes": "Armoured, because the bow is always pointed at something with guns."
     },
     {
-      "id": 2,
-      "use": "assembly",
-      "x": -15.95,
-      "y": 0,
-      "angle": -180
+      "id": 7,
+      "kind": "engine",
+      "x": -0.6999999999999957,
+      "y": -1.8675863686997134e-15,
+      "angle": 180,
+      "length": 6,
+      "width": 8,
+      "reinforcement": 1.5,
+      "barrels": 1,
+      "nozzle": 4.25,
+      "weapon": true,
+      "thick": true,
+      "magnetic": true,
+      "notes": "The weapon. Its thrust points aft, so firing it at a target is also braking, and holding it on is being pushed away."
+    },
+    {
+      "id": 8,
+      "use": "Side",
+      "x": -13.35,
+      "y": -4,
+      "angle": 180
+    },
+    {
+      "id": 9,
+      "use": "Side",
+      "x": -13.45,
+      "y": 3.9999999999999996,
+      "angle": 180,
+      "mirror": true
     },
     {
       "id": 3,
@@ -130,23 +141,6 @@
       "width": 8,
       "reinforcement": 3,
       "sealing": 0.0005
-    },
-    {
-      "id": 11,
-      "kind": "core",
-      "x": -30.5,
-      "y": 5.5,
-      "length": 2,
-      "width": 2,
-      "notes": "One of a pair on the struts, flying the side engines, which are out of the bow core's reach."
-    },
-    {
-      "id": 12,
-      "kind": "core",
-      "x": -30.5,
-      "y": -5.5,
-      "length": 2,
-      "width": 2
     }
   ]
 }
