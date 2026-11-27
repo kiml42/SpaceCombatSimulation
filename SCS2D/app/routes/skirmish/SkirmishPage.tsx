@@ -586,8 +586,8 @@ export function SkirmishPage() {
     };
 
     /** Show the best enemy so far fighting the round, if the player is watching. */
-    const watch = (now: AnswerProgress, current: Skirmish | null = skirmishes.skirmish): void => {
-        if (current === null || current.won === undefined || !watching || view === null) return;
+    const watch = (now: AnswerProgress, current: Skirmish | null = skirmishes.skirmish, watched: boolean = watching): void => {
+        if (current === null || current.won === undefined || !watched || view === null) return;
         mode.current = "watching";
         undecided();
         activity.current = newActivity();
@@ -943,8 +943,10 @@ export function SkirmishPage() {
               : `Generation ${latest.generation}: the best enemy so far won ${latest.wins} of its ${latest.seeds} matches. It holds ${latest.cards.length} upgrade ${latest.cards.length === 1 ? "card" : "cards"}.`;
     const toggleWatching = (): void => {
         setWatching(!watching);
-        if (!watching && latest !== null) watch(latest);
-        else if (watching) view?.setRunning(false);
+        // `watching` is still the old value here, so the new one is passed on.
+        if (watching) view?.setRunning(false);
+        else if (latest !== null) watch(latest, skirmishes.skirmish, true);
+        else view?.setRunning(true);
     };
     /** On to the next round, against the answer: fought where it was found to win. */
     const goToNextRound = (): void => {
