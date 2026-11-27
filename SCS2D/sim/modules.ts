@@ -761,6 +761,13 @@ export const GAS_RECOIL = 1.5;
 export const RING_SHARE = 0.6;
 
 /**
+ * How much longer a plain bell would have to be to aim a jet as well as a
+ * powered magnetic nozzle's field does: so a magnetic nozzle always beats a
+ * plain one of its length, and a longer one still aims better.
+ */
+export const MAGNETIC_BELL_REACH = 3;
+
+/**
  * How much further a powered ring's field holds a flame together past the
  * exit than a bell can, whose walls end where the gas leaves them.
  */
@@ -2450,7 +2457,7 @@ export interface EngineGeometry {
     throatWidth: number;
     /** Bell half-angle, radians. A right angle when there is no bell. */
     halfAngle: number;
-    /** Momentum kept along the axis, `(1 + cos a) / 2`: 0.5 to 1; all of it through a powered magnetic nozzle. */
+    /** Momentum kept along the axis, `(1 + cos a) / 2`: 0.5 to 1; through a powered magnetic nozzle, as a bell `MAGNETIC_BELL_REACH` times as long. */
     divergence: number;
     /** What the bell alone keeps: `divergence`, but for a magnetic nozzle unpowered. */
     bellDivergence: number;
@@ -2463,9 +2470,12 @@ export function readsMagnetic(kind: ModuleKind): boolean {
     return kind === "engine";
 }
 
-/** Whether this is an engine with a magnetic nozzle. */
+/**
+ * Whether this is an engine with a magnetic nozzle: set so, and with a nozzle
+ * for its ring to stand on. With none, there is no ring, and it is a plain engine.
+ */
 export function isMagnetic(spec: ModuleSpec): boolean {
-    return readsMagnetic(spec.kind) && spec.magnetic === true;
+    return readsMagnetic(spec.kind) && spec.magnetic === true && (spec.nozzle ?? DEFAULT_NOZZLE_WIDTHS) > 0;
 }
 
 /** An engine's halves and its bell geometry. Engines only. */
@@ -2486,7 +2496,8 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
     const halfAngle = atan2(flare, bell);
     // cos of that angle without going back through a trig function, and exactly
     // zero rather than nearly so when there is no bell at all.
-    const axial = bell > 0 ? bell / sqrt(bell * bell + flare * flare) : 0;
+    const aimed = (length: number): number => (length > 0 ? length / sqrt(length * length + flare * flare) : 0);
+    const axial = aimed(bell);
     return {
         nozzles,
         share,
@@ -2497,7 +2508,8 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
         exitHeight,
         throatWidth,
         halfAngle,
-        divergence: magnetic ? 1 : (1 + axial) * 0.5,
+        // A powered ring aims the jet as a plain bell `MAGNETIC_BELL_REACH` times the whole nozzle's length would.
+        divergence: magnetic ? (1 + aimed(nozzleLength * MAGNETIC_BELL_REACH)) * 0.5 : (1 + axial) * 0.5,
         bellDivergence: (1 + axial) * 0.5,
         bellLength: bell,
     };
