@@ -62,7 +62,7 @@
           "angle": 180,
           "length": 5.49,
           "width": 2.2,
-          "nozzle": 3.409,
+          "nozzle": 0.84,
           "weapon": true,
           "magnetic": true
         },
