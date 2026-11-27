@@ -129,7 +129,7 @@ describe("icon shape", () => {
 
     it("is a pointed hull for any other ship, large or small", () => {
         expect(shape("corvette")).toBe("long");
-        expect(shape("starDestroyer")).toBe("long");
+        expect(shape("laserFrigate")).toBe("long");
     });
 
     it("puts the ship at the middle of the pointed hull's area, behind the middle of its length", () => {
