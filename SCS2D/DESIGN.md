@@ -899,10 +899,11 @@ inside any one file is not contiguous.
   (0.2 MW/m²) for each exit width of nozzle at full throttle, as thrust's claim on charge, so it is the length
   that costs: a fighter's core runs its main engine's ring,
   and a capital's mains want generators of their own. Short of power the jet leaves aimed and expanded only as
-  well as the bell does it. The ring and the gap before it take the bell's last three fifths (`RING_SHARE`), so the bell
-  proper is short, and thin bars beside each nozzle carry the ring, running back past the bell and the chamber
+  well as the bell does it. Its bell proper flares at a plain bell's 15°, so it is only as long as it takes to reach the exit
+  from the wide throat; the ring and the gap before it take the rest, and at least a quarter of the nozzle
+  (`RING_SHARE`), so a short one's bell steepens instead. Thin bars beside each nozzle carry the ring, running back past the bell and the chamber
   to the machinery block, or to the engine's front where it has none, and taking nothing off its exit. So
-  unpowered it aims a little worse than a plain bell of the same length. The ring weighs
+  unpowered it does worse than a plain bell of the same length. The ring weighs
   `MAGNETIC_MASS_PER_EXIT_AREA` (300 kg/m² of exit), which the bell it shortens mostly pays for. It is
   drawn as a short bell, the bars, the exhaust running full width and undimmed through the gap, and the
   ring across the engine's whole width at its aft edge, over the exhaust, ring and bars in the hull's

@@ -794,8 +794,12 @@ export const PROPELLANT_ENERGY = 1.2e6;
  */
 export const GAS_RECOIL = 1.5;
 
-/** The share of a magnetic engine's bell its ring and the gap before it take: the bell proper is short. */
-export const RING_SHARE = 0.6;
+/**
+ * The least share of a magnetic engine's nozzle its ring and the gap before it
+ * take. Its bell is only as long as a wall at the usual slope needs to reach the
+ * exit from its wide throat, and the ring and gap take whatever is left.
+ */
+export const RING_SHARE = 0.25;
 
 /**
  * How much longer a plain bell would have to be to aim a jet as well as a
@@ -1672,9 +1676,8 @@ export interface ModuleSpec {
     thick?: boolean;
     /**
      * An engine with a magnetic nozzle: a ring at the end of its bell that,
-     * powered, holds the jet straight, so none of it is thrown sideways. It
-     * takes the end of the bell's length, so unpowered the shorter bell aims
-     * the jet a little worse.
+     * powered, aims and expands the jet better than a bell can. It takes the
+     * end of the nozzle's length, so unpowered its short bell does both worse.
      */
     magnetic?: boolean;
     /**
@@ -2528,7 +2531,6 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
     const nozzles = spec.barrels ?? 1;
     const nozzleLength = bellLength(spec);
     const magnetic = isMagnetic(spec);
-    const bell = magnetic ? nozzleLength * (1 - RING_SHARE) : nozzleLength;
     const share = nozzleLength / spec.length;
     const pitch = spec.width / nozzles;
     // Square: a thin engine's bell is held to a deck both ways.
@@ -2548,6 +2550,9 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
     const areaRatio = magnetic ? (fieldExit / throatWidth) * (fieldExit / throatWidth) : bellRatio;
     // How far the wall has to travel sideways over the bell's length.
     const flare = (exitWidth - throatWidth) * 0.5;
+    // A ring's bell flares at the wall's slope, as a plain one does, and the ring and its gap take the rest:
+    // at least `RING_SHARE` of the nozzle, so a short one's bell steepens instead.
+    const bell = magnetic ? min(flare / NOZZLE_WALL_SLOPE, nozzleLength * (1 - RING_SHARE)) : nozzleLength;
     const halfAngle = atan2(flare, bell);
     // cos of that angle without going back through a trig function, and exactly
     // zero rather than nearly so when there is no bell at all.
