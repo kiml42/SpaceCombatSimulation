@@ -19,8 +19,7 @@
       "burnWeight": 0.5,
       "rangeHold": 3,
       "tangentialMax": 30,
-      "evasion": 30,
-      "evasionRadii": 1
+      "evasion": 30
     }
   },
   "assemblies": {

@@ -353,16 +353,16 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     // no well's pull and nothing in its way kills its drift and waits.
     let wantVx = ships.urgeWeight > 0 ? ships.urgeVx / ships.urgeWeight : 0;
     let wantVy = ships.urgeWeight > 0 ? ships.urgeVy / ships.urgeWeight : 0;
-    // Jinking across the line of a gun aimed at it, on top of all that, unless it means to touch something;
-    // less as keeping clear of something is more of what it wants, so it does not jink into a neighbour.
+    // Evading a gun aimed at it, on top of all that, unless it means to touch something; less as
+    // keeping clear of something is more of what it wants, so it does not evade into a neighbour.
     const touchingAnything = order !== undefined && (order.ram || order.grapple || order.land || order.dock);
     if (!touchingAnything && rng !== undefined && evade(ships, bodies, i, b, dt, rng)) {
         const clear = ships.urgeWeight > 0 ? max(0, 1 - ships.dodgeWeight / ships.urgeWeight) : 1;
-        wantVx += clear * ships.jink[i]! * ships.jinkUx;
-        wantVy += clear * ships.jink[i]! * ships.jinkUy;
+        wantVx += clear * ships.evadeSpeed[i]! * ships.evadeUx;
+        wantVy += clear * ships.evadeSpeed[i]! * ships.evadeUy;
     } else {
-        ships.jink[i] = 0;
-        ships.jinkUntil[i] = 0;
+        ships.evadeSpeed[i] = 0;
+        ships.evadeUntil[i] = 0;
         ships.evadeFrom[i] = -1;
     }
     // What it wants to speed up by, less what the wells' pull does for it: wanting to keep on as it is
@@ -529,29 +529,43 @@ const RAM_SPOT = { x: 0, y: 0 };
 /** How far past a gun's reach a ship still evades it, as a multiple of that reach: a little, since it may be closing. */
 const EVADE_REACH = 1.2;
 
-/** Bounds on how long a jink is held, seconds: long enough to move it, short enough to stay unpredictable. */
-const JINK_MIN_TIME = 0.5;
-const JINK_MAX_TIME = 6;
+/** How long it makes for a point it has no push to reach before drawing another, seconds. */
+const EVADE_STUCK_TIME = 6;
+
+/** The least an evasion point lies round, in its own radii, whatever its doctrine says: a point at its own middle is no move. */
+const EVADE_MIN_RADII = 0.25;
 
 /**
- * Whether ship `i` is jinking, and if so which way across the line of fire,
- * into `jinkUx`, `jinkUy`, at the signed `jink[i]`. It jinks while an armed
- * enemy's mount is aimed at it with a gun whose rounds take time to arrive,
- * and it is within about that gun's reach (`EVADE_REACH`), the nearest such
- * setting the line and the flight time. Each jink is a
- * sideways speed drawn up to its doctrine's `evasion`, either way, held for
- * around that flight time: a gun led on how it was moving when it fired is
- * then wrong by the time its rounds get there, where a steady sideways push
- * would be led as easily as a straight course.
+ * What an evasion point's braking is planned on, as a multiple of the push the
+ * hull has across the line of fire: braking late, it pushes flat out nearly all
+ * the way and overshoots, which draws the next point, rather than easing in at
+ * a speed a gun can lead. Measured against one and four in notes/evasion.md.
+ */
+const EVADE_PLAN = 2;
+
+/**
+ * Whether ship `i` is evading, and if so the sideways speed it makes for its
+ * evasion point at, signed, into `evadeSpeed[i]`, across the line of fire
+ * `evadeUx`, `evadeUy`. It evades while an armed enemy's mount is aimed at it
+ * with a gun whose rounds take time to arrive, and it is within about that
+ * gun's reach (`EVADE_REACH`), the nearest such setting the line and the
+ * flight time.
+ *
+ * The point lies round that gun at the ship's range, drawn either way and from
+ * half to one and a half of its `evasionRadii` own radii off along the arc. It
+ * makes for it on a braking law (`EVADE_PLAN`), so all the way there it is
+ * speeding up or slowing down, and a lead on how it was moving is stale when
+ * the rounds arrive; `evasion` caps the speed, since a long coast at one speed
+ * is led as easily as a straight course. Once there, or past it, or after
+ * twice what the way should take, it draws the next.
  */
 function evade(ships: Ships, bodies: Bodies, i: number, b: number, dt: number, rng: Rng): boolean {
-    const evasion = ships.doctrines[i]!.approach.evasion;
+    const approach = ships.doctrines[i]!.approach;
+    const evasion = approach.evasion;
     if (!(evasion > 0)) return false;
     let nearest = Infinity;
     let gunner = -1;
     let flight = 0;
-    let fromX = 0;
-    let fromY = 0;
     for (let e = 0; e < ships.alive.length; e++) {
         if (ships.alive[e] !== 1 || !ships.hostile(i, e) || !aimsAt(ships, e, i)) continue;
         const eb = bodies.indexOf(ships.bodyIds[e]!);
@@ -572,78 +586,36 @@ function evade(ships: Ships, bodies: Bodies, i: number, b: number, dt: number, r
         nearest = d;
         gunner = e;
         flight = d / speed;
-        fromX = (bodies.x[b]! - bodies.x[eb]!) / d;
-        fromY = (bodies.y[b]! - bodies.y[eb]!) / d;
     }
-    if (nearest === Infinity) return false;
-    ships.jinkUx = -fromY;
-    ships.jinkUy = fromX;
-    const radii = ships.doctrines[i]!.approach.evasionRadii;
-    if (radii > 0) return evadeRound(ships, bodies, i, b, dt, rng, gunner, evasion, radii, flight);
-    if (ships.now >= ships.jinkUntil[i]!) {
-        const side = rng.nextFloat() < 0.5 ? -1 : 1;
-        ships.jink[i] = side * evasion * (0.5 + 0.5 * rng.nextFloat());
-        const hold = clamp(flight * (0.5 + rng.nextFloat()), JINK_MIN_TIME, JINK_MAX_TIME);
-        ships.jinkUntil[i] = ships.now + (dt > 0 ? hold / dt : 1);
-    }
-    return true;
-}
+    if (gunner < 0) return false;
 
-/**
- * What an evasion point's braking is planned on, as a multiple of the push the
- * hull has across the line of fire: braking late, it pushes flat out nearly all
- * the way and overshoots, which draws the next point, rather than easing in at
- * a speed a gun can lead. Measured against one and four in notes/evasion.md.
- */
-const EVADE_PLAN = 2;
-
-/**
- * Evasion by a point rather than a speed, setting `jink[i]` to the sideways
- * speed that makes for it. The point lies round `gunner` at the ship's range,
- * drawn either way and from half to one and a half `radii` of its own radius
- * off along the arc. It makes for it on a braking law (`EVADE_PLAN`), so all
- * the way there it is speeding up or slowing down, and a lead on how it was
- * moving is stale when the rounds arrive; `evasion` caps the speed, since a
- * long coast at one speed is led as easily as a straight course. Once there,
- * or past it, or after twice what the way should take, it draws the next.
- */
-function evadeRound(
-    ships: Ships,
-    bodies: Bodies,
-    i: number,
-    b: number,
-    dt: number,
-    rng: Rng,
-    gunner: number,
-    evasion: number,
-    radii: number,
-    flight: number,
-): boolean {
     const gb = bodies.indexOf(ships.bodyIds[gunner]!);
     const dx = bodies.x[b]! - bodies.x[gb]!;
     const dy = bodies.y[b]! - bodies.y[gb]!;
-    const range = length(dx, dy);
+    const range = nearest;
     const bearing = atan2(dy, dx);
-    const ux = ships.jinkUx;
-    const uy = ships.jinkUy;
+    const ux = -dy / range;
+    const uy = dx / range;
+    ships.evadeUx = ux;
+    ships.evadeUy = uy;
     const angle = bodies.angle[b]!;
     const push =
         EVADE_PLAN * min(accelerationAlong(ships, bodies, i, b, ux, uy, angle), accelerationAlong(ships, bodies, i, b, -ux, -uy, angle));
     let left = ships.evadeFrom[i] === gunner ? range * angleDelta(bearing, ships.evadeBearing[i]!) : 0;
     const arrived = ships.evadeFrom[i] !== gunner || left * ships.evadeArc[i]! <= 0 || abs(left) < EVADE_ARRIVED * abs(ships.evadeArc[i]!);
-    if (arrived || ships.now >= ships.jinkUntil[i]!) {
+    if (arrived || ships.now >= ships.evadeUntil[i]!) {
         const side = rng.nextFloat() < 0.5 ? -1 : 1;
-        const arc = side * radii * bodies.radius[b]! * (0.5 + rng.nextFloat());
+        const arc = side * max(EVADE_MIN_RADII, approach.evasionRadii) * bodies.radius[b]! * (0.5 + rng.nextFloat());
         ships.evadeFrom[i] = gunner;
         ships.evadeArc[i] = arc;
         ships.evadeBearing[i] = bearing + arc / range;
         left = arc;
         // Bang-bang over the arc takes twice the root of arc over push; given twice that, and a flight time.
-        const way = push > 0 ? 4 * sqrt(abs(arc) / push) : JINK_MAX_TIME;
-        ships.jinkUntil[i] = ships.now + (dt > 0 ? max(way, flight) / dt : 1);
+        const way = push > 0 ? 4 * sqrt(abs(arc) / push) : EVADE_STUCK_TIME;
+        ships.evadeUntil[i] = ships.now + (dt > 0 ? max(way, flight) / dt : 1);
     }
     const speed = min(evasion, sqrt(2 * push * abs(left)));
-    ships.jink[i] = left >= 0 ? speed : -speed;
+    ships.evadeSpeed[i] = left >= 0 ? speed : -speed;
     ships.evadeX[i] = bodies.x[gb]! + range * cos(ships.evadeBearing[i]!);
     ships.evadeY[i] = bodies.y[gb]! + range * sin(ships.evadeBearing[i]!);
     return true;

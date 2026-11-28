@@ -1071,7 +1071,6 @@
           "avoidHorizon": 11.075,
           "dodgeSpeed": 41.184,
           "evasion": 30,
-          "evasionRadii": 1,
           "responseTime": 1.696,
           "tolerance": 0.226,
           "approachSpeed": 72.441,

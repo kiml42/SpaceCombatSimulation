@@ -207,14 +207,14 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
     { field: "dodgeSpeed", label: "dodges at", hint: "The sideways speed it asks for to get out of the way, metres per second", step: 10 },
     {
         field: "evasion",
-        label: "jinks at",
-        hint: "How fast it jinks sideways while an enemy gun is aimed at it, metres per second, so that gun's lead is stale when its rounds arrive. Zero flies straight",
+        label: "evades at",
+        hint: "How fast it evades while an enemy gun is aimed at it, metres per second, making for points round that gun so its lead is stale when its rounds arrive. Zero flies straight",
         step: 5,
     },
     {
         field: "evasionRadii",
         label: "evades round by",
-        hint: "How far round the enemy each point it evades to lies, in its own radii, accelerating and braking all the way so no lead holds. Zero jinks at a speed instead",
+        hint: "How far round the enemy each point it evades to lies, in its own radii",
         step: 0.5,
     },
     {

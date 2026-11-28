@@ -49,8 +49,7 @@
       "repairBelow": 0.629,
       "tangentialMin": 23.247,
       "tangentialMax": 64.36,
-      "evasion": 30,
-      "evasionRadii": 1
+      "evasion": 30
     }
   },
   "assemblies": {

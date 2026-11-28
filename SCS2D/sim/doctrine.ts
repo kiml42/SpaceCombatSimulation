@@ -328,19 +328,13 @@ export interface Approach {
      */
     readonly dodgeSpeed: number;
     /**
-     * How fast it jinks sideways while an enemy gun is aimed at it, m/s: a
-     * sideways speed drawn afresh, either way and up to this, about as often as
-     * that gun's rounds take to arrive, so the lead it was given is stale by
-     * the time they do. Zero flies as straight as its orders say.
+     * Whether it evades a gun aimed at it, and how fast, m/s: above zero, it
+     * makes for points round that gun (`evasionRadii`), speeding up and
+     * slowing down all the way so the gun's lead is stale when its rounds
+     * arrive, and no faster than this. Zero flies as straight as its orders say.
      */
     readonly evasion: number;
-    /**
-     * How far round the enemy each evasion point lies, in its own radii: with
-     * this above zero it evades by making for a point round the gun aimed at
-     * it rather than at a sideways speed, accelerating then braking all the
-     * way, and draws the next on arriving. `evasion` caps its speed there.
-     * Zero jinks at a speed instead.
-     */
+    /** How far round the enemy each evasion point lies, in its own radii; never under a quarter. */
     readonly evasionRadii: number;
     /**
      * How quickly it tries to correct a velocity error, seconds: the pilot asks
@@ -655,7 +649,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         chargeReserve: 0.25,
         dodgeSpeed: 60,
         evasion: 0,
-        evasionRadii: 0,
+        evasionRadii: 1,
         responseTime: 2,
         spinResist: 0,
         tolerance: 0.2,
