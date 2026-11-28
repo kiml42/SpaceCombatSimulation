@@ -820,10 +820,10 @@ export class Ships {
     readonly padReach: number[] = [];
     /** What each ship's heaviest dodge this step is from, or -1; and how far off it wants that, centre to centre, m. */
     readonly dodgingFrom: number[] = [];
-    /** The sideways speed each is jinking at, across the line of an enemy gun aimed at it, m/s; signed (`evade`). */
-    readonly jink: number[] = [];
-    /** The step each draws its next jink at. */
-    readonly jinkUntil: number[] = [];
+    /** The sideways speed each is making for its evasion point at, across the line of an enemy gun aimed at it, m/s; signed (`evade`). */
+    readonly evadeSpeed: number[] = [];
+    /** The step each draws its next evasion point at, if it has not reached this one. */
+    readonly evadeUntil: number[] = [];
     /**
      * The ship each is evading round to a point from, or -1 (`evade`): the
      * point lies `evadeBearing` round from it, as it bore when drawn, and
@@ -973,9 +973,9 @@ export class Ships {
     readonly dockAy: number[] = [];
     /** The heaviest dodge in the blend: how much it is wanted, and seconds until the near miss. */
     dodgeWeight = 0;
-    /** Which way across the line of fire the ship being flown jinks (`evade`). */
-    jinkUx = 0;
-    jinkUy = 0;
+    /** Which way across the line of fire the ship being flown evades (`evade`). */
+    evadeUx = 0;
+    evadeUy = 0;
     dodgeWhen = 0;
     /** Whether that dodge is from a rock. */
     dodgeRock = false;
@@ -1712,8 +1712,8 @@ export class Ships {
         this.padPush.push(0);
         this.handoff.push(0);
         this.dodgingFrom.push(-1);
-        this.jink.push(0);
-        this.jinkUntil.push(0);
+        this.evadeSpeed.push(0);
+        this.evadeUntil.push(0);
         this.evadeFrom.push(-1);
         this.evadeBearing.push(0);
         this.evadeArc.push(0);

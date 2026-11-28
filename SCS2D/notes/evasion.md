@@ -9,6 +9,9 @@ shot is wasted once that spread is bigger than the target.
 
 ## Why the speed jink did little
 
+The speed jink was removed once these measurements were in (DECISIONS.md 2026-11-28): `evasion` above zero now always
+means evasion points. It is described here as what the points were measured against.
+
 `approach.evasion` alone asks for a sideways *speed*, redrawn every flight time or so. Two things undid it:
 
 - **What a hull can push sideways is small.** Across the line of fire, with its bow on the enemy, a Gunship

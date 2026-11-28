@@ -145,8 +145,7 @@
   ],
   "doctrine": {
     "approach": {
-      "evasion": 30,
-      "evasionRadii": 1
+      "evasion": 30
     }
   }
 }

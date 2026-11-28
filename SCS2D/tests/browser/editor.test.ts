@@ -1156,9 +1156,9 @@ describe("the editor in a browser", () => {
         const core = await corvetteCore(page);
         await page.mouse.click(core.x, core.y);
         await page.click("#shipDoctrine > summary");
-        // The Corvette already says eleven things — among them that it fights above
+        // The Corvette already says ten things — among them that it fights above
         // its weight — so the count is what the file states rather than nothing.
-        expect(await page.textContent("#shipDoctrineSummary")).toBe("11 changes");
+        expect(await page.textContent("#shipDoctrineSummary")).toBe("10 changes");
         expect(await page.locator("#doctrine-targeting-preferredMass").inputValue()).toBe("3");
 
         // One the file leaves to the archetype.
@@ -1166,7 +1166,7 @@ describe("the editor in a browser", () => {
         expect(await box.inputValue()).toBe("");
         await box.fill("0.9");
         await page.dispatchEvent("#doctrine-approach-brake", "input");
-        expect(await page.textContent("#shipDoctrineSummary")).toBe("12 changes");
+        expect(await page.textContent("#shipDoctrineSummary")).toBe("11 changes");
 
         await page.click("#shipDoctrineReset");
         expect(await page.textContent("#shipDoctrineSummary")).toBe("default");

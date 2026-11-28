@@ -3,8 +3,8 @@ import { compileBlueprint, DEFAULT_DOCTRINE, type Blueprint } from "../sim/index
 import { makeBattle } from "../scenarios/battle.js";
 import { GUNSHIP } from "../scenarios/blueprints.js";
 
-/** A Gunship jinking at `evasion` m/s, or evading to points `evasionRadii` round, `range` from another that shoots at it. */
-function scene(evasion: number, range = 2000, evasionRadii = 0, seed = 3) {
+/** A Gunship evading at up to `evasion` m/s, to points `evasionRadii` round, `range` from another that shoots at it. */
+function scene(evasion: number, range = 2000, evasionRadii = 1, seed = 3) {
     const evading: Blueprint = {
         ...GUNSHIP,
         doctrine: {
@@ -19,31 +19,15 @@ function scene(evasion: number, range = 2000, evasionRadii = 0, seed = 3) {
     });
 }
 
-/** Each step's jink of the evading Gunship, for `seconds`. */
-function jinks(evasion: number, seconds: number): number[] {
-    const run = scene(evasion);
-    const jink = (run.ships as unknown as { jink: readonly number[] }).jink;
-    const out: number[] = [];
-    for (let s = 0; s < seconds * 60; s++) {
-        run.step();
-        out.push(jink[run.c]!);
-    }
-    return out;
-}
-
 describe("evasive manoeuvres", () => {
-    it("jinks either way, up to its evasion, and changes its jink from time to time", () => {
-        const seen = jinks(30, 40).filter((v) => v !== 0);
-        expect(seen.length).toBeGreaterThan(0);
-        for (const v of seen) expect(Math.abs(v)).toBeLessThanOrEqual(30);
-        expect(new Set(seen).size).toBeGreaterThan(1);
-        expect(seen.some((v) => v > 0) && seen.some((v) => v < 0)).toBe(true);
-        // Held a while rather than redrawn every step.
-        expect(new Set(seen).size).toBeLessThan(seen.length / 10);
-    });
-
     it("flies straight with no evasion", () => {
-        expect(jinks(0, 10).every((v) => v === 0)).toBe(true);
+        const run = scene(0);
+        const ships = run.ships as unknown as { evadeX: readonly number[]; evadeSpeed: readonly number[] };
+        for (let s = 0; s < 10 * 60; s++) {
+            run.step();
+            expect(ships.evadeSpeed[run.c]).toBe(0);
+            expect(Number.isNaN(ships.evadeX[run.c]!)).toBe(true);
+        }
     });
 
     it("evades to points round the gun aimed at it, either side, at its range from it", () => {
@@ -53,7 +37,7 @@ describe("evasive manoeuvres", () => {
             evadeX: readonly number[];
             evadeY: readonly number[];
             evadeArc: readonly number[];
-            jink: readonly number[];
+            evadeSpeed: readonly number[];
         };
         const bodies = run.world.bodies;
         const sides = new Set<number>();
@@ -71,7 +55,7 @@ describe("evasive manoeuvres", () => {
             expect(Math.abs(pointRange - range)).toBeLessThan(2);
             // Drawn no further round than one and a half of its radii, and no faster than its evasion.
             expect(Math.abs(ships.evadeArc[run.c]!)).toBeLessThanOrEqual(1.5 * bodies.radius[b]!);
-            expect(Math.abs(ships.jink[run.c]!)).toBeLessThanOrEqual(30);
+            expect(Math.abs(ships.evadeSpeed[run.c]!)).toBeLessThanOrEqual(30);
             // Which way round from the line of fire it lies.
             sides.add(
                 Math.sign(
@@ -84,12 +68,19 @@ describe("evasive manoeuvres", () => {
         expect(sides.has(1) && sides.has(-1)).toBe(true);
     });
 
-    it("draws no evasion point while jinking at a speed", () => {
-        const run = scene(30);
-        const evadeX = (run.ships as unknown as { evadeX: readonly number[] }).evadeX;
+    it("evades a quarter of its radii round at least, whatever its doctrine says", () => {
+        const run = scene(30, 2000, 0, 1);
+        const arcs = (run.ships as unknown as { evadeArc: readonly number[] }).evadeArc;
+        const radius = run.world.bodies.radius[run.world.bodies.indexOf(run.ships.body(run.c))]!;
+        let drawn = 0;
         for (let s = 0; s < 20 * 60; s++) {
             run.step();
-            expect(Number.isNaN(evadeX[run.c]!)).toBe(true);
+            if (arcs[run.c] === 0) continue;
+            drawn++;
+            // Half to one and a half of the quarter.
+            expect(Math.abs(arcs[run.c]!)).toBeGreaterThanOrEqual(0.125 * radius);
+            expect(Math.abs(arcs[run.c]!)).toBeLessThanOrEqual(0.375 * radius);
         }
+        expect(drawn).toBeGreaterThan(0);
     });
 });
