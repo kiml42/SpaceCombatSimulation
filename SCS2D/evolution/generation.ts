@@ -1,4 +1,4 @@
-import type { Rng } from "../sim/index.js";
+import { parseBlueprint, parseFleet, serialiseBlueprint, serialiseFleet, type Rng } from "../sim/index.js";
 import { min } from "../sim/math.js";
 import { mutate, type MutationLimits } from "./mutate.js";
 import { awayFrom, mutateFleet, mutateHangar, type FleetMutationLimits } from "./fleetMutate.js";
@@ -212,15 +212,30 @@ export function offspring(
 ): { entrant: Entrant; edits: readonly string[] } {
     if (isFleet(parent)) {
         const child = mutateFleet(parent, rng, { ...fleetLimits, ship: limits });
-        return { entrant: child.fleet, edits: child.edits };
+        return asWritten(parent, child.fleet, child.edits);
     }
     const paint = liveryRng(rng, 0);
     const ship = mutate(parent, rng, limits);
     const crafts = mutateHangar(ship.blueprint, rng, limits, fleetLimits?.design);
     const child = { blueprint: crafts.blueprint, edits: [...ship.edits, ...crafts.edits] };
-    if (child.edits.length === 0 || parent.livery === undefined) return { entrant: child.blueprint, edits: child.edits };
+    if (child.edits.length === 0 || parent.livery === undefined) return asWritten(parent, child.blueprint, child.edits);
     const livery = driftLivery(parent.livery, paint, awayFrom(fleetLimits?.rivals ?? []));
-    return { entrant: { ...child.blueprint, livery }, edits: child.edits };
+    return asWritten(parent, { ...child.blueprint, livery }, child.edits);
+}
+
+/**
+ * A child as its file reads back, so what a run records is exactly what fought:
+ * an angle written in degrees, or a length through a nozzle's share, can come
+ * back a bit off, and a battle can turn on that bit. A child that reads back
+ * broken, two parts that touched now overlapping, is no child: its parent stands.
+ */
+function asWritten(parent: Entrant, child: Entrant, edits: readonly string[]): { entrant: Entrant; edits: readonly string[] } {
+    if (edits.length === 0) return { entrant: child, edits };
+    try {
+        return { entrant: isFleet(child) ? parseFleet(serialiseFleet(child)) : parseBlueprint(serialiseBlueprint(child)), edits };
+    } catch {
+        return { entrant: parent, edits: [] };
+    }
 }
 
 /**

@@ -84,3 +84,35 @@ weights all 0, `--ships 1`), duels, 40 generations, two seeds; once as stock, an
 | `fireRange` 3, seed 2 | 62 m/s, 0.83 radii | 24–5 | 16–16 |
 
 At `fireRange` 3 the speed jink helps too, 19–12, and the points founder beats it, 23–8.
+
+## Which stock ships evade
+
+Each armed stock ship against itself, one side evading (30 m/s, 1 radius), 12 seeds both ways round, 1 km radius,
+90 s; the beam and lance ships, which nothing in a mirror makes evade, against a gun ship instead. Wins are
+evader–plain; damage is what each took.
+
+| Ship | Side push, m/s² | Against | Wins | Damage taken | Evades |
+| --- | --- | --- | --- | --- | --- |
+| Corvette | 3.07 | itself | 15–9 | 28% vs 34% | yes |
+| TIE | 2.00 | itself | 19–5 | 20% vs 44% | yes |
+| Fractal | 1.83 | itself | 14–10 | 7.2% vs 7.5% | yes |
+| A-Wing | 0.60 | itself | 13–11 | 31% vs 37% | yes |
+| Y-Wing | 1.28 | itself | 9–0 | 17% vs 16% | yes |
+| Beam Corvette | 2.59 | Corvette | 22–0, from 15–0 | 34%, from 38% | yes |
+| Lance Corvette | 2.11 | Corvette | 2–17, from 0–24 | 32%, foe 24% from 0% | yes |
+| X-Wing | 1.64 | TIE | 11–0, from 9–0 | 25%, foe 61% from 56% | yes |
+| Rail Corvette | 1.23 | itself; Corvette | 7–9; 7–2 from 9–4 | level | yes |
+| Gunship | 0.66 | itself | 3–21 | 43% vs 22% | no |
+| Rail Gunship | 0.09 | itself | 7–15 | 87% vs 63% | no |
+| Broadside | 1.85 | itself; Corvette | 8–16; 20–4 from 23–1 | worse | no |
+| Dinky | 1.17 | itself; TIE | 8–11; 0–23 | 55% vs 38% | no |
+| Beam Gunship | 0.97 | Gunship | 0–8 | 30%, from 19% | no |
+| Catamaran | 0.44 | Corvette | 0–22 | 34%, from 29% | no |
+| Gun Platform | 0.60 | Corvette | 0–23 | 22%, from 18% | no |
+| Lance Gunship | 0.19 | Gunship | 0–24 | level | no |
+| Laser Frigate | 0.68 | Gunship | 1–5 | less taken, less dealt | no |
+| Ghost | 0.36 | X-Wing | 24–0 | level | no |
+
+Side push alone does not sort them: the A-Wing gains on 0.6 m/s², and the Broadside and Dinky lose on more.
+The Broadside fights side on, so its side is its line of fire; the Dinky is 2.5 m across, so a point one radius
+round is no distance.

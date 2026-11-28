@@ -18,7 +18,9 @@
       "ramRadii": 5,
       "burnWeight": 0.5,
       "rangeHold": 3,
-      "tangentialMax": 30
+      "tangentialMax": 30,
+      "evasion": 30,
+      "evasionRadii": 1
     }
   },
   "assemblies": {

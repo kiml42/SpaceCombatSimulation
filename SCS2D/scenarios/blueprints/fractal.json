@@ -142,5 +142,11 @@
       "y": -5.5,
       "mirror": true
     }
-  ]
+  ],
+  "doctrine": {
+    "approach": {
+      "evasion": 30,
+      "evasionRadii": 1
+    }
+  }
 }

@@ -50,7 +50,9 @@
       "rearmBelow": 0.2,
       "repairBelow": 0.556,
       "tangentialMin": 16.257,
-      "tangentialMax": 60.88
+      "tangentialMax": 60.88,
+      "evasion": 30,
+      "evasionRadii": 1
     }
   },
   "assemblies": {

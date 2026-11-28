@@ -1,5 +1,7 @@
 import { assert, describe, expect, it } from "vitest";
 import {
+    ROUND_SHRAPNEL,
+    ROUND_WRECKAGE,
     BeamHits,
     math,
     Beams,
@@ -318,8 +320,9 @@ describe("a gun and the target it was trained on", () => {
                 }
                 if (seen.has(k)) continue;
                 seen.add(k);
-                // A fragment flies wherever its burst threw it; this is about aim.
-                if (projectiles.fragment[k] === 1) continue;
+                // A fragment flies wherever its burst threw it, and wreckage wherever a break threw it; this is about aim.
+                if (projectiles.fragment[k] === 1 || projectiles.kind[k] === ROUND_WRECKAGE || projectiles.kind[k] === ROUND_SHRAPNEL)
+                    continue;
                 const shooter = shipOf(run, projectiles.owner[k]!);
                 if (shooter < 0) continue;
                 const own = bodies.indexOf(run.ships.body(shooter));
