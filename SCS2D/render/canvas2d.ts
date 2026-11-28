@@ -3560,8 +3560,8 @@ const SELECTED_GAP_PX = 6;
 /**
  * The ship the viewer has picked out: a ring round it in its side's trim, a
  * broken line from it to whatever it is fighting, with a smaller ring there,
- * a broken ring round whatever it is escorting, and a red one round whatever
- * it is keeping clear of.
+ * a broken ring round whatever it is escorting, a red one round whatever
+ * it is keeping clear of, and a red diamond where it is evading to.
  */
 function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: number, metresToPx: number): void {
     const ship = shipByBody(snapshot, body);
@@ -3609,6 +3609,38 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
     }
     const hazard = shipByBody(snapshot, ship.avoiding ?? -1);
     if (hazard !== null && ship.avoidRoom !== undefined) drawAvoiding(ctx, ship, hazard, ship.avoidRoom, metresToPx);
+    if (ship.evadeX !== undefined && ship.evadeY !== undefined) drawEvading(ctx, ship, ship.evadeX, ship.evadeY, gap, metresToPx);
+    ctx.restore();
+}
+
+/** Pixels across the diamond marking where a selected ship is evading to. */
+const EVADE_MARK_PX = 4;
+
+/** A dotted line from a ship to the point it is evading to, marked with a diamond, in the danger colour. */
+function drawEvading(ctx: CanvasRenderingContext2D, ship: ShipView, x: number, y: number, gap: number, metresToPx: number): void {
+    const dx = x - ship.x;
+    const dy = y - ship.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const from = ship.currentStructure.radius + gap;
+    const mark = EVADE_MARK_PX / metresToPx;
+    ctx.save();
+    ctx.strokeStyle = DANGER;
+    ctx.globalAlpha = 0.8;
+    if (length > from) {
+        ctx.setLineDash([2 / metresToPx, 4 / metresToPx]);
+        ctx.beginPath();
+        ctx.moveTo(ship.x + (dx / length) * from, ship.y + (dy / length) * from);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    ctx.beginPath();
+    ctx.moveTo(x + mark, y);
+    ctx.lineTo(x, y + mark);
+    ctx.lineTo(x - mark, y);
+    ctx.lineTo(x, y - mark);
+    ctx.closePath();
+    ctx.stroke();
     ctx.restore();
 }
 

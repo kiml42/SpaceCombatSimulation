@@ -335,6 +335,14 @@ export interface Approach {
      */
     readonly evasion: number;
     /**
+     * How far round the enemy each evasion point lies, in its own radii: with
+     * this above zero it evades by making for a point round the gun aimed at
+     * it rather than at a sideways speed, accelerating then braking all the
+     * way, and draws the next on arriving. `evasion` caps its speed there.
+     * Zero jinks at a speed instead.
+     */
+    readonly evasionRadii: number;
+    /**
      * How quickly it tries to correct a velocity error, seconds: the pilot asks
      * for the error over this long. Larger is gentler, and asks less of its
      * engines, so it also turns to burn less readily.
@@ -647,6 +655,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         chargeReserve: 0.25,
         dodgeSpeed: 60,
         evasion: 0,
+        evasionRadii: 0,
         responseTime: 2,
         spinResist: 0,
         tolerance: 0.2,
@@ -884,6 +893,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "avoidHorizon",
     "dodgeSpeed",
     "evasion",
+    "evasionRadii",
     "responseTime",
     "spinResist",
     "tolerance",
@@ -935,6 +945,7 @@ export const NON_NEGATIVE_FIELDS: readonly string[] = [
     "escortCrowding",
     "guardRange",
     "evasion",
+    "evasionRadii",
     "ramSelectiveFuel",
     "escortInner",
     "spinResist",

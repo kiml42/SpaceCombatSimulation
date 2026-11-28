@@ -824,6 +824,17 @@ export class Ships {
     readonly jink: number[] = [];
     /** The step each draws its next jink at. */
     readonly jinkUntil: number[] = [];
+    /**
+     * The ship each is evading round to a point from, or -1 (`evade`): the
+     * point lies `evadeBearing` round from it, as it bore when drawn, and
+     * `evadeArc` m off along the arc at its range then, signed anticlockwise.
+     */
+    readonly evadeFrom: number[] = [];
+    readonly evadeBearing: number[] = [];
+    readonly evadeArc: number[] = [];
+    /** Where each is evading to, world frame, m; NaN for nowhere. For the view. */
+    readonly evadeX: number[] = [];
+    readonly evadeY: number[] = [];
     readonly dodgingRoom: number[] = [];
     /** Metal and fuel each ship's robots have brought in from rock and wreckage, kg, all battle: for the view, as income. */
     readonly gatheredMetal: number[] = [];
@@ -1703,6 +1714,11 @@ export class Ships {
         this.dodgingFrom.push(-1);
         this.jink.push(0);
         this.jinkUntil.push(0);
+        this.evadeFrom.push(-1);
+        this.evadeBearing.push(0);
+        this.evadeArc.push(0);
+        this.evadeX.push(NaN);
+        this.evadeY.push(NaN);
         this.dodgingRoom.push(0);
         this.gatheredMetal.push(0);
         this.gatheredFuel.push(0);
@@ -2396,6 +2412,8 @@ export class Ships {
             this.viaX[i] = NaN;
             this.viaY[i] = NaN;
             this.destX[i] = NaN;
+            this.evadeX[i] = NaN;
+            this.evadeY[i] = NaN;
             this.destY[i] = NaN;
             this.routeShown[i] = 0;
             // Nothing controls a severed chunk, or a ship whose cores have been

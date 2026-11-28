@@ -27,6 +27,11 @@ Linear is reached through its GraphQL API (`https://api.linear.app/graphql`) wit
 different workspace: don't file this project's issues through it. Issues are in team `SCS`. References
 written `#n` are GitHub issues from before the move.
 
+[Atomic Rockets](https://www.projectrho.com/public_html/rocket/) is a generally useful reference for the physics
+and tactics this game models: engines, armour, weapons and how space combat plays out. Its
+[space-war defence page](https://www.projectrho.com/public_html/rocket/spacewardefense.php) covers evasive
+manoeuvring (`notes/evasion.md`).
+
 Before proposing a change that reverses a design decision, check **DESIGN.md §11 Rejected alternatives**.
 Those were settled deliberately with reasons recorded. Reopen one only with new information, and if it is
 reopened, update §11 and add an entry to [DECISIONS.md](DECISIONS.md).
