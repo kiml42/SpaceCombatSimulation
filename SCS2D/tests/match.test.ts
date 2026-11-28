@@ -83,8 +83,10 @@ describe("match", () => {
         expect(result.ending).toEqual("decided");
         expect(result.elapsed).toBeLessThan(DEFAULT_MATCH.duration);
         const winner = result.scores.reduce((best, score) => (score.total > best.total ? score : best));
-        // Far more than the share of the clock it took, which is all it would get uncredited.
-        expect(winner.survival).toBeGreaterThan(0.9);
+        // At least what it has left, credited for the rest of the clock: uncredited, it
+        // would get no more than the share of the clock it took.
+        expect(winner.survival).toBeGreaterThanOrEqual(1 - winner.taken);
+        expect(winner.survival).toBeGreaterThan(2 * (result.elapsed / DEFAULT_MATCH.duration));
         expect(result.elapsed / DEFAULT_MATCH.duration).toBeLessThan(0.9);
     });
 

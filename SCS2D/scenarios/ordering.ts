@@ -1,4 +1,4 @@
-import { compileBlueprint, expandWithOrigins, MODULE_KINDS, type Blueprint, type ModuleSpec } from "../sim/index.js";
+import { compileBlueprint, DEFAULT_DOCTRINE, expandWithOrigins, MODULE_KINDS, type Blueprint, type ModuleSpec } from "../sim/index.js";
 import { NO_TARGET, OrderCancelCondition } from "../sim/ships.js";
 import type { Battle } from "./types.js";
 import { CROSSING, SIDE_WELL, makeBattle } from "./battle.js";
@@ -49,6 +49,15 @@ const byKind = (modules: ModuleSpec[]): ModuleSpec[] =>
  * The layouts under test, in the order the contenders are reported: the
  * control, the variable, and the assembled ship the control is a copy of.
  */
+/** The Corvette, not evading: a mark that weaved would turn the round-off this measures into chaos, as one that fought back would. */
+const STILL_MARK: Blueprint = {
+    ...CORVETTE,
+    doctrine: {
+        targeting: { ...DEFAULT_DOCTRINE.targeting, ...CORVETTE.doctrine?.targeting },
+        approach: { ...DEFAULT_DOCTRINE.approach, ...CORVETTE.doctrine?.approach, evasion: 0 },
+    },
+};
+
 export const ORDERINGS = [
     { name: "flat, expansion order", blueprint: flatGunship((modules) => modules) },
     { name: "flat, kinds together", blueprint: flatGunship(byKind) },
@@ -88,7 +97,7 @@ function battle(which: readonly number[], seed: number): OrderingBattle {
         // A corvette rather than another gunship, so a contender is never mistaken
         // for the mark on screen.
         const target = ships.spawn(world, {
-            design: compileBlueprint(CORVETTE),
+            design: compileBlueprint(STILL_MARK),
             ...CROSSING.east,
             x: CROSSING.east.x / 2,
             team: 1,

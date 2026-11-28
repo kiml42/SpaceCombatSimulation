@@ -280,6 +280,8 @@
         "approach": {
           "standoffRadii": 30,
           "standoff": 0.7,
+          "evasion": 30,
+          "evasionRadii": 1,
           "tolerance": 0.6,
           "ramRadii": 60,
           "ramArmed": 0.5
@@ -431,6 +433,8 @@
         "approach": {
           "standoffRadii": 100,
           "escortMinRadii": 1.2,
+          "evasion": 30,
+          "evasionRadii": 1,
           "tolerance": 0.4,
           "ramRadii": 30
         }

@@ -11,7 +11,9 @@
       "standoffRadii": 100,
       "escortMinRadii": 1.2,
       "tolerance": 0.4,
-      "ramRadii": 30
+      "ramRadii": 30,
+      "evasion": 30,
+      "evasionRadii": 1
     }
   },
   "assemblies": {

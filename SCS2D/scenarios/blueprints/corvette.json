@@ -15,7 +15,9 @@
       "standoff": 0.7,
       "tolerance": 0.6,
       "ramRadii": 60,
-      "ramArmed": 0.5
+      "ramArmed": 0.5,
+      "evasion": 30,
+      "evasionRadii": 1
     }
   },
   "assemblies": {
