@@ -21,7 +21,7 @@ sees. Code may keep its own names (`BattlePage`, `Blueprint`, `battleRoute`); th
 
 | Term | What it is | Not |
 | --- | --- | --- |
-| **evasion point** | Where a ship dodging a gun aimed at it is making for, round that gun at its range; drawn as a red diamond for the selected ship | dodge point, jink point |
+| **evasion point** | Where a ship dodging a gun aimed at it is making for, round that gun at its range; drawn for the selected ship as a red arrow from it to a diamond | dodge point, jink point |
 | **design** | What the ship editor makes, and what a fleet places copies of | blueprint |
 | **ship** | One built from a design, in a fleet or a battle | |
 | **fleet** | Ships laid out together, each from a design | |
