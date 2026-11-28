@@ -16,3 +16,4 @@ is waiting for is just a second place to look.
 | File | What it is |
 | --- | --- |
 | `compare-designs.mts` | Compiles every authored ship on two checkouts and compares each figure bit for bit. |
+| `evasion.md` | Measurements behind evasion points: what a hull can push sideways, the speed jink against points, and a doctrine-only evolution between them. |

@@ -212,6 +212,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
         step: 5,
     },
     {
+        field: "evasionRadii",
+        label: "evades round by",
+        hint: "How far round the enemy each point it evades to lies, in its own radii, accelerating and braking all the way so no lead holds. Zero jinks at a speed instead",
+        step: 0.5,
+    },
+    {
         field: "responseTime",
         label: "responds in",
         hint: "How quickly it corrects its velocity, seconds: smaller asks its engines for more, and turns to burn more readily",
@@ -892,6 +898,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                     entry("approach", "orbitWeight"),
                     entry("approach", "dodgeSpeed", { shown: (v) => v.approach.separation > 0 }),
                     entry("approach", "evasion"),
+                    entry("approach", "evasionRadii", { shown: (v) => v.approach.evasion > 0 }),
                 ],
             },
         ],

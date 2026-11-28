@@ -103,6 +103,9 @@ export interface ShipView {
     viaY?: number;
     destX?: number;
     destY?: number;
+    /** The point it is evading to, round the gun aimed at it (`approach.evasionRadii`), world frame; absent for none. */
+    evadeX?: number;
+    evadeY?: number;
     /** Metal and fuel its robots have brought in from rock and wreckage, kg, all battle; absent for none. */
     gatheredMetal?: number;
     gatheredFuel?: number;
@@ -655,6 +658,14 @@ export function capture(
         } else {
             delete view.destX;
             delete view.destY;
+        }
+        const evadeX = ships.evadeX[i]!;
+        if (evadeX === evadeX) {
+            view.evadeX = evadeX;
+            view.evadeY = ships.evadeY[i]!;
+        } else {
+            delete view.evadeX;
+            delete view.evadeY;
         }
         const gathered = ships.gatheredMetal[i]!;
         const gatheredFuel = ships.gatheredFuel[i]!;

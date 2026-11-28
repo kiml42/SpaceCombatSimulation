@@ -3560,8 +3560,8 @@ const SELECTED_GAP_PX = 6;
 /**
  * The ship the viewer has picked out: a ring round it in its side's trim, a
  * broken line from it to whatever it is fighting, with a smaller ring there,
- * a broken ring round whatever it is escorting, and a red one round whatever
- * it is keeping clear of.
+ * a broken ring round whatever it is escorting, a red one round whatever
+ * it is keeping clear of, and a red arrow from it to where it is evading to.
  */
 function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: number, metresToPx: number): void {
     const ship = shipByBody(snapshot, body);
@@ -3609,6 +3609,49 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
     }
     const hazard = shipByBody(snapshot, ship.avoiding ?? -1);
     if (hazard !== null && ship.avoidRoom !== undefined) drawAvoiding(ctx, ship, hazard, ship.avoidRoom, metresToPx);
+    if (ship.evadeX !== undefined && ship.evadeY !== undefined) drawEvading(ctx, ship, ship.evadeX, ship.evadeY, metresToPx);
+    ctx.restore();
+}
+
+/** Pixels across the diamond marking where a selected ship is evading to, and long the arrowhead on the way there. */
+const EVADE_MARK_PX = 4;
+const EVADE_HEAD_PX = 6;
+
+/**
+ * The sideways step a ship is evading by: an arrow from its middle, where it
+ * is, to the point it is making for, marked with a diamond, in the danger
+ * colour. Drawn over the hull, since a step is about as long as the ship is.
+ */
+function drawEvading(ctx: CanvasRenderingContext2D, ship: ShipView, x: number, y: number, metresToPx: number): void {
+    const dx = x - ship.x;
+    const dy = y - ship.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const mark = EVADE_MARK_PX / metresToPx;
+    const head = Math.min(EVADE_HEAD_PX / metresToPx, length / 2);
+    ctx.save();
+    ctx.strokeStyle = DANGER;
+    ctx.lineWidth = 1.5 / metresToPx;
+    if (length > mark) {
+        const ux = dx / length;
+        const uy = dy / length;
+        // To the diamond's edge, so the head meets it rather than sinking into it.
+        const tipX = x - ux * mark;
+        const tipY = y - uy * mark;
+        ctx.beginPath();
+        ctx.moveTo(ship.x, ship.y);
+        ctx.lineTo(tipX, tipY);
+        ctx.moveTo(tipX - ux * head - uy * head * 0.6, tipY - uy * head + ux * head * 0.6);
+        ctx.lineTo(tipX, tipY);
+        ctx.lineTo(tipX - ux * head + uy * head * 0.6, tipY - uy * head - ux * head * 0.6);
+        ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.moveTo(x + mark, y);
+    ctx.lineTo(x, y + mark);
+    ctx.lineTo(x - mark, y);
+    ctx.lineTo(x, y - mark);
+    ctx.closePath();
+    ctx.stroke();
     ctx.restore();
 }
 
